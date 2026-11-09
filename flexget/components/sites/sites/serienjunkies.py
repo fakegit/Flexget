@@ -1,6 +1,3 @@
-# coding=utf-8
-
-
 import re
 
 from loguru import logger
@@ -13,18 +10,20 @@ from flexget.utils.soup import get_soup
 
 logger = logger.bind(name='serienjunkies')
 
-regex_single_ep = re.compile(r'(S\d+E\d\d+)(?!-E)', re.I)
-regex_multi_ep = re.compile(r'(?P<season>S\d\d)E(?P<startep>\d\d+)-E?(?P<stopep>\d\d+)', re.I)
-regex_season = re.compile(r'(?<=\.|\-)S\d\d(?:[-\.]S\d\d)*(?!E\d\d+)', re.I)
+regex_single_ep = re.compile(r'(S\d+E\d\d+)(?!-E)', re.IGNORECASE)
+regex_multi_ep = re.compile(
+    r'(?P<season>S\d\d)E(?P<startep>\d\d+)-E?(?P<stopep>\d\d+)', re.IGNORECASE
+)
+regex_season = re.compile(r'(?<=\.|\-)S\d\d(?:[-\.]S\d\d)*(?!E\d\d+)', re.IGNORECASE)
 
 regex_language_container = re.compile(r'Sprache')
 
-regex_is_german = re.compile(r'german|deutsch', re.I)
+regex_is_german = re.compile(r'german|deutsch', re.IGNORECASE)
 regex_is_foreign = re.compile(
     r'englisc?h|französisch|japanisch|dänisch|norwegisch|niederländisch|ungarisch|italienisch|portugiesisch',
-    re.I,
+    re.IGNORECASE,
 )
-regex_is_subtitle = re.compile(r'Untertitel|Subs?|UT', re.I)
+regex_is_subtitle = re.compile(r'Untertitel|Subs?|UT', re.IGNORECASE)
 
 LANGUAGE = ['german', 'foreign', 'subtitle', 'dual']
 HOSTER = ['ul', 'cz', 'so', 'all']
@@ -34,16 +33,17 @@ DEFAULT_HOSTER = 'ul'
 
 
 class UrlRewriteSerienjunkies:
-    """
-    Serienjunkies urlrewriter
+    """Serienjunkies urlrewriter.
+
     Version 1.0.2
 
     Language setting works like a whitelist, the selected is needed,
     but others are still possible.
 
-    Configuration
-    language: [german|foreign|subtitle|dual] default "foreign"
-    hoster: [ul|cz|so|all] default "ul"
+    Configuration::
+
+        language: [german|foreign|subtitle|dual] default "foreign"
+        hoster: [ul|cz|so|all] default "ul"
     """
 
     schema = {
@@ -64,11 +64,7 @@ class UrlRewriteSerienjunkies:
     # urlrewriter API
     def url_rewritable(self, task, entry):
         url = entry['url']
-        if url.startswith('http://www.serienjunkies.org/') or url.startswith(
-            'http://serienjunkies.org/'
-        ):
-            return True
-        return False
+        return bool(url.startswith(('http://www.serienjunkies.org/', 'http://serienjunkies.org/')))
 
     # urlrewriter API
     def url_rewrite(self, task, entry):
@@ -80,7 +76,7 @@ class UrlRewriteSerienjunkies:
             entry.reject('No Episode found')
         else:
             entry['url'] = download_urls[-1]
-            entry['description'] = ", ".join(download_urls)
+            entry['description'] = ', '.join(download_urls)
 
         # Debug Information
         logger.debug('TV Show URL: {}', series_url)
@@ -103,7 +99,7 @@ class UrlRewriteSerienjunkies:
 
         for ep_title in episode_titles:
             # find matching download
-            episode_title = soup.find('strong', text=re.compile(ep_title, re.I))
+            episode_title = soup.find('strong', text=re.compile(ep_title, re.IGNORECASE))
             if not episode_title:
                 continue
 
@@ -136,8 +132,8 @@ class UrlRewriteSerienjunkies:
                     continue
 
                 url = link['href']
-                pattern = (
-                    r'http:\/\/download\.serienjunkies\.org.*%s_.*\.html' % self.config['hoster']
+                pattern = r'http:\/\/download\.serienjunkies\.org.*{}_.*\.html'.format(
+                    self.config['hoster']
                 )
 
                 if re.match(pattern, url) or self.config['hoster'] == 'all':
@@ -154,25 +150,27 @@ class UrlRewriteSerienjunkies:
             first_ep = int(regex_multi_ep.search(search_title).group('startep'))
             last_ep = int(regex_multi_ep.search(search_title).group('stopep'))
             season = regex_multi_ep.search(search_title).group('season') + 'E'
-            for i in range(first_ep, last_ep + 1):
-                # ToDO: Umlaute , Mehrzeilig etc.
-                search_titles.append(
-                    regex_multi_ep.sub(
-                        season + str(i).zfill(2) + '[\\\\w\\\\.\\\\(\\\\)]*', search_title
-                    )
+            # TODO: Umlaute , Mehrzeilig etc.
+            search_titles.extend([
+                regex_multi_ep.sub(
+                    season + str(i).zfill(2) + '[\\\\w\\\\.\\\\(\\\\)]*', search_title
                 )
+                for i in range(first_ep, last_ep + 1)
+            ])
         elif regex_season.search(search_title):
             logger.debug('Title seems to describe one or more season')
             search_string = regex_season.search(search_title).group(0)
-            for s in re.findall(r'(?<!\-)S\d\d(?!\-)', search_string):
-                search_titles.append(regex_season.sub(s + '[\\\\w\\\\.]*', search_title))
+            search_titles.extend([
+                regex_season.sub(s + '[\\\\w\\\\.]*', search_title)
+                for s in re.findall(r'(?<!\-)S\d\d(?!\-)', search_string)
+            ])
             for s in re.finditer(r'(?<!\-)S(\d\d)-S(\d\d)(?!\-)', search_string):
                 season_start = int(s.group(1))
                 season_end = int(s.group(2))
-                for i in range(season_start, season_end + 1):
-                    search_titles.append(
-                        regex_season.sub('S' + str(i).zfill(2) + '[\\\\w\\\\.]*', search_title)
-                    )
+                search_titles.extend([
+                    regex_season.sub('S' + str(i).zfill(2) + '[\\\\w\\\\.]*', search_title)
+                    for i in range(season_start, season_end + 1)
+                ])
         else:
             logger.debug('Title seems to describe a single episode')
             search_titles.append(re.escape(search_title))
@@ -196,9 +194,12 @@ class UrlRewriteSerienjunkies:
             elif self.config['language'] == 'subtitle':
                 if len(language_list) > 1 and regex_is_subtitle.search(language_list[1]):
                     return True
-            elif self.config['language'] == 'dual':
-                if len(language_list) > 1 and not regex_is_subtitle.search(language_list[1]):
-                    return True
+            elif (
+                self.config['language'] == 'dual'
+                and len(language_list) > 1
+                and not regex_is_subtitle.search(language_list[1])
+            ):
+                return True
         except (KeyError, re.error):
             pass
 

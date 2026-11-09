@@ -1,20 +1,25 @@
+from __future__ import annotations
+
 import contextlib
 import logging
+import os
 import random
 import string
-import sys
 import threading
-from typing import Callable, Optional
+import unittest.mock
+from typing import TYPE_CHECKING
 
+import rich.text
 import rpyc
 from loguru import logger
 from rpyc.utils.server import ThreadedServer
-from terminaltables.terminal_io import terminal_size
 
 from flexget import terminal
 from flexget.log import capture_logs
 from flexget.options import get_parser
-from flexget.terminal import capture_console, console
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 logger = logger.bind(name='ipc')
 
@@ -28,15 +33,14 @@ AUTH_SUCCESS = b'authentication success'
 
 
 class RemoteStream:
-    """
-    Used as a filelike to stream text to remote client. If client disconnects while this is in use, an error will be
+    """Used as a filelike to stream text to remote client.
+
+    If client disconnects while this is in use, an error will be
     logged, but no exception raised.
     """
 
-    def __init__(self, writer: Optional[Callable]):
-        """
-        :param writer: A function which writes a line of text to remote client.
-        """
+    def __init__(self, writer: Callable | None):
+        """:param writer: A function which writes a line of text to remote client."""
         self.buffer = ''
         self.writer = writer
 
@@ -71,39 +75,34 @@ class DaemonService(rpyc.Service):
     def exposed_handle_cli(self, args):
         args = rpyc.utils.classic.obtain(args)
         logger.verbose('Running command `{}` for client.', ' '.join(args))
-        parser = get_parser()
-        try:
-            options = parser.parse_args(args, file=self.client_out_stream)
-        except SystemExit as e:
-            if e.code:
-                # TODO: Not sure how to properly propagate the exit code back to client
-                logger.debug('Parsing cli args caused system exit with status {}.', e.code)
-            return
-        # Saving original terminal size to restore after monkeypatch
-        original_terminal_info = terminal.terminal_info
-        # Monkeypatching terminal_size so it'll work using IPC
-        terminal.terminal_info = self._conn.root.terminal_info
+        with unittest.mock.patch.dict(os.environ, {'FORCE_COLOR': '1'}):
+            parser = get_parser()
+            try:
+                options = parser.parse_args(args, file=self.client_out_stream)
+            except SystemExit as e:
+                if e.code:
+                    # TODO: Not sure how to properly propagate the exit code back to client
+                    logger.debug('Parsing cli args caused system exit with status {}.', e.code)
+                return
         context_managers = []
         # Don't capture any output when used with --cron
         if not options.cron:
-            context_managers.append(capture_console(self.client_out_stream))
+            # Monkeypatch the console function to be the one from the client
+            # This means decisions about color formatting, and table sizes can be delayed and
+            # decided based on the client terminal capabilities.
+            context_managers.append(
+                unittest.mock.patch('flexget.terminal._patchable_console', self._conn.root.console)
+            )
             if options.loglevel != 'NONE':
                 context_managers.append(capture_logs(self.client_log_sink, level=options.loglevel))
-        try:
-            with contextlib.ExitStack() as stack:
-                for cm in context_managers:
-                    stack.enter_context(cm)
-                self.manager.handle_cli(options)
-        finally:
-            # Restoring original terminal_size value
-            terminal.terminal_info = original_terminal_info
-
-    def client_console(self, text):
-        self._conn.root.console(text)
+        with contextlib.ExitStack() as stack:
+            for cm in context_managers:
+                stack.enter_context(cm)
+            self.manager.handle_cli(options)
 
     @property
     def client_out_stream(self):
-        return RemoteStream(self._conn.root.console)
+        return RemoteStream(self._conn.root.write)
 
     def client_log_sink(self, message):
         return self._conn.root.log_sink(message)
@@ -114,7 +113,7 @@ class ClientService(rpyc.Service):
         self._conn = conn
         """Make sure the client version matches our own."""
         daemon_version = self._conn.root.version()
-        if IPC_VERSION != daemon_version:
+        if daemon_version != IPC_VERSION:
             self._conn.close()
             raise ValueError('Daemon is different version than client.')
         super().on_connect(conn)
@@ -123,10 +122,13 @@ class ClientService(rpyc.Service):
         return IPC_VERSION
 
     def exposed_console(self, text, *args, **kwargs):
-        console(text, *args, **kwargs)
+        text = rpyc.classic.obtain(text)
+        terminal.console(text, *args, **kwargs)
 
-    def exposed_terminal_info(self):
-        return {'size': terminal_size(), 'isatty': sys.stdout.isatty()}
+    def exposed_write(self, text, *args, **kwargs):
+        text = rpyc.classic.obtain(text)
+        text = rich.text.Text.from_ansi(text)
+        terminal.console(text, *args, **kwargs)
 
     def exposed_log_sink(self, message):
         message = rpyc.classic.obtain(message)

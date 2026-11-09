@@ -1,9 +1,13 @@
-"""
-Provides small event framework
-"""
-from typing import Callable, List, Dict, Any
+"""Provides small event framework."""
+
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any
 
 from loguru import logger
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 logger = logger.bind(name='event')
 
@@ -37,11 +41,11 @@ class Event:
         return hash((self.name, self.func, self.priority))
 
 
-_events: Dict[str, List[Event]] = {}
+_events: dict[str, list[Event]] = {}
 
 
 def event(name: str, priority: int = 128) -> Callable[[Callable], Callable]:
-    """Register event to function with a decorator"""
+    """Register event to function with a decorator."""
 
     def decorator(func: Callable) -> Callable:
         add_event_handler(name, func, priority)
@@ -50,19 +54,20 @@ def event(name: str, priority: int = 128) -> Callable[[Callable], Callable]:
     return decorator
 
 
-def get_events(name: str) -> List[Event]:
-    """
+def get_events(name: str) -> list[Event]:
+    """Return list of :class:`Event` for *name* ordered by priority.
+
     :param String name: event name
-    :return: List of :class:`Event` for *name* ordered by priority
     """
     if name not in _events:
-        raise KeyError('No such event %s' % name)
+        raise KeyError(f'No such event {name}')
     _events[name].sort(reverse=True)
     return _events[name]
 
 
 def add_event_handler(name: str, func: Callable, priority: int = 128) -> Event:
-    """
+    """Return event created.
+
     :param string name: Event name
     :param function func: Function that acts as event handler
     :param priority: Priority for this hook
@@ -74,8 +79,7 @@ def add_event_handler(name: str, func: Callable, priority: int = 128) -> Event:
     for event in events:
         if event.func == func:
             raise ValueError(
-                '%s has already been registered as event listener under name %s'
-                % (func.__name__, name)
+                f'{func.__name__} has already been registered as event listener under name {name}'
             )
     logger.trace('registered function {} to event {}', func.__name__, name)
     event = Event(name, func, priority)
@@ -84,7 +88,7 @@ def add_event_handler(name: str, func: Callable, priority: int = 128) -> Event:
 
 
 def remove_event_handlers(name: str) -> None:
-    """Removes all handlers for given event `name`."""
+    """Remove all handlers for given event `name`."""
     _events.pop(name, None)
 
 
@@ -96,8 +100,9 @@ def remove_event_handler(name: str, func: Callable) -> None:
 
 
 def fire_event(name: str, *args, **kwargs) -> Any:
-    """
-    Trigger an event with *name*. If event is not hooked by anything nothing happens. If a function that hooks an event
+    """Trigger an event with *name*.
+
+    If event is not hooked by anything nothing happens. If a function that hooks an event
     returns a value, it will replace the first argument when calling next function.
 
     :param name: Name of event to be called
@@ -108,5 +113,5 @@ def fire_event(name: str, *args, **kwargs) -> Any:
         for event in get_events(name):
             result = event(*args, **kwargs)
             if result is not None:
-                args = (result,) + args[1:]
+                args = result, *args[1:]
     return args and args[0]

@@ -15,6 +15,7 @@ logger = logger.bind(name='remember_rej')
 
 class FilterRememberRejected:
     """Internal.
+
     Rejects entries which have been rejected in the past.
 
     This is enabled when item is rejected with remember=True flag.
@@ -41,7 +42,8 @@ class FilterRememberRejected:
             elif not task.is_rerun:
                 # Delete expired items if this is not a rerun
                 deleted = (
-                    session.query(db.RememberEntry)
+                    session
+                    .query(db.RememberEntry)
                     .filter(db.RememberEntry.task_id == old_task.id)
                     .filter(db.RememberEntry.expires < datetime.now())
                     .delete()
@@ -57,7 +59,7 @@ class FilterRememberRejected:
 
     @plugin.priority(plugin.PRIORITY_FIRST)
     def on_task_filter(self, task, config):
-        """Reject any remembered entries from previous runs"""
+        """Reject any remembered entries from previous runs."""
         with Session() as session:
             (task_id,) = (
                 session.query(db.RememberTask.id).filter(db.RememberTask.name == task.name).first()
@@ -79,8 +81,7 @@ class FilterRememberRejected:
                     ).first()
                     if reject_entry:
                         entry.reject(
-                            'Rejected on behalf of %s plugin: %s'
-                            % (reject_entry.rejected_by, reject_entry.reason)
+                            f'Rejected on behalf of {reject_entry.rejected_by} plugin: {reject_entry.reason}'
                         )
 
     def on_entry_reject(self, entry, remember=None, remember_time=None, **kwargs):
@@ -88,14 +89,13 @@ class FilterRememberRejected:
         if not (remember or remember_time):
             return
         if not entry.get('title') or not entry.get('original_url'):
-            logger.debug('Can\'t remember rejection for entry without title or url.')
+            logger.debug("Can't remember rejection for entry without title or url.")
             return
+        if remember_time and isinstance(remember_time, str):
+            remember_time = parse_timedelta(remember_time)
+        message = 'Remembering rejection of `{}`'.format(entry['title'])
         if remember_time:
-            if isinstance(remember_time, str):
-                remember_time = parse_timedelta(remember_time)
-        message = 'Remembering rejection of `%s`' % entry['title']
-        if remember_time:
-            message += ' for %i minutes' % (remember_time.seconds / 60)
+            message += f' for {remember_time.seconds / 60} minutes'
         logger.info(message)
         entry['remember_rejected'] = remember_time or remember
 
@@ -110,7 +110,8 @@ class FilterRememberRejected:
                     expires = datetime.now() + entry['remember_rejected']
 
                 (remember_task_id,) = (
-                    session.query(db.RememberTask.id)
+                    session
+                    .query(db.RememberTask.id)
                     .filter(db.RememberTask.name == task.name)
                     .first()
                 )

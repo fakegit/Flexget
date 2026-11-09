@@ -1,14 +1,14 @@
-# -*- coding: utf-8 -*-
-
+from __future__ import annotations
 
 import time
-from datetime import datetime, timedelta
-from typing import List
+from datetime import date, datetime, timedelta
+from datetime import time as datetimetime
+from typing import TYPE_CHECKING
 
 from dateutil.parser import parse as dateutil_parse
 from loguru import logger
-from sqlalchemy import Column, Date, DateTime, Integer, String, Table, Time, Unicode, and_, or_
-from sqlalchemy.orm import relation
+from sqlalchemy import Column, Table, and_, or_
+from sqlalchemy.orm import DynamicMapped, Mapped, mapped_column, relationship
 from sqlalchemy.schema import ForeignKey
 
 from flexget import db_schema, plugin
@@ -16,7 +16,11 @@ from flexget.manager import Session
 from flexget.terminal import console
 from flexget.utils import requests
 from flexget.utils.database import json_synonym
+from flexget.utils.requests import TimedLimiter
 from flexget.utils.tools import split_title_year
+
+if TYPE_CHECKING:
+    from flexget.entry import Entry
 
 Base = db_schema.versioned_base('api_trakt', 7)
 AuthBase = db_schema.versioned_base('trakt_auth', 0)
@@ -32,11 +36,11 @@ PIN_URL = 'https://trakt.tv/pin/346'
 class TraktUserAuth(AuthBase):
     __tablename__ = 'trakt_user_auth'
 
-    account = Column(Unicode, primary_key=True)
-    access_token = Column(Unicode)
-    refresh_token = Column(Unicode)
-    created = Column(DateTime)
-    expires = Column(DateTime)
+    account: Mapped[str] = mapped_column(primary_key=True)
+    access_token: Mapped[str | None]
+    refresh_token: Mapped[str | None]
+    created: Mapped[datetime | None]
+    expires: Mapped[datetime | None]
 
     def __init__(self, account, access_token, refresh_token, created, expires):
         self.account = account
@@ -64,8 +68,8 @@ def device_auth():
         interval = r['interval']
 
         console(
-            'Please visit {0} and authorize Flexget. Your user code is {1}. Your code expires in '
-            '{2} minutes.'.format(r['verification_url'], user_code, expires_in / 60.0)
+            'Please visit {} and authorize Flexget. Your user code is {}. Your code expires in '
+            '{} minutes.'.format(r['verification_url'], user_code, expires_in / 60.0)
         )
 
         logger.debug('Polling for user authorization.')
@@ -81,7 +85,7 @@ def device_auth():
             )
             if polling_request.status_code == 200:  # success
                 return polling_request.json()
-            elif polling_request.status_code == 400:  # pending -- waiting for user
+            if polling_request.status_code == 400:  # pending -- waiting for user
                 console('...', end='')
             elif polling_request.status_code == 404:  # not found -- invalid device_code
                 raise plugin.PluginError('Invalid device code. Open an issue on Github.')
@@ -96,27 +100,27 @@ def device_auth():
                 interval += 1
         raise plugin.PluginError('User code has expired. Please try again.')
     except requests.RequestException as e:
-        raise plugin.PluginError('Device authorization with Trakt.tv failed: {0}'.format(e))
+        raise plugin.PluginError(f'Device authorization with Trakt.tv failed: {e}')
 
 
 def token_oauth(data):
     try:
         return requests.post(get_api_url('oauth/token'), data=data).json()
     except requests.RequestException as e:
-        raise plugin.PluginError('Token exchange with trakt failed: {0}'.format(e))
+        raise plugin.PluginError(f'Token exchange with trakt failed: {e}')
 
 
 def delete_account(account):
     with Session() as session:
         acc = session.query(TraktUserAuth).filter(TraktUserAuth.account == account).first()
         if not acc:
-            raise plugin.PluginError('Account %s not found.' % account)
+            raise plugin.PluginError(f'Account {account} not found.')
         session.delete(acc)
 
 
 def get_access_token(account, token=None, refresh=False, re_auth=False, called_from_cli=False):
-    """
-    Gets authorization info from a pin or refresh token.
+    """Get authorization info from a pin or refresh token.
+
     :param account: Arbitrary account name to attach authorization to.
     :param unicode token: The pin or refresh token, as supplied by the trakt website.
     :param bool refresh: If True, refresh the access token using refresh_token from db.
@@ -132,47 +136,41 @@ def get_access_token(account, token=None, refresh=False, re_auth=False, called_f
         acc = session.query(TraktUserAuth).filter(TraktUserAuth.account == account).first()
         if acc and datetime.now() < acc.expires and not refresh and not re_auth:
             return acc.access_token
+        if acc and (refresh or datetime.now() >= acc.expires - timedelta(days=5)) and not re_auth:
+            logger.debug('Using refresh token to re-authorize account {}.', account)
+            data['refresh_token'] = acc.refresh_token
+            data['grant_type'] = 'refresh_token'
+            token_dict = token_oauth(data)
+        elif token:
+            # We are only in here if a pin was specified, so it's safe to use console instead of logging
+            console(
+                'Warning: PIN authorization has been deprecated. Use Device Authorization instead.'
+            )
+            data['code'] = token
+            data['grant_type'] = 'authorization_code'
+            token_dict = token_oauth(data)
+        elif called_from_cli:
+            logger.debug(
+                'No pin specified for an unknown account {}. Attempting to authorize device.',
+                account,
+            )
+            token_dict = device_auth()
         else:
-            if (
-                acc
-                and (refresh or datetime.now() >= acc.expires - timedelta(days=5))
-                and not re_auth
-            ):
-                logger.debug('Using refresh token to re-authorize account {}.', account)
-                data['refresh_token'] = acc.refresh_token
-                data['grant_type'] = 'refresh_token'
-                token_dict = token_oauth(data)
-            elif token:
-                # We are only in here if a pin was specified, so it's safe to use console instead of logging
-                console(
-                    'Warning: PIN authorization has been deprecated. Use Device Authorization instead.'
-                )
-                data['code'] = token
-                data['grant_type'] = 'authorization_code'
-                token_dict = token_oauth(data)
-            elif called_from_cli:
-                logger.debug(
-                    'No pin specified for an unknown account {}. Attempting to authorize device.',
-                    account,
-                )
-                token_dict = device_auth()
-            else:
-                raise plugin.PluginError(
-                    'Account %s has not been authorized. See `flexget trakt auth -h` on how to.'
-                    % account
-                )
-            try:
-                new_acc = TraktUserAuth(
-                    account,
-                    token_dict['access_token'],
-                    token_dict['refresh_token'],
-                    token_dict.get('created_at', time.time()),
-                    token_dict['expires_in'],
-                )
-                session.merge(new_acc)
-                return new_acc.access_token
-            except requests.RequestException as e:
-                raise plugin.PluginError('Token exchange with trakt failed: {0}'.format(e))
+            raise plugin.PluginError(
+                f'Account {account} has not been authorized. See `flexget trakt auth -h` on how to.'
+            )
+        try:
+            new_acc = TraktUserAuth(
+                account,
+                token_dict['access_token'],
+                token_dict['refresh_token'],
+                token_dict.get('created_at', time.time()),
+                token_dict['expires_in'],
+            )
+            session.merge(new_acc)
+        except requests.RequestException as e:
+            raise plugin.PluginError(f'Token exchange with trakt failed: {e}')
+        return new_acc.access_token
 
 
 def make_list_slug(name):
@@ -183,14 +181,14 @@ def make_list_slug(name):
         slug = slug.replace(char, '')
     # These characters get replaced
     slug = slug.replace('&', 'and')
-    slug = slug.replace(' ', '-')
-    return slug
+    return slug.replace(' ', '-')
 
 
 def get_session(account=None, token=None):
-    """
-    Creates a requests session ready to talk to trakt API with FlexGet's api key.
+    """Create a requests session ready to talk to trakt API with FlexGet's api key.
+
     Can also add user level authentication if `account` parameter is given.
+
     :param account: An account authorized via `flexget trakt auth` CLI command. If given, returned session will be
         authenticated for that account.
     """
@@ -201,16 +199,18 @@ def get_session(account=None, token=None):
         'trakt-api-version': '2',
         'trakt-api-key': CLIENT_ID,
     }
+    # Courtesy rate limit so we don't hammer the trakt API (e.g. when paginating user data)
+    session.add_domain_limiter(TimedLimiter('trakt.tv', '2 seconds'))
     if account:
         access_token = get_access_token(account, token) if account else None
         if access_token:
-            session.headers.update({'Authorization': 'Bearer %s' % access_token})
+            session.headers.update({'Authorization': f'Bearer {access_token}'})
     return session
 
 
 def get_api_url(*endpoint):
-    """
-    Get the address of a trakt API endpoint.
+    """Get the address of a trakt API endpoint.
+
     :param endpoint: Can by a string endpoint (e.g. 'sync/watchlist') or an iterable (e.g. ('sync', 'watchlist')
         Multiple parameters can also be specified instead of a single iterable.
     :returns: The absolute url to the specified API endpoint.
@@ -218,8 +218,7 @@ def get_api_url(*endpoint):
     if len(endpoint) == 1 and not isinstance(endpoint[0], str):
         endpoint = endpoint[0]
     # Make sure integer portions are turned into strings first too
-    url = API_URL + '/'.join(map(str, endpoint))
-    return url
+    return API_URL + '/'.join(map(str, endpoint))
 
 
 @db_schema.upgrade('api_trakt')
@@ -229,8 +228,8 @@ def upgrade(ver, session):
     return ver
 
 
-def get_entry_ids(entry):
-    """Creates a trakt ids dict from id fields on an entry. Prefers already populated info over lazy lookups."""
+def get_entry_ids(entry: Entry):
+    """Create a trakt ids dict from id fields on an entry. Prefer already populated info over lazy lookups."""
     ids = {}
     for lazy in [False, True]:
         if entry.get('trakt_movie_id', eval_lazy=lazy):
@@ -255,37 +254,38 @@ def get_entry_ids(entry):
 class TraktMovieTranslation(Base):
     __tablename__ = 'trakt_movie_translations'
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    language = Column(Unicode)
-    overview = Column(Unicode)
-    tagline = Column(Unicode)
-    title = Column(Unicode)
-    movie_id = Column(Integer, ForeignKey('trakt_movies.id'))
+    id: Mapped[int] = mapped_column(primary_key=True)
+    language: Mapped[str | None]
+    overview: Mapped[str | None]
+    tagline: Mapped[str | None]
+    title: Mapped[str | None]
+    movie_id: Mapped[int | None] = mapped_column(ForeignKey('trakt_movies.id'))
+    movie: Mapped[TraktMovie] = relationship(back_populates='_translations')
 
     def __init__(self, translation, session):
         super().__init__()
         self.update(translation, session)
 
     def update(self, translation, session):
-        for col in translation.keys():
+        for col in translation:
             setattr(self, col, translation.get(col))
 
 
 class TraktShowTranslation(Base):
     __tablename__ = 'trakt_show_translations'
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    language = Column(Unicode)
-    overview = Column(Unicode)
-    title = Column(Unicode)
-    show_id = Column(Integer, ForeignKey('trakt_shows.id'))
+    id: Mapped[int] = mapped_column(primary_key=True)
+    language: Mapped[str | None]
+    overview: Mapped[str | None]
+    title: Mapped[str | None]
+    show_id: Mapped[int | None] = mapped_column(ForeignKey('trakt_shows.id'))
 
     def __init__(self, translation, session):
         super().__init__()
         self.update(translation, session)
 
     def update(self, translation, session):
-        for col in translation.keys():
+        for col in translation:
             setattr(self, col, translation.get(col))
 
 
@@ -300,7 +300,8 @@ def get_translations(ident, style):
         with Session() as session:
             for result in results:
                 translation = (
-                    session.query(trakt_translation)
+                    session
+                    .query(trakt_translation)
                     .filter(
                         and_(
                             trakt_translation.language == result.get('language'),
@@ -312,30 +313,31 @@ def get_translations(ident, style):
                 if not translation:
                     translation = trakt_translation(result, session)
                 translations.append(translation)
-        return translations
     except requests.RequestException as e:
         logger.debug('Error adding translations to trakt id {}: {}', ident, e)
+    else:
+        return translations
 
 
 class TraktGenre(Base):
     __tablename__ = 'trakt_genres'
 
-    name = Column(Unicode, primary_key=True)
+    name: Mapped[str] = mapped_column(primary_key=True)
 
 
 show_genres_table = Table(
     'trakt_show_genres',
     Base.metadata,
-    Column('show_id', Integer, ForeignKey('trakt_shows.id')),
-    Column('genre_id', Unicode, ForeignKey('trakt_genres.name')),
+    Column('show_id', ForeignKey('trakt_shows.id')),
+    Column('genre_id', ForeignKey('trakt_genres.name')),
 )
 Base.register_table(show_genres_table)
 
 movie_genres_table = Table(
     'trakt_movie_genres',
     Base.metadata,
-    Column('movie_id', Integer, ForeignKey('trakt_movies.id')),
-    Column('genre_id', Unicode, ForeignKey('trakt_genres.name')),
+    Column('movie_id', ForeignKey('trakt_movies.id')),
+    Column('genre_id', ForeignKey('trakt_genres.name')),
 )
 Base.register_table(movie_genres_table)
 
@@ -343,15 +345,15 @@ Base.register_table(movie_genres_table)
 class TraktActor(Base):
     __tablename__ = 'trakt_actors'
 
-    id = Column(Integer, primary_key=True, nullable=False)
-    name = Column(Unicode)
-    slug = Column(Unicode)
-    tmdb = Column(Integer)
-    imdb = Column(Unicode)
-    biography = Column(Unicode)
-    birthday = Column(Date)
-    death = Column(Date)
-    homepage = Column(Unicode)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str | None]
+    slug: Mapped[str | None]
+    tmdb: Mapped[int | None]
+    imdb: Mapped[str | None]
+    biography: Mapped[str | None]
+    birthday: Mapped[date | None]
+    death: Mapped[date | None]
+    homepage: Mapped[str | None]
 
     def __init__(self, actor, session):
         super().__init__()
@@ -359,8 +361,8 @@ class TraktActor(Base):
 
     def update(self, actor, session):
         if self.id and self.id != actor.get('ids').get('trakt'):
-            raise Exception('Tried to update db actors with different actor data')
-        elif not self.id:
+            raise ValueError('Tried to update db actors with different actor data')
+        if not self.id:
             self.id = actor.get('ids').get('trakt')
         self.name = actor.get('name')
         ids = actor.get('ids')
@@ -381,21 +383,21 @@ class TraktActor(Base):
 show_actors_table = Table(
     'trakt_show_actors',
     Base.metadata,
-    Column('show_id', Integer, ForeignKey('trakt_shows.id')),
-    Column('actors_id', Integer, ForeignKey('trakt_actors.id')),
+    Column('show_id', ForeignKey('trakt_shows.id')),
+    Column('actors_id', ForeignKey('trakt_actors.id')),
 )
 Base.register_table(show_actors_table)
 
 movie_actors_table = Table(
     'trakt_movie_actors',
     Base.metadata,
-    Column('movie_id', Integer, ForeignKey('trakt_movies.id')),
-    Column('actors_id', Integer, ForeignKey('trakt_actors.id')),
+    Column('movie_id', ForeignKey('trakt_movies.id')),
+    Column('actors_id', ForeignKey('trakt_actors.id')),
 )
 Base.register_table(movie_actors_table)
 
 
-def get_db_actors(ident, style) -> List[TraktActor]:
+def get_db_actors(ident, style) -> list[TraktActor]:
     actors = {}
     url = get_api_url(f'{style}s', ident, 'people')
     req_session = get_session()
@@ -435,10 +437,10 @@ def list_actors(actors):
             'imdb_id': str(actor.imdb),
             'trakt_slug': actor.slug,
             'tmdb_id': str(actor.tmdb),
-            'birthday': actor.birthday.strftime("%Y/%m/%d") if actor.birthday else None,
+            'birthday': actor.birthday.strftime('%Y/%m/%d') if actor.birthday else None,
             'biography': actor.biography,
             'homepage': actor.homepage,
-            'death': actor.death.strftime("%Y/%m/%d") if actor.death else None,
+            'death': actor.death.strftime('%Y/%m/%d') if actor.death else None,
         }
         res[str(actor.id)] = info
     return res
@@ -447,36 +449,37 @@ def list_actors(actors):
 class TraktEpisode(Base):
     __tablename__ = 'trakt_episodes'
 
-    id = Column(Integer, primary_key=True, autoincrement=False)
-    tvdb_id = Column(Integer)
-    imdb_id = Column(Unicode)
-    tmdb_id = Column(Integer)
-    tvrage_id = Column(Unicode)
-    title = Column(Unicode)
-    season = Column(Integer)
-    number = Column(Integer)
-    number_abs = Column(Integer)
-    overview = Column(Unicode)
-    first_aired = Column(DateTime)
-    updated_at = Column(DateTime)
-    cached_at = Column(DateTime)
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=False)
+    tvdb_id: Mapped[int | None]
+    imdb_id: Mapped[str | None]
+    tmdb_id: Mapped[int | None]
+    tvrage_id: Mapped[str | None]
+    title: Mapped[str | None]
+    season: Mapped[int | None]
+    number: Mapped[int | None]
+    number_abs: Mapped[int | None]
+    overview: Mapped[str | None]
+    first_aired: Mapped[datetime | None]
+    updated_at: Mapped[datetime | None]
+    cached_at: Mapped[datetime | None]
 
-    series_id = Column(Integer, ForeignKey('trakt_shows.id'), nullable=False)
+    series_id: Mapped[int] = mapped_column(ForeignKey('trakt_shows.id'))
+    show: Mapped[TraktShow] = relationship(back_populates='episodes')
 
     def __init__(self, trakt_episode, session):
         super().__init__()
         self.update(trakt_episode, session)
 
     def update(self, trakt_episode, session):
-        """Updates this record from the trakt media object `trakt_episode` returned by the trakt api."""
+        """Update this record from the trakt media object `trakt_episode` returned by the trakt api."""
         if self.id and self.id != trakt_episode['ids']['trakt']:
-            raise Exception('Tried to update db ep with different ep data')
-        elif not self.id:
+            raise ValueError('Tried to update db ep with different ep data')
+        if not self.id:
             self.id = trakt_episode['ids']['trakt']
-        self.imdb_id = trakt_episode['ids']['imdb']
-        self.tmdb_id = trakt_episode['ids']['tmdb']
-        self.tvrage_id = trakt_episode['ids']['tvrage']
-        self.tvdb_id = trakt_episode['ids']['tvdb']
+        self.imdb_id = trakt_episode['ids'].get('imdb')
+        self.tmdb_id = trakt_episode['ids'].get('tmdb')
+        self.tvrage_id = trakt_episode['ids'].get('tvrage')
+        self.tvdb_id = trakt_episode['ids'].get('tvdb')
         self.first_aired = None
         if trakt_episode.get('first_aired'):
             self.first_aired = dateutil_parse(trakt_episode['first_aired'], ignoretz=True)
@@ -488,43 +491,44 @@ class TraktEpisode(Base):
 
     @property
     def expired(self):
-        # TODO should episode have its own expiration function?
+        # TODO: should episode have its own expiration function?
         return False
 
 
 class TraktSeason(Base):
     __tablename__ = 'trakt_seasons'
 
-    id = Column(Integer, primary_key=True, autoincrement=False)
-    tvdb_id = Column(Integer)
-    tmdb_id = Column(Integer)
-    tvrage_id = Column(Unicode)
-    title = Column(Unicode)
-    number = Column(Integer)
-    episode_count = Column(Integer)
-    aired_episodes = Column(Integer)
-    overview = Column(Unicode)
-    first_aired = Column(DateTime)
-    ratings = Column(Integer)
-    votes = Column(Integer)
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=False)
+    tvdb_id: Mapped[int | None]
+    tmdb_id: Mapped[int | None]
+    tvrage_id: Mapped[str | None]
+    title: Mapped[str | None]
+    number: Mapped[int | None]
+    episode_count: Mapped[int | None]
+    aired_episodes: Mapped[int | None]
+    overview: Mapped[str | None]
+    first_aired: Mapped[datetime | None]
+    ratings: Mapped[int | None]
+    votes: Mapped[int | None]
 
-    cached_at = Column(DateTime)
+    cached_at: Mapped[datetime | None]
 
-    series_id = Column(Integer, ForeignKey('trakt_shows.id'), nullable=False)
+    series_id: Mapped[int] = mapped_column(ForeignKey('trakt_shows.id'))
+    show: Mapped[TraktShow] = relationship(back_populates='seasons')
 
     def __init__(self, trakt_season, session):
         super().__init__()
         self.update(trakt_season, session)
 
     def update(self, trakt_season, session):
-        """Updates this record from the trakt media object `trakt_episode` returned by the trakt api."""
+        """Update this record from the trakt media object `trakt_episode` returned by the trakt api."""
         if self.id and self.id != trakt_season['ids']['trakt']:
-            raise Exception('Tried to update db season with different season data')
-        elif not self.id:
+            raise ValueError('Tried to update db season with different season data')
+        if not self.id:
             self.id = trakt_season['ids']['trakt']
-        self.tmdb_id = trakt_season['ids']['tmdb']
-        self.tvrage_id = trakt_season['ids']['tvrage']
-        self.tvdb_id = trakt_season['ids']['tvdb']
+        self.tmdb_id = trakt_season['ids'].get('tmdb')
+        self.tvrage_id = trakt_season['ids'].get('tvrage')
+        self.tvdb_id = trakt_season['ids'].get('tvdb')
         self.first_aired = None
         if trakt_season.get('first_aired'):
             self.first_aired = dateutil_parse(trakt_season['first_aired'], ignoretz=True)
@@ -543,79 +547,80 @@ class TraktSeason(Base):
 
     @property
     def expired(self):
-        # TODO should season have its own expiration function?
+        # TODO: should season have its own expiration function?
         return False
 
 
 class TraktShow(Base):
     __tablename__ = 'trakt_shows'
 
-    id = Column(Integer, primary_key=True, autoincrement=False)
-    title = Column(Unicode)
-    year = Column(Integer)
-    slug = Column(Unicode)
-    tvdb_id = Column(Integer)
-    imdb_id = Column(Unicode)
-    tmdb_id = Column(Integer)
-    tvrage_id = Column(Unicode)
-    overview = Column(Unicode)
-    first_aired = Column(DateTime)
-    air_day = Column(Unicode)
-    air_time = Column(Time)
-    timezone = Column(Unicode)
-    runtime = Column(Integer)
-    certification = Column(Unicode)
-    network = Column(Unicode)
-    country = Column(Unicode)
-    status = Column(String)
-    rating = Column(Integer)
-    votes = Column(Integer)
-    language = Column(Unicode)
-    homepage = Column(Unicode)
-    trailer = Column(Unicode)
-    aired_episodes = Column(Integer)
-    _translations = relation(TraktShowTranslation)
-    _translation_languages = Column('translation_languages', Unicode)
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=False)
+    title: Mapped[str | None]
+    year: Mapped[int | None]
+    slug: Mapped[str | None]
+    tvdb_id: Mapped[int | None]
+    imdb_id: Mapped[str | None]
+    tmdb_id: Mapped[int | None]
+    tvrage_id: Mapped[str | None]
+    overview: Mapped[str | None]
+    first_aired: Mapped[datetime | None]
+    air_day: Mapped[str | None]
+    air_time: Mapped[datetimetime | None]
+    timezone: Mapped[str | None]
+    runtime: Mapped[int | None]
+    certification: Mapped[str | None]
+    network: Mapped[str | None]
+    country: Mapped[str | None]
+    status: Mapped[str | None]
+    rating: Mapped[int | None]
+    votes: Mapped[int | None]
+    language: Mapped[str | None]
+    homepage: Mapped[str | None]
+    trailer: Mapped[str | None]
+    aired_episodes: Mapped[int | None]
+    _translations: Mapped[list[TraktShowTranslation]] = relationship()
+    _translation_languages: Mapped[str | None] = mapped_column('translation_languages')
     translation_languages = json_synonym('_translation_languages')
-    episodes = relation(
-        TraktEpisode, backref='show', cascade='all, delete, delete-orphan', lazy='dynamic'
+    episodes: DynamicMapped[TraktEpisode] = relationship(
+        back_populates='show', cascade='all, delete-orphan'
     )
-    seasons = relation(
-        TraktSeason, backref='show', cascade='all, delete, delete-orphan', lazy='dynamic'
+    seasons: DynamicMapped[TraktSeason] = relationship(
+        back_populates='show', cascade='all, delete-orphan'
     )
-    genres = relation(TraktGenre, secondary=show_genres_table)
-    _actors = relation(TraktActor, secondary=show_actors_table)
-    updated_at = Column(DateTime)
-    cached_at = Column(DateTime)
+    genres: Mapped[list[TraktGenre]] = relationship(secondary=show_genres_table)
+    _actors: Mapped[list[TraktActor]] = relationship(secondary=show_actors_table)
+    updated_at: Mapped[datetime | None]
+    cached_at: Mapped[datetime | None]
+    search_strings: Mapped[list[TraktShowSearchResult]] = relationship(back_populates='series')
 
     def to_dict(self):
         return {
-            "id": self.id,
-            "title": self.title,
-            "year": self.year,
-            "slug": self.slug,
-            "tvdb_id": self.tvdb_id,
-            "imdb_id": self.imdb_id,
-            "tmdb_id": self.tmdb_id,
-            "tvrage_id": self.tvrage_id,
-            "overview": self.overview,
-            "first_aired": self.first_aired,
-            "air_day": self.air_day,
-            "air_time": self.air_time.strftime("%H:%M") if self.air_time else None,
-            "timezone": self.timezone,
-            "runtime": self.runtime,
-            "certification": self.certification,
-            "network": self.network,
-            "country": self.country,
-            "status": self.status,
-            "rating": self.rating,
-            "votes": self.votes,
-            "language": self.language,
-            "homepage": self.homepage,
-            "number_of_aired_episodes": self.aired_episodes,
-            "genres": [g.name for g in self.genres],
-            "updated_at": self.updated_at,
-            "cached_at": self.cached_at,
+            'id': self.id,
+            'title': self.title,
+            'year': self.year,
+            'slug': self.slug,
+            'tvdb_id': self.tvdb_id,
+            'imdb_id': self.imdb_id,
+            'tmdb_id': self.tmdb_id,
+            'tvrage_id': self.tvrage_id,
+            'overview': self.overview,
+            'first_aired': self.first_aired,
+            'air_day': self.air_day,
+            'air_time': self.air_time.strftime('%H:%M') if self.air_time else None,
+            'timezone': self.timezone,
+            'runtime': self.runtime,
+            'certification': self.certification,
+            'network': self.network,
+            'country': self.country,
+            'status': self.status,
+            'rating': self.rating,
+            'votes': self.votes,
+            'language': self.language,
+            'homepage': self.homepage,
+            'number_of_aired_episodes': self.aired_episodes,
+            'genres': [g.name for g in self.genres],
+            'updated_at': self.updated_at,
+            'cached_at': self.cached_at,
         }
 
     def __init__(self, trakt_show, session):
@@ -623,16 +628,16 @@ class TraktShow(Base):
         self.update(trakt_show, session)
 
     def update(self, trakt_show, session):
-        """Updates this record from the trakt media object `trakt_show` returned by the trakt api."""
+        """Update this record from the trakt media object `trakt_show` returned by the trakt api."""
         if self.id and self.id != trakt_show['ids']['trakt']:
-            raise Exception('Tried to update db show with different show data')
-        elif not self.id:
+            raise ValueError('Tried to update db show with different show data')
+        if not self.id:
             self.id = trakt_show['ids']['trakt']
         self.slug = trakt_show['ids']['slug']
-        self.imdb_id = trakt_show['ids']['imdb']
-        self.tmdb_id = trakt_show['ids']['tmdb']
-        self.tvrage_id = trakt_show['ids']['tvrage']
-        self.tvdb_id = trakt_show['ids']['tvdb']
+        self.imdb_id = trakt_show['ids'].get('imdb')
+        self.tmdb_id = trakt_show['ids'].get('tmdb')
+        self.tvrage_id = trakt_show['ids'].get('tvrage')
+        self.tvdb_id = trakt_show['ids'].get('tvdb')
         if trakt_show.get('airs'):
             airs = trakt_show.get('airs')
             self.air_day = airs.get('day')
@@ -677,7 +682,8 @@ class TraktShow(Base):
     def get_episode(self, season, number, session, only_cached=False):
         # TODO: Does series data being expired mean all episode data should be refreshed?
         episode = (
-            self.episodes.filter(TraktEpisode.season == season)
+            self.episodes
+            .filter(TraktEpisode.season == season)
             .filter(TraktEpisode.number == number)
             .first()
         )
@@ -686,16 +692,16 @@ class TraktShow(Base):
                 'shows', self.id, 'seasons', season, 'episodes', number, '?extended=full'
             )
             if only_cached:
-                raise LookupError('Episode %s %s not found in cache' % (season, number))
+                raise LookupError(f'Episode {season} {number} not found in cache')
             logger.debug(
                 'Episode {} {} not found in cache, looking up from trakt.', season, number
             )
             try:
                 data = get_session().get(url).json()
             except requests.RequestException:
-                raise LookupError('Error Retrieving Trakt url: %s' % url)
+                raise LookupError(f'Error Retrieving Trakt url: {url}')
             if not data:
-                raise LookupError('No data in response from trakt %s' % url)
+                raise LookupError(f'No data in response from trakt {url}')
             episode = self.episodes.filter(TraktEpisode.id == data['ids']['trakt']).first()
             if episode:
                 episode.update(data, session)
@@ -711,15 +717,15 @@ class TraktShow(Base):
         if not season or self.expired:
             url = get_api_url('shows', self.id, 'seasons', '?extended=full')
             if only_cached:
-                raise LookupError('Season %s not found in cache' % number)
+                raise LookupError(f'Season {number} not found in cache')
             logger.debug('Season {} not found in cache, looking up from trakt.', number)
             try:
                 ses = get_session()
                 data = ses.get(url).json()
             except requests.RequestException:
-                raise LookupError('Error Retrieving Trakt url: %s' % url)
+                raise LookupError(f'Error Retrieving Trakt url: {url}')
             if not data:
-                raise LookupError('No data in response from trakt %s' % url)
+                raise LookupError(f'No data in response from trakt {url}')
             # We fetch all seasons for the given show because we barely get any data otherwise
             for season_result in data:
                 db_season = self.seasons.filter(
@@ -733,22 +739,20 @@ class TraktShow(Base):
                 if number == season_result['number']:
                     season = db_season
             if not season:
-                raise LookupError('Season %s not found for show %s' % (number, self.title))
+                raise LookupError(f'Season {number} not found for show {self.title}')
             session.commit()
         return season
 
     @property
     def expired(self):
-        """
-        :return: True if show details are considered to be expired, ie. need of update
-        """
-        # TODO stolen from imdb plugin, maybe there's a better way?
+        """:return: True if show details are considered to be expired, ie. need of update"""
+        # TODO: stolen from imdb plugin, maybe there's a better way?
         if self.cached_at is None:
             logger.debug('cached_at is None: {}', self)
             return True
         refresh_interval = 2
         # if show has been cancelled or ended, then it is unlikely to be updated often
-        if self.year and (self.status == 'ended' or self.status == 'canceled'):
+        if self.year and (self.status in ('ended', 'canceled')):
             # Make sure age is not negative
             age = max((datetime.now().year - self.year), 0)
             refresh_interval += age * 5
@@ -768,34 +772,35 @@ class TraktShow(Base):
         return self._actors
 
     def __repr__(self):
-        return '<name=%s, id=%s>' % (self.title, self.id)
+        return f'<name={self.title}, id={self.id}>'
 
 
 class TraktMovie(Base):
     __tablename__ = 'trakt_movies'
 
-    id = Column(Integer, primary_key=True, autoincrement=False)
-    title = Column(Unicode)
-    year = Column(Integer)
-    slug = Column(Unicode)
-    imdb_id = Column(Unicode)
-    tmdb_id = Column(Integer)
-    tagline = Column(Unicode)
-    overview = Column(Unicode)
-    released = Column(Date)
-    runtime = Column(Integer)
-    rating = Column(Integer)
-    votes = Column(Integer)
-    trailer = Column(Unicode)
-    homepage = Column(Unicode)
-    language = Column(Unicode)
-    updated_at = Column(DateTime)
-    cached_at = Column(DateTime)
-    _translations = relation(TraktMovieTranslation, backref='movie')
-    _translation_languages = Column('translation_languages', Unicode)
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=False)
+    title: Mapped[str | None]
+    year: Mapped[int | None]
+    slug: Mapped[str | None]
+    imdb_id: Mapped[str | None]
+    tmdb_id: Mapped[int | None]
+    tagline: Mapped[str | None]
+    overview: Mapped[str | None]
+    released: Mapped[date | None]
+    runtime: Mapped[int | None]
+    rating: Mapped[int | None]
+    votes: Mapped[int | None]
+    trailer: Mapped[str | None]
+    homepage: Mapped[str | None]
+    language: Mapped[str | None]
+    updated_at: Mapped[datetime | None]
+    cached_at: Mapped[datetime | None]
+    _translations: Mapped[list[TraktMovieTranslation]] = relationship(back_populates='movie')
+    _translation_languages: Mapped[str | None] = mapped_column('translation_languages')
     translation_languages = json_synonym('_translation_languages')
-    genres = relation(TraktGenre, secondary=movie_genres_table)
-    _actors = relation(TraktActor, secondary=movie_actors_table)
+    genres: Mapped[list[TraktGenre]] = relationship(secondary=movie_genres_table)
+    _actors: Mapped[list[TraktActor]] = relationship(secondary=movie_actors_table)
+    search_strings: Mapped[list[TraktMovieSearchResult]] = relationship(back_populates='movie')
 
     def __init__(self, trakt_movie, session):
         super().__init__()
@@ -803,35 +808,35 @@ class TraktMovie(Base):
 
     def to_dict(self):
         return {
-            "id": self.id,
-            "title": self.title,
-            "year": self.year,
-            "slug": self.slug,
-            "imdb_id": self.imdb_id,
-            "tmdb_id": self.tmdb_id,
-            "tagline": self.tagline,
-            "overview": self.overview,
-            "released": self.released,
-            "runtime": self.runtime,
-            "rating": self.rating,
-            "votes": self.votes,
-            "language": self.language,
-            "homepage": self.homepage,
-            "trailer": self.trailer,
-            "genres": [g.name for g in self.genres],
-            "updated_at": self.updated_at,
-            "cached_at": self.cached_at,
+            'id': self.id,
+            'title': self.title,
+            'year': self.year,
+            'slug': self.slug,
+            'imdb_id': self.imdb_id,
+            'tmdb_id': self.tmdb_id,
+            'tagline': self.tagline,
+            'overview': self.overview,
+            'released': self.released,
+            'runtime': self.runtime,
+            'rating': self.rating,
+            'votes': self.votes,
+            'language': self.language,
+            'homepage': self.homepage,
+            'trailer': self.trailer,
+            'genres': [g.name for g in self.genres],
+            'updated_at': self.updated_at,
+            'cached_at': self.cached_at,
         }
 
     def update(self, trakt_movie, session):
-        """Updates this record from the trakt media object `trakt_movie` returned by the trakt api."""
+        """Update this record from the trakt media object `trakt_movie` returned by the trakt api."""
         if self.id and self.id != trakt_movie['ids']['trakt']:
-            raise Exception('Tried to update db movie with different movie data')
-        elif not self.id:
+            raise ValueError('Tried to update db movie with different movie data')
+        if not self.id:
             self.id = trakt_movie['ids']['trakt']
         self.slug = trakt_movie['ids']['slug']
-        self.imdb_id = trakt_movie['ids']['imdb']
-        self.tmdb_id = trakt_movie['ids']['tmdb']
+        self.imdb_id = trakt_movie['ids'].get('imdb')
+        self.tmdb_id = trakt_movie['ids'].get('tmdb')
         for col in [
             'title',
             'overview',
@@ -854,10 +859,8 @@ class TraktMovie(Base):
 
     @property
     def expired(self):
-        """
-        :return: True if movie details are considered to be expired, ie. need of update
-        """
-        # TODO stolen from imdb plugin, maybe there's a better way?
+        """:return: True if movie details are considered to be expired, ie. need of update"""
+        # TODO: stolen from imdb plugin, maybe there's a better way?
         if self.updated_at is None:
             logger.debug('updated_at is None: {}', self)
             return True
@@ -885,10 +888,12 @@ class TraktMovie(Base):
 class TraktShowSearchResult(Base):
     __tablename__ = 'trakt_show_search_results'
 
-    id = Column(Integer, primary_key=True)
-    search = Column(Unicode, unique=True, nullable=False)
-    series_id = Column(Integer, ForeignKey('trakt_shows.id'), nullable=True)
-    series = relation(TraktShow, backref='search_strings')
+    id: Mapped[int] = mapped_column(primary_key=True)
+    search: Mapped[str] = mapped_column(unique=True)
+    series_id: Mapped[int | None] = mapped_column(
+        ForeignKey('trakt_shows.id')
+    )  # explicitly allows None
+    series: Mapped[TraktShow | None] = relationship(back_populates='search_strings')
 
     def __init__(self, search, series_id=None, series=None):
         self.search = search.lower()
@@ -901,10 +906,12 @@ class TraktShowSearchResult(Base):
 class TraktMovieSearchResult(Base):
     __tablename__ = 'trakt_movie_search_results'
 
-    id = Column(Integer, primary_key=True)
-    search = Column(Unicode, unique=True, nullable=False)
-    movie_id = Column(Integer, ForeignKey('trakt_movies.id'), nullable=True)
-    movie = relation(TraktMovie, backref='search_strings')
+    id: Mapped[int] = mapped_column(primary_key=True)
+    search: Mapped[str] = mapped_column(unique=True)
+    movie_id: Mapped[int | None] = mapped_column(
+        ForeignKey('trakt_movies.id')
+    )  # explicitly allows None
+    movie: Mapped[TraktMovie | None] = relationship(back_populates='search_strings')
 
     def __init__(self, search, movie_id=None, movie=None):
         self.search = search.lower()
@@ -915,7 +922,7 @@ class TraktMovieSearchResult(Base):
 
 
 class TraktMovieIds:
-    """Simple class that holds a variety of possible IDs that Trakt utilize in their API, eg. imdb id, trakt id"""
+    """Simple class that holds a variety of possible IDs that Trakt utilize in their API, eg. imdb id, trakt id."""
 
     def __init__(self, trakt_id=None, trakt_slug=None, tmdb_id=None, imdb_id=None, **kwargs):
         self.trakt_id = trakt_id
@@ -927,7 +934,7 @@ class TraktMovieIds:
         return self.trakt_id or self.trakt_slug
 
     def to_dict(self):
-        """Returns a dict containing id fields that are relevant for a movie"""
+        """Return a dict containing id fields that are relevant for a movie."""
         return {
             'id': self.trakt_id,
             'slug': self.trakt_slug,
@@ -940,7 +947,7 @@ class TraktMovieIds:
 
 
 class TraktShowIds:
-    """Simple class that holds a variety of possible IDs that Trakt utilize in their API, eg. imdb id, trakt id"""
+    """Simple class that holds a variety of possible IDs that Trakt utilize in their API, eg. imdb id, trakt id."""
 
     def __init__(
         self,
@@ -963,7 +970,7 @@ class TraktShowIds:
         return self.trakt_id or self.trakt_slug
 
     def to_dict(self):
-        """Returns a dict containing id fields that are relevant for a show/season/episode"""
+        """Return a dict containing id fields that are relevant for a show/season/episode."""
         return {
             'id': self.trakt_id,
             'slug': self.trakt_slug,
@@ -974,21 +981,19 @@ class TraktShowIds:
         }
 
     def __bool__(self):
-        return any(
-            [
-                self.trakt_id,
-                self.trakt_slug,
-                self.tmdb_id,
-                self.imdb_id,
-                self.tvdb_id,
-                self.tvrage_id,
-            ]
-        )
+        return any([
+            self.trakt_id,
+            self.trakt_slug,
+            self.tmdb_id,
+            self.imdb_id,
+            self.tvdb_id,
+            self.tvrage_id,
+        ])
 
 
 def get_item_from_cache(table, session, title=None, year=None, trakt_ids=None):
-    """
-    Get the cached info for a given show/movie from the database.
+    """Get the cached info for a given show/movie from the database.
+
     :param table: Either TraktMovie or TraktShow
     :param title: Title of the show/movie
     :param year: First release year
@@ -999,15 +1004,16 @@ def get_item_from_cache(table, session, title=None, year=None, trakt_ids=None):
     result = None
     if trakt_ids:
         result = (
-            session.query(table)
+            session
+            .query(table)
             .filter(
                 or_(getattr(table, col) == val for col, val in trakt_ids.to_dict().items() if val)
             )
             .first()
         )
     elif title:
-        title, y = split_title_year(title)
-        year = year or y
+        if not year:
+            title, year = split_title_year(title)
         query = session.query(table).filter(table.title == title)
         if year:
             query = query.filter(table.year == year)
@@ -1030,13 +1036,13 @@ def get_trakt_id_from_id(trakt_ids, media_type):
             ).json()
         except requests.RequestException as e:
             raise LookupError(
-                'Searching trakt for %s=%s failed with error: %s'
-                % (stripped_id_type, identifier, e)
+                f'Searching trakt for {stripped_id_type}={identifier} failed with error: {e}'
             )
         for result in results:
             if result['type'] != media_type:
                 continue
             return result[media_type]['ids']['trakt']
+    return None
 
 
 def get_trakt_id_from_title(title, media_type, year=None):
@@ -1049,12 +1055,10 @@ def get_trakt_id_from_title(title, media_type, year=None):
     try:
         params = {'query': parsed_title, 'type': media_type, 'year': y}
         logger.debug('Type of title: {}', type(parsed_title))
-        logger.debug(
-            'Searching with params: {}', ', '.join('{}={}'.format(k, v) for k, v in params.items())
-        )
+        logger.debug('Searching with params: {}', ', '.join(f'{k}={v}' for k, v in params.items()))
         results = requests_session.get(get_api_url('search'), params=params).json()
     except requests.RequestException as e:
-        raise LookupError('Searching trakt for %s failed with error: %s' % (title, e))
+        raise LookupError(f'Searching trakt for {title} failed with error: {e}')
     for result in results:
         if year and result[media_type]['year'] != year:
             continue
@@ -1063,6 +1067,7 @@ def get_trakt_id_from_title(title, media_type, year=None):
     # grab the first result if there is no exact match
     if results:
         return results[0][media_type]['ids']['trakt']
+    return None
 
 
 def get_trakt_data(media_type, title=None, year=None, trakt_ids=None):
@@ -1078,8 +1083,7 @@ def get_trakt_data(media_type, title=None, year=None, trakt_ids=None):
 
     if not trakt_id:
         raise LookupError(
-            'No results on Trakt.tv, title=%s, ids=%s.'
-            % (title, trakt_ids.to_dict if trakt_ids else None)
+            f'No results on Trakt.tv, title={title}, ids={trakt_ids.to_dict if trakt_ids else None}.'
         )
 
     # Get actual data from trakt
@@ -1090,23 +1094,68 @@ def get_trakt_data(media_type, title=None, year=None, trakt_ids=None):
             .json()
         )
     except requests.RequestException as e:
-        raise LookupError('Error getting trakt data for id %s: %s' % (trakt_id, e))
+        raise LookupError(f'Error getting trakt data for id {trakt_id}: {e}')
 
 
 def get_user_data(data_type, media_type, session, username):
-    """
-    Fetches user data from Trakt.tv on the /users/<username>/<data_type>/<media_type> end point. Eg. a user's
-    movie collection is fetched from /users/<username>/collection/movies.
+    """Fetch user data from Trakt.tv on the /users/<username>/<data_type>/<media_type> end point.
+
+    Example: a user's movie collection is fetched from /users/<username>/collection/movies.
+
     :param data_type: Name of the data type eg. collection, watched etc.
     :param media_type: Type of media we want <data_type> for eg. shows, episodes, movies.
     :param session: A trakt requests session with a valid token
     :param username: Username of the user to fetch data
-    :return:
+    :return: List of items from all result pages
     """
-
-    endpoint = '{}/{}'.format(data_type, media_type)
+    endpoint = f'{data_type}/{media_type}'
+    url = get_api_url('users', username, data_type, media_type)
+    limit_per_page = 250
+    # Backstop so a missing or garbage pagination header can never make us loop forever.
+    max_pages = 1000
+    data = []
     try:
-        data = session.get(get_api_url('users', username, data_type, media_type)).json()
+        # trakt only returns the first page (100 items) when no pagination params are sent
+        page = 1
+        while page <= max_pages:
+            response = session.get(url, params={'limit': limit_per_page, 'page': page})
+            page_data = response.json()
+            if not page_data:
+                break
+            if not isinstance(page_data, list):
+                # A healthy response is a list of items. Anything else (e.g. an error
+                # object like {"error": ...}) means we cannot keep paginating.
+                if data:
+                    logger.warning(
+                        'Unexpected non-list response from trakt endpoint {} for user {} on '
+                        'page {}; returning the {} records collected so far.',
+                        endpoint,
+                        username,
+                        page,
+                        len(data),
+                    )
+                    break
+                raise plugin.PluginError(
+                    f'Unexpected response from trakt.tv endpoint {endpoint} for user '
+                    f'{username}: {page_data}'
+                )
+            data.extend(page_data)
+            try:
+                page_count = int(response.headers.get('X-Pagination-Page-Count', 1))
+            except (TypeError, ValueError):
+                # A missing or garbage header means we treat this as the last page.
+                break
+            if page >= page_count:
+                break
+            page += 1
+        else:
+            logger.warning(
+                'Reached the {} page limit while fetching trakt endpoint {} for user {}.',
+                max_pages,
+                endpoint,
+                username,
+            )
+
         if not data:
             logger.warning('No {} data returned from trakt endpoint {}.', data_type, endpoint)
             return []
@@ -1130,17 +1179,15 @@ def get_user_data(data_type, media_type, session, username):
             if not episode and not season:
                 item.update(show)
 
-        return data
-
     except requests.RequestException as e:
         raise plugin.PluginError(
-            'Error fetching data from trakt.tv endpoint %s for user %s: %s'
-            % (endpoint, username, e)
+            f'Error fetching data from trakt.tv endpoint {endpoint} for user {username}: {e}'
         )
+    return data
 
 
 def get_username(username=None, account=None):
-    """Returns 'me' if account is provided and username is not"""
+    """Return 'me' if account is provided and username is not."""
     if not username and account:
         return 'me'
     return username

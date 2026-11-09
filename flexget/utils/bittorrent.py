@@ -1,44 +1,53 @@
 """Torrenting utils, mostly for handling bencoding and torrent files."""
+
 # Torrent decoding is a short fragment from effbot.org. Site copyright says:
 # Test scripts and other short code fragments can be considered as being in the public domain.
+from __future__ import annotations
+
 import binascii
 import re
 from contextlib import suppress
-from typing import Dict, Union, Any, Callable, Match, Generator, Iterator, List
+from typing import TYPE_CHECKING, Any
 
 from loguru import logger
+
+if TYPE_CHECKING:
+    from collections.abc import Callable, Generator, Iterator
+    from pathlib import Path
 
 logger = logger.bind(name='torrent')
 
 # Magic indicator used to quickly recognize torrent files
-TORRENT_RE = re.compile(br'^d\d{1,3}:')
+TORRENT_RE = re.compile(rb'^d\d{1,3}:')
 
 # List of all standard keys in a metafile
 # See http://packages.python.org/pyrocore/apidocs/pyrocore.util.metafile-module.html#METAFILE_STD_KEYS
 METAFILE_STD_KEYS = [
     i.split('.')
     for i in (
-        "announce",
-        "announce-list",  # BEP-0012
-        "comment",
-        "created by",
-        "creation date",
-        "encoding",
-        "info",
-        "info.length",
-        "info.name",
-        "info.piece length",
-        "info.pieces",
-        "info.private",
-        "info.files",
-        "info.files.length",
-        "info.files.path",
+        'announce',
+        'announce-list',  # BEP-0012
+        'comment',
+        'created by',
+        'creation date',
+        'encoding',
+        'info',
+        'info.length',
+        'info.name',
+        'info.piece length',
+        'info.pieces',
+        'info.private',
+        'info.files',
+        'info.files.length',
+        'info.files.path',
     )
 ]
 
 
 def clean_meta(
-    meta: Dict[str, Any], including_info: bool = False, log_func: Callable[..., None] = None
+    meta: dict[str, Any],
+    including_info: bool = False,
+    log_func: Callable[..., None] | None = None,
 ):
     """Clean meta dict. Optionally log changes using the given logger.
 
@@ -52,30 +61,30 @@ def clean_meta(
     for key in list(meta.keys()):
         if [key] not in METAFILE_STD_KEYS:
             if log_func:
-                log_func("Removing key %r..." % (key,))
+                log_func(f'Removing key {key!r}...')
             del meta[key]
             modified.add(key)
 
     if including_info:
-        for key in list(meta["info"].keys()):
-            if ["info", key] not in METAFILE_STD_KEYS:
+        for key in list(meta['info'].keys()):
+            if ['info', key] not in METAFILE_STD_KEYS:
                 if log_func:
-                    log_func("Removing key %r..." % ("info." + key,))
-                del meta["info"][key]
-                modified.add("info." + key)
+                    log_func('Removing key {!r}...'.format('info.' + key))
+                del meta['info'][key]
+                modified.add('info.' + key)
 
-        for idx, entry in enumerate(meta["info"].get("files", [])):
+        for idx, entry in enumerate(meta['info'].get('files', [])):
             for key in list(entry.keys()):
-                if ["info", "files", key] not in METAFILE_STD_KEYS:
+                if ['info', 'files', key] not in METAFILE_STD_KEYS:
                     if log_func:
-                        log_func("Removing key %r from file #%d..." % (key, idx + 1))
+                        log_func(f'Removing key {key!r} from file #{idx + 1}...')
                     del entry[key]
-                    modified.add("info.files." + key)
+                    modified.add('info.files.' + key)
 
     return modified
 
 
-def is_torrent_file(metafilepath: str) -> bool:
+def is_torrent_file(metafilepath: Path) -> bool:
     """Check whether a file looks like a metafile by peeking into its content.
 
     Note that this doesn't ensure that the file is a complete and valid torrent,
@@ -84,7 +93,7 @@ def is_torrent_file(metafilepath: str) -> bool:
     @param metafilepath: Path to the file to check, must have read permissions for it.
     @return: True if there is a high probability this is a metafile.
     """
-    with open(metafilepath, 'rb') as f:
+    with metafilepath.open('rb') as f:
         data = f.read(200)
 
     magic_marker = bool(TORRENT_RE.match(data))
@@ -98,9 +107,9 @@ def is_torrent_file(metafilepath: str) -> bool:
 
 def tokenize(
     text: bytes,
-    match=re.compile(
-        br'([idel])|(\d+):|(-?\d+)'
-    ).match,  # type: Callable[[bytes, int], Match[bytes]]
+    match: Callable[[bytes, int], re.Match[bytes] | None] = re.compile(
+        rb'([idel])|(\d+):|(-?\d+)'
+    ).match,
 ) -> Generator[bytes, None, None]:
     i = 0
     while i < len(text):
@@ -115,8 +124,8 @@ def tokenize(
             yield s
 
 
-def decode_item(src_iter: Iterator[bytes], token: bytes) -> Union[bytes, str, int, list, dict]:
-    data: Union[bytes, str, int, list, dict]
+def decode_item(src_iter: Iterator[bytes], token: bytes) -> bytes | str | int | list | dict:
+    data: bytes | str | int | list | dict
     if token == b'i':
         # integer: "i" value "e"
         data = int(next(src_iter))
@@ -137,20 +146,20 @@ def decode_item(src_iter: Iterator[bytes], token: bytes) -> Union[bytes, str, in
             data.append(decode_item(src_iter, tok))
             tok = next(src_iter)
         if token == b'd':
-            data = dict(list(zip(data[0::2], data[1::2])))
+            data = dict(list(zip(data[0::2], data[1::2], strict=False)))
     else:
         raise ValueError
     return data
 
 
-def bdecode(text: bytes) -> Dict[str, Any]:
+def bdecode(text: bytes) -> dict[str, Any]:
     try:
         src_iter = tokenize(text)
         data = decode_item(src_iter, next(src_iter))
         for _ in src_iter:  # look for more tokens
-            raise SyntaxError("trailing junk")
+            raise SyntaxError('trailing junk')
     except (AttributeError, ValueError, StopIteration, TypeError) as e:
-        raise SyntaxError(f"syntax error: {e}") from e
+        raise SyntaxError(f'syntax error: {e}') from e
     return data
 
 
@@ -179,14 +188,14 @@ def encode_dictionary(data: dict) -> bytes:
     encoded = b'd'
     items = list(data.items())
     items.sort()
-    for (key, value) in items:
+    for key, value in items:
         encoded += bencode(key)
         encoded += bencode(value)
     encoded += b'e'
     return encoded
 
 
-def bencode(data: Union[bytes, str, int, list, dict]) -> bytes:
+def bencode(data: bytes | str | int | list | dict) -> bytes:
     if isinstance(data, bytes):
         return encode_bytes(data)
     if isinstance(data, str):
@@ -202,20 +211,20 @@ def bencode(data: Union[bytes, str, int, list, dict]) -> bytes:
 
 
 class Torrent:
-    """Represents a torrent"""
+    """Represents a torrent."""
 
     # string type used for keys, if this ever changes, stuff like "x in y"
     # gets broken unless you coerce to this type
     KEY_TYPE = str
 
     @classmethod
-    def from_file(cls, filename: str) -> 'Torrent':
+    def from_file(cls, file: Path) -> Torrent:
         """Create torrent from file on disk."""
-        with open(filename, 'rb') as handle:
+        with file.open('rb') as handle:
             return cls(handle.read())
 
     def __init__(self, content: bytes) -> None:
-        """Accepts torrent file as string"""
+        """Accept torrent file as string."""
         # Make sure there is no trailing whitespace. see #1592
         content = content.strip()
         # decoded torrent structure
@@ -223,17 +232,17 @@ class Torrent:
         self.modified = False
 
     def __repr__(self) -> str:
-        return "%s(%s, %s)" % (
+        return '{}({}, {})'.format(
             self.__class__.__name__,
-            ", ".join(
-                "%s=%r" % (key, self.content["info"].get(key))
-                for key in ("name", "length", "private")
+            ', '.join(
+                '{}={!r}'.format(key, self.content['info'].get(key))
+                for key in ('name', 'length', 'private')
             ),
-            ", ".join("%s=%r" % (key, self.content.get(key)) for key in ("announce", "comment")),
+            ', '.join(f'{key}={self.content.get(key)!r}' for key in ('announce', 'comment')),
         )
 
-    def get_filelist(self) -> List[Dict[str, Union[str, int]]]:
-        """Return array containing fileinfo dictionaries (name, length, path)"""
+    def get_filelist(self) -> list[dict[str, str | int]]:
+        """Return array containing fileinfo dictionaries (name, length, path)."""
         files = []
         if 'length' in self.content['info']:
             # single file torrent
@@ -246,10 +255,7 @@ class Torrent:
         else:
             # multifile torrent
             for item in self.content['info']['files']:
-                if 'path.utf-8' in item:
-                    path = item['path.utf-8']
-                else:
-                    path = item['path']
+                path = item['path.utf-8'] if 'path.utf-8' in item else item['path']
                 t = {'path': '/'.join(path[:-1]), 'name': path[-1], 'size': item['length']}
                 files.append(t)
 
@@ -276,17 +282,17 @@ class Torrent:
 
     @property
     def is_multi_file(self) -> bool:
-        """Return True if the torrent is a multi-file torrent"""
+        """Return True if the torrent is a multi-file torrent."""
         return 'files' in self.content['info']
 
     @property
     def name(self) -> str:
-        """Return name of the torrent"""
+        """Return name of the torrent."""
         return self.content['info'].get('name', '')
 
     @property
     def size(self) -> int:
-        """Return total size of the torrent"""
+        """Return total size of the torrent."""
         size = 0
         # single file torrent
         if 'length' in self.content['info']:
@@ -298,28 +304,25 @@ class Torrent:
         return size
 
     @property
-    def private(self) -> Union[int, bool]:
+    def private(self) -> int | bool:
         return self.content['info'].get('private', False)
 
     @property
-    def trackers(self) -> List[str]:
-        """
-        :returns: List of trackers, supports single-tracker and multi-tracker implementations
-        """
+    def trackers(self) -> list[str]:
+        """:returns: List of trackers, supports single-tracker and multi-tracker implementations"""
         trackers = []
         # the spec says, if announce-list present use ONLY that
         # funny iteration because of nesting, ie:
         # [ [ tracker1, tracker2 ], [backup1] ]
         for tl in self.content.get('announce-list', []):
-            for t in tl:
-                trackers.append(t)
-        if not self.content.get('announce') in trackers:
+            trackers.extend(tl.copy())
+        if self.content.get('announce') not in trackers:
             trackers.append(self.content.get('announce'))
         return trackers
 
     @property
     def info_hash(self) -> str:
-        """Return Torrent info hash"""
+        """Return Torrent info hash."""
         import hashlib
 
         sha1_hash = hashlib.sha1()
@@ -351,7 +354,7 @@ class Torrent:
         self.modified = True
 
     def remove_multitracker(self, tracker: str) -> None:
-        """Removes passed multi-tracker from this torrent"""
+        """Remove passed multi-tracker from this torrent."""
         for tl in self.content.get('announce-list', [])[:]:
             with suppress(AttributeError, ValueError):
                 tl.remove(tracker)
@@ -361,7 +364,7 @@ class Torrent:
                     self.content['announce-list'].remove(tl)
 
     def add_multitracker(self, tracker: str) -> None:
-        """Appends multi-tracker to this torrent"""
+        """Append multi-tracker to this torrent."""
         self.content.setdefault('announce-list', [])
         self.content['announce-list'].append([tracker])
         self.modified = True

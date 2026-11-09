@@ -1,13 +1,14 @@
+from __future__ import annotations
+
 import copy
 import pickle
 from datetime import datetime, timedelta
 from functools import partial
-from typing import TYPE_CHECKING, List, Iterable, Callable, Optional
+from typing import TYPE_CHECKING
 
 from loguru import logger
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Unicode, select
-from sqlalchemy.orm import relation
-from sqlalchemy.orm import Session as DBSession
+from sqlalchemy import ForeignKey, Unicode, select
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from flexget import db_schema
 from flexget.entry import Entry
@@ -22,14 +23,11 @@ from flexget.utils.tools import TimedDict, get_config_hash, parse_timedelta
 logger = logger.bind(name='input_cache')
 
 if TYPE_CHECKING:
+    from collections.abc import Callable, Iterable
 
-    class Base:
-        def __init__(self, *args, **kwargs) -> None:
-            ...
+    from sqlalchemy.orm import Session as DBSession
 
-
-else:
-    Base = db_schema.versioned_base('input_cache', 2)
+Base = db_schema.versioned_base('input_cache', 2)
 
 
 @db_schema.upgrade('input_cache')
@@ -39,20 +37,21 @@ def upgrade(ver: int, session: DBSession) -> int:
         table_add_column(table, 'json', Unicode, session)
         # Make sure we get the new schema with the added column
         table = table_schema('input_cache_entry', session)
-        for row in session.execute(select([table.c.id, table.c.entry])):
+        for row in session.execute(select(table.c.id, table.c.entry)):
             try:
                 p = pickle.loads(row['entry'])
                 session.execute(
-                    table.update()
+                    table
+                    .update()
                     .where(table.c.id == row['id'])
                     .values(json=json.dumps(p, encode_datetime=True))
                 )
             except KeyError as ex:
-                logger.error(f'Unable error upgrading input_cache pickle object due to {ex}')
+                logger.error('Unable error upgrading input_cache pickle object due to {}', ex)
         ver = 1
     if ver == 1:
         table = table_schema('input_cache_entry', session)
-        for row in session.execute(select([table.c.id, table.c.json])):
+        for row in session.execute(select(table.c.id, table.c.json)):
             if not row['json']:
                 # Seems there could be invalid data somehow. See #2590
                 continue
@@ -73,29 +72,33 @@ def upgrade(ver: int, session: DBSession) -> int:
 class InputCache(Base):
     __tablename__ = 'input_cache'
 
-    id = Column(Integer, primary_key=True)
-    name = Column(Unicode)
-    hash = Column(String)
-    added = Column(DateTime, default=datetime.now)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str | None]
+    hash: Mapped[str | None]
+    added: Mapped[datetime | None] = mapped_column(default=datetime.now)
 
-    entries = relation('InputCacheEntry', backref='cache', cascade='all, delete, delete-orphan')
+    entries: Mapped[list[InputCacheEntry]] = relationship(
+        back_populates='cache', cascade='all, delete-orphan'
+    )
 
 
 class InputCacheEntry(Base):
     __tablename__ = 'input_cache_entry'
 
-    id = Column(Integer, primary_key=True)
-    _json = Column('json', Unicode)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    _json: Mapped[str | None] = mapped_column('json')
     entry = entry_synonym('_json')
 
-    cache_id = Column(Integer, ForeignKey('input_cache.id'), nullable=False)
+    cache_id: Mapped[int] = mapped_column(ForeignKey('input_cache.id'))
+    cache: Mapped[InputCache] = relationship(back_populates='entries')
 
 
 @event('manager.db_cleanup')
 def db_cleanup(manager, session: DBSession) -> None:
-    """Removes old input caches from plugins that are no longer configured."""
+    """Remove old input caches from plugins that are no longer configured."""
     result = (
-        session.query(InputCache)
+        session
+        .query(InputCache)
         .filter(InputCache.added < datetime.now() - timedelta(days=7))
         .delete()
     )
@@ -103,9 +106,8 @@ def db_cleanup(manager, session: DBSession) -> None:
         logger.verbose('Removed {} old input caches.', result)
 
 
-class cached:
-    """
-    Implements transparent caching decorator @cached for inputs.
+class cached:  # noqa: N801 It acts like a function in usage
+    """Implements transparent caching decorator @cached for inputs.
 
     Decorator has two parameters:
 
@@ -118,11 +120,11 @@ class cached:
 
     cache = TimedDict(cache_time='5 minutes')
 
-    def __init__(self, name: str, persist: str = None) -> None:
+    def __init__(self, name: str, persist: str | None = None) -> None:
         # Cast name to unicode to prevent sqlalchemy warnings when filtering
         self.name = str(name)
         # Parse persist time
-        self.persist: Optional[timedelta] = parse_timedelta(persist) if persist else None
+        self.persist: timedelta | None = parse_timedelta(persist) if persist else None
         # Will be set when wrapped function is called
         self.config_hash = None
         self.cache_name = None
@@ -158,7 +160,7 @@ class cached:
             logger.trace('cache miss')
             # call input event
             try:
-                response = func(*args, **kwargs)
+                response = func(*args, **kwargs) or []
             except PluginError as e:
                 # If there was an error producing entries, but we have valid entries in the db cache, return those.
                 if self.persist and not task.options.nocache:
@@ -180,12 +182,13 @@ class cached:
 
         return wrapped_func
 
-    def store_to_db(self, entries: List[str]):
+    def store_to_db(self, entries: list[str]):
         # Store to database
-        logger.debug(f'Storing cache {self.cache_name} to database.')
+        logger.debug('Storing cache {} to database.', self.cache_name)
         with Session() as session:
             db_cache = (
-                session.query(InputCache)
+                session
+                .query(InputCache)
                 .filter(InputCache.name == self.name)
                 .filter(InputCache.hash == self.config_hash)
                 .first()
@@ -196,10 +199,11 @@ class cached:
             db_cache.added = datetime.now()
             session.merge(db_cache)
 
-    def load_from_db(self, load_expired: bool = False) -> Optional[List[InputCacheEntry]]:
+    def load_from_db(self, load_expired: bool = False) -> list[InputCacheEntry] | None:
         with Session() as session:
             db_cache = (
-                session.query(InputCache)
+                session
+                .query(InputCache)
                 .filter(InputCache.name == self.name)
                 .filter(InputCache.hash == self.config_hash)
             )
@@ -208,7 +212,7 @@ class cached:
             db_cache = db_cache.first()
             if db_cache:
                 entries = [ent.entry for ent in db_cache.entries]
-                logger.verbose(f'Restored {len(entries)} entries from db cache')
+                logger.verbose(f'Restored {len(entries)} entries from db cache for {self.name}')
                 # Store to in memory cache
                 self.cache[self.cache_name] = copy.deepcopy(entries)
                 return entries
@@ -216,14 +220,14 @@ class cached:
 
 
 class IterableCache:
-    """
-    Can cache any iterable (including generators) without immediately evaluating all entries.
+    """Can cache any iterable (including generators) without immediately evaluating all entries.
+
     If `finished_hook` is supplied, it will be called the first time the iterable is run to the end.
     """
 
-    def __init__(self, iterable: Iterable, finished_hook: Callable[[List[str]], None] = None):
+    def __init__(self, iterable: Iterable, finished_hook: Callable[[list], None] | None = None):
         self.iterable = iter(iterable)
-        self.cache: List[dict] = []
+        self.cache: list = []
         self.finished_hook = finished_hook
 
     def __iter__(self):

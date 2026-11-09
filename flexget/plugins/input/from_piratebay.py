@@ -3,9 +3,9 @@ from urllib.parse import urlencode
 from loguru import logger
 
 from flexget import plugin
+from flexget.components.sites.utils import torrent_availability
 from flexget.entry import Entry
 from flexget.event import event
-from flexget.components.sites.utils import torrent_availability
 
 logger = logger.bind(name='from_piratebay')
 
@@ -14,18 +14,16 @@ URL = 'https://apibay.org'
 LISTS = ['top', 'top48h', 'recent']
 
 # from lowest to highest, selecting a rank automatically accept higher ranks
-RANKS = ['all', 'member', 'vip', 'trusted', 'supermod']
+RANKS = ['all', 'user', 'member', 'trusted', 'vip', 'helper', 'moderator', 'supermod']
 
 CATEGORIES = {
     'All': 0,
-
     'Audio': 100,
     'Music': 101,
     'Audio books': 102,
     'Sound clips': 103,
     'FLAC': 104,
     'Audio Other': 199,
-
     'Video': 200,
     'Movies': 201,
     'Movies DVDR': 202,
@@ -37,7 +35,6 @@ CATEGORIES = {
     'HD - TV shows': 208,
     '3D': 209,
     'Video Other': 299,
-
     'Applications': 300,
     'App Windows': 301,
     'App Mac': 302,
@@ -46,7 +43,6 @@ CATEGORIES = {
     'App IOS (iPad/iPhone)': 305,
     'App Android': 306,
     'App Other OS': 399,
-
     'Games': 400,
     'Game PC': 401,
     'Game Mac': 402,
@@ -57,7 +53,6 @@ CATEGORIES = {
     'Game IOS (iPad/iPhone)': 407,
     'Game Android': 408,
     'Game Other': 499,
-
     'Porn': 500,
     'Porn Movies': 501,
     'Porn Movies DVDR': 502,
@@ -66,7 +61,6 @@ CATEGORIES = {
     'Porn HD - Movies': 505,
     'Porn Movie clips': 506,
     'Porn Other': 599,
-
     'Other': 600,
     'E-books': 601,
     'Comics': 602,
@@ -90,15 +84,14 @@ TRACKERS = [
 
 
 class FromPirateBay:
-    """
-    Return torrent listing from piratebay api.
+    """Return torrent listing from piratebay api.
 
     ::
 
       url: <piratebay api mirror, for example: https://apibay.org or http://piratebayztemzmv.onion>
       category: <str|int>. Accept a category name or ID.
       list: <top|top48h|recent>
-      rank: <any|member|vip|trusted> Minimum rank of torrent uploader
+      rank: <all|user|member|trusted|vip|helper|moderator|supermod> Minimum rank of torrent uploader
 
 
     Example::
@@ -120,13 +113,14 @@ class FromPirateBay:
         'properties': {
             'url': {'type': 'string', 'default': URL, 'format': 'url'},
             'category': {
-                        'oneOf': [
-                            {'type': 'string', 'enum': list(CATEGORIES)},
-                            {'type': 'integer'},
-                        ]
-                    },
+                'oneOf': [
+                    {'type': 'string', 'enum': list(CATEGORIES)},
+                    {'type': 'integer'},
+                ]
+            },
+            'query': {'type': ['string']},
             'list': {'type': 'string', 'enum': list(LISTS), 'default': 'top'},
-            'rank': {'type': 'string', 'enum': list(RANKS), 'default': 'all'}
+            'rank': {'type': 'string', 'enum': list(RANKS), 'default': 'all'},
         },
         'required': ['list'],
         'additionalProperties': False,
@@ -141,7 +135,11 @@ class FromPirateBay:
         else:
             category = CATEGORIES.get(config.get('category', 'All'))
 
-        if list == 'top':
+        params = {}
+        if 'query' in config:
+            list_url = f'{url}/q.php'
+            params = {'q': config['query']}
+        elif list == 'top':
             if category:
                 list_url = f'{url}/precompiled/data_top100_{category}.json'
             else:
@@ -151,15 +149,15 @@ class FromPirateBay:
                 list_url = f'{url}/precompiled/data_top100_48h_{category}.json'
             else:
                 list_url = f'{url}/precompiled/data_top100_48h.json'
-        else: # list == 'recent'
-            if category:
-                list_url = f'{url}/q.php?q=category:{category}'
-            else:
-                # top100_recent has multiple pages, starting at data_top100_recent.json, then data_top100_recent_1.json
-                # to 30, and appears not filtered by categories
-                list_url = f'{url}/precompiled/data_top100_recent.json'
+        elif category:
+            list_url = f'{url}/q.php'
+            params = {'q': f'category:{category}'}
+        else:
+            # top100_recent has multiple pages, starting at data_top100_recent.json, then data_top100_recent_1.json
+            # to 30, and appears not filtered by categories
+            list_url = f'{url}/precompiled/data_top100_recent.json'
 
-        json_results = task.requests.get(list_url).json()
+        json_results = task.requests.get(list_url, params=params).json()
 
         for result in json_results:
             if result['id'] == '0':
@@ -167,20 +165,17 @@ class FromPirateBay:
                 break
             if RANKS.index(result['status'].lower()) < rank:
                 # filter by rank/status, useful for recent torrents
-                logger.debug(f"{result['name']} has been dropped due to low rank ({result['status']}).")
+                logger.debug(
+                    '{} has been dropped due to low rank ({}).', result['name'], result['status']
+                )
                 continue
             yield self.json_to_entry(result)
 
     @staticmethod
     def info_hash_to_magnet(info_hash: str, name: str) -> str:
-        magnet = {
-            'xt': f"urn:btih:{info_hash}",
-            'dn': name,
-            'tr': TRACKERS
-        }
+        magnet = {'xt': f'urn:btih:{info_hash}', 'dn': name, 'tr': TRACKERS}
         magnet_qs = urlencode(magnet, doseq=True, safe=':')
-        magnet_uri = f"magnet:?{magnet_qs}"
-        return magnet_uri
+        return f'magnet:?{magnet_qs}'
 
     def json_to_entry(self, json_result: dict) -> Entry:
         entry = Entry()
@@ -191,7 +186,7 @@ class FromPirateBay:
         entry['torrent_availability'] = torrent_availability(
             entry['torrent_seeds'], entry['torrent_leeches']
         )
-        entry['content_size'] = int(round(int(json_result['size']) / (1024 * 1024)))
+        entry['content_size'] = int(json_result['size'])
         entry['torrent_info_hash'] = json_result['info_hash']
         entry['url'] = self.info_hash_to_magnet(json_result['info_hash'], json_result['name'])
         return entry

@@ -18,34 +18,41 @@ DEFAULT_STRIDE = (
 
 
 class PluginSortByWeight:
-    """
-    Sort task entries based on multiple fields using a sort weight per field.
+    """Sort task entries based on multiple fields using a sort weight per field.
+
     Result per entry is stored in 'sort_by_weight_sum'.
 
     Basic Concept:
     For each field we calculate a weight based on given parameters and than sum the weights up and do a sort based on it.
 
-    field:          Name of the sort field
-    weight:         The sort weight used, values between 10-200 are good starts
+    =============== ==============================================================================================================
+    Option          Description
+    =============== ==============================================================================================================
+    field           Name of the sort field
+    weight          The sort weight used, values between 10-200 are good starts
     inverse: yes    Use inverse weighting for the field, example: date, age fields that range in the past
                     This means the lowest entry/value will get the highest weight
-    upper_limit:    The upper value limit or upper cutoff value, that will be used for weighting.
+    upper_limit     The upper value limit or upper cutoff value, that will be used for weighting.
                     This will change the slot distribution, which helps narrow down to more meaningfully weighting results.
 
-                    Example: Entry1 is 100 days old, Entry2 is 7 days old, Entry3 is 1000 days old
-                    Without a upper_limit the weights will be distributed between 0-1000 days, with a upper_limit: 100 days
-                    weights will be distributed between 0-100 days and any value larger than upper_limit, gets the highest score.
-                    So we can smoothly distribute the rest between 0-100 days.
+    Example:
+                      Entry1 is 100 days old, Entry2 is 7 days old, Entry3 is 1000 days old
+                      Without a upper_limit the weights will be distributed between 0-1000 days, with a upper_limit: 100 days
+                      weights will be distributed between 0-100 days and any value larger than upper_limit, gets the highest score.
+                      So we can smoothly distribute the rest between 0-100 days.
 
-    delta_distance: The distance, step until a new slot is used for weighting.
+    delta_distance  The distance, step until a new slot is used for weighting.
                     Think of this like: Any value that is within this distance will get the same weight for the step.
                     NOTE: If not given the delta_distance will be distributed over 10 distinct steps
 
-                    Example: Size1 = 4000 MB, Size2 = 3000 MB, Size3 = 700 MB
-                             With a weight: 50 and delta_distance: 1200
-                             Size1 and Size2 both get the maximum weight of 50, while Size3 gets the weight for the 0-1200 MB step.
+    Example:
+                      Size1 = 4000 MB, Size2 = 3000 MB, Size3 = 700 MB
+                      With a weight: 50 and delta_distance: 1200
+                      Size1 and Size2 both get the maximum weight of 50, while Size3 gets the weight for the 0-1200 MB step.
+    =============== ==============================================================================================================
 
     Example::
+
         simple:
         sort_by_weight:
             - field: quality
@@ -71,6 +78,7 @@ class PluginSortByWeight:
             upper_limit: 100        # anything over 100 grabs is fine and gets maximum weight
 
             In this example the best result can have a 'sort_by_weight_sum' of sum = 80 + 30 + 20
+
     """
 
     schema = {
@@ -103,16 +111,15 @@ class PluginSortByWeight:
     def prepare_config(self, config):
         settings = {}
         for entry in config:
-            if isinstance(entry, dict):
-                if entry.get('field') and not entry.get('field').isspace():
-                    key = entry.get('field')
-                    settings[key] = entry
-                    delta = settings[key].get('delta_distance')
-                    if delta and isinstance(delta, str):
-                        settings[key]['delta_distance'] = parse_timedelta(delta)
-                    limit = settings[key].get('upper_limit')
-                    if limit and isinstance(limit, str):
-                        settings[key]['upper_limit'] = parse_timedelta(limit)
+            if isinstance(entry, dict) and entry.get('field') and not entry.get('field').isspace():
+                key = entry.get('field')
+                settings[key] = entry
+                delta = settings[key].get('delta_distance')
+                if delta and isinstance(delta, str):
+                    settings[key]['delta_distance'] = parse_timedelta(delta)
+                limit = settings[key].get('upper_limit')
+                if limit and isinstance(limit, str):
+                    settings[key]['upper_limit'] = parse_timedelta(limit)
         return settings
 
     @plugin.priority(127)  # run after default filters
@@ -139,7 +146,7 @@ class PluginSortByWeight:
         elif isinstance(value, bool):
             min_value = False
         elif isinstance(value, datetime):
-            min_value = datetime.now()  # assume date comparision vs now()
+            min_value = datetime.now()  # assume date comparison vs now()
         elif isinstance(value, timedelta):
             min_value = timedelta(0)
         return min_value
@@ -151,11 +158,9 @@ class PluginSortByWeight:
             # auto handle datetime
             if isinstance(value, datetime) and isinstance(limit, timedelta):
                 if config[key]['inverse'] is True:
-                    if (datetime.now() - limit) > value:
-                        value = datetime.now() - limit
-                else:
-                    if (datetime.now() + limit) < value:
-                        value = datetime.now() + limit
+                    value = max(value, datetime.now() - limit)
+                elif (datetime.now() + limit) < value:
+                    value = datetime.now() + limit
             elif value > limit:
                 value = limit
         return value
@@ -256,26 +261,21 @@ class PluginSortByWeight:
 
     def _add_debug_info(self, key, entry, weight, *args):
         if 'weights' not in entry:
-            entry['weights'] = dict()
+            entry['weights'] = {}
         short_args = []
         for arg in args:
             if isinstance(arg, timedelta):
                 short_args.append(arg.days)
             elif isinstance(arg, datetime):
                 date = arg.date()
-                short_args.append('%s-%s-%s' % (date.year, date.month, date.day))
+                short_args.append(f'{date.year}-{date.month}-{date.day}')
             elif isinstance(arg, Quality):
-                quality_string = '[ %s ]-%s-%s, [ %s ]' % (
-                    arg.resolution,
-                    arg.source,
-                    arg.codec,
-                    arg.audio,
-                )
+                quality_string = f'[ {arg.resolution} ]-{arg.source}-{arg.codec}, [ {arg.audio} ]'
                 if quality_string not in short_args:
                     short_args.append(quality_string)
             else:
                 short_args.append(arg)
-        entry['weights'][key] = '%s = %s' % (weight, short_args)
+        entry['weights'][key] = f'{weight} = {short_args}'
 
 
 @event('plugin.register')

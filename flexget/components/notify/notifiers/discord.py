@@ -1,28 +1,36 @@
+from datetime import datetime, timedelta
+from time import sleep as wait
+
+from dateutil.parser import ParserError, isoparse
 from loguru import logger
-from requests.exceptions import RequestException
+from requests.exceptions import ReadTimeout
 
 from flexget import plugin
 from flexget.event import event
 from flexget.plugin import PluginWarning
-from flexget.utils import requests
+from flexget.utils.requests import RequestException, Session, TokenBucketLimiter
 
 plugin_name = 'discord'
 
 logger = logger.bind(name=plugin_name)
+session = Session()
+session.add_domain_limiter(TokenBucketLimiter('discord.com', 6, '3 seconds'))
 
 
 class DiscordNotifier:
-    """
+    """Send notification to Discord.
+
     Example::
 
-      notify:
-        entries:
-          via:
-            - discord:
-                web_hook_url: <string>
-                [username: <string>] (override the default username of the webhook)
-                [avatar_url: <string>] (override the default avatar of the webhook)
-                [embeds: <arrays>[<object>]] (override embeds)
+        notify:
+          entries:
+            via:
+              - discord:
+                  web_hook_url: <string>
+                  [silent: <boolean>] (suppress notification)
+                  [username: <string>] (override the default username of the webhook)
+                  [avatar_url: <string>] (override the default avatar of the webhook)
+                  [embeds: <arrays>[<object>]] (override embeds)
     """
 
     schema = {
@@ -31,6 +39,7 @@ class DiscordNotifier:
             'web_hook_url': {'type': 'string', 'format': 'uri'},
             'username': {'type': 'string', 'default': 'Flexget'},
             'avatar_url': {'type': 'string', 'format': 'uri'},
+            'silent': {'type': 'boolean', 'default': False},
             'embeds': {
                 'type': 'array',
                 'items': {
@@ -39,7 +48,12 @@ class DiscordNotifier:
                         'title': {'type': 'string'},
                         'description': {'type': 'string'},
                         'url': {'type': 'string', 'format': 'uri'},
-                        'color': {'type': 'integer'},
+                        'color': {
+                            'oneOf': [
+                                {'type': 'integer'},
+                                {'type': 'string'},
+                            ]
+                        },
                         'footer': {
                             'type': 'object',
                             'properties': {
@@ -66,6 +80,7 @@ class DiscordNotifier:
                             },
                             'additionalProperties': False,
                         },
+                        'timestamp': {'type': 'string'},
                         'provider': {
                             'type': 'object',
                             'properties': {
@@ -108,12 +123,42 @@ class DiscordNotifier:
     }
 
     def notify(self, title, message, config):
-        """
-        Send discord notification
+        """Send discord notification.
 
         :param str message: message body
         :param dict config: discord plugin config
         """
+        for embed in config.get('embeds', []):
+            ts = embed.get('timestamp')
+            if ts:
+                if isinstance(ts, str):
+                    if ts.isdigit():
+                        try:
+                            ts = datetime.utcfromtimestamp(int(ts))
+                        except (ValueError, OverflowError):
+                            logger.info(
+                                "Value provided for 'timestamp' ({}) is not a timestamp ({}).",
+                                embed['timestamp'],
+                                int(datetime.now().timestamp()),
+                            )
+                    else:
+                        try:
+                            ts = isoparse(ts)
+                            embed['timestamp'] = ts
+                        except (ParserError, ValueError) as e:
+                            logger.info("'timestamp' is in an invalid format: {}", e)
+                if not isinstance(ts, datetime):
+                    embed.pop('timestamp', None)
+                    logger.warning("'timestamp' is invalid, dropping it")
+                else:
+                    embed['timestamp'] = datetime.strftime(ts, r'%Y-%m-%dT%H:%M:%S%z')
+
+            if isinstance(embed.get('color'), str):
+                try:
+                    int(embed['color'], 16)
+                except TypeError:
+                    logger.warning("Invalid 'color' for embed ({}), ignoring", embed['color'])
+                    embed.pop('color', None)
 
         web_hook = {
             'content': message,
@@ -122,10 +167,37 @@ class DiscordNotifier:
             'embeds': config.get('embeds'),
         }
 
-        try:
-            requests.post(config['web_hook_url'], json=web_hook)
-        except RequestException as e:
-            raise PluginWarning(e.args[0])
+        if config.get('silent'):
+            web_hook['flags'] = 4096  # Suppress notification bitfield
+
+        # Send the request and handle the rate-limit response.
+        for _ in range(3):
+            try:
+                req = session.post(config['web_hook_url'], json=web_hook)
+                tokens = int(req.headers.get('x-ratelimit-remaining', 1))
+                tokens_reset = timedelta(
+                    seconds=int(req.headers.get('x-ratelimit-reset-after', 3))
+                )
+                logger.trace(f'Remaining rate tokens: {tokens}. Resets after {tokens_reset} secs.')
+                session.add_domain_limiter(
+                    TokenBucketLimiter('discord.com', tokens=tokens, rate=tokens_reset)
+                )
+            except ReadTimeout:
+                logger.info('Request timed out')
+                continue
+            except RequestException as e:
+                if e.response.status_code == 429:
+                    timeout = int(
+                        e.response.headers.get(
+                            'retry-after', e.response.json().get('retry_after', 3)
+                        )
+                    )
+                    logger.info('Rate-limited, waiting for {}', timedelta(seconds=timeout))
+                    wait(timeout)
+                    continue
+                raise PluginWarning(e.args[0])
+            else:
+                break
 
 
 @event('plugin.register')

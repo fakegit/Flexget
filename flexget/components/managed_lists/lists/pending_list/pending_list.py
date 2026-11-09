@@ -18,7 +18,8 @@ logger = logger.bind(name=plugin_name)
 class PendingListSet(MutableSet):
     def _db_list(self, session):
         return (
-            session.query(db.PendingListList)
+            session
+            .query(db.PendingListList)
             .filter(db.PendingListList.name == self.list_name)
             .first()
         )
@@ -29,9 +30,9 @@ class PendingListSet(MutableSet):
         self.list_name = config.get('list_name')
 
         self.filter_approved = True
-        if config.get('include') == "pending":
+        if config.get('include') == 'pending':
             self.filter_approved = False
-        if config.get('include') == "all":
+        if config.get('include') == 'all':
             self.filter_approved = None
 
         with Session() as session:
@@ -40,7 +41,8 @@ class PendingListSet(MutableSet):
 
     def _entry_query(self, session, entry, approved=None):
         query = (
-            session.query(db.PendingListEntry)
+            session
+            .query(db.PendingListEntry)
             .filter(db.PendingListEntry.list_id == self._db_list(session).id)
             .filter(
                 or_(
@@ -105,8 +107,10 @@ class PendingListSet(MutableSet):
 
     @property
     def online(self):
-        """Set the online status of the plugin, online plugin should be treated differently in certain situations,
-        like test mode"""
+        """Set the online status of the plugin.
+
+        Online plugin should be treated differently in certain situations, like test mode
+        """
         return False
 
     def get(self, entry):

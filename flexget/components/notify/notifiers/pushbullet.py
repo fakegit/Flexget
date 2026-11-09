@@ -1,5 +1,5 @@
 import base64
-import datetime
+from datetime import datetime
 
 from loguru import logger
 from requests.exceptions import RequestException
@@ -21,17 +21,18 @@ requests.add_domain_limiter(TimedLimiter('pushbullet.com', '5 seconds'))
 
 
 class PushbulletNotifier:
-    """
+    """Send a Pushbullet notification.
+
     Example::
 
-    notify:
-      entries:
-        via:
-          pushbullet:
-            apikey: <API_KEY>
-            [device: <DEVICE_IDEN> (can also be a list of device ids, or don't specify any ids to send to all devices)]
-            [email: <EMAIL_ADDRESS> (can also be a list of user email addresses)]
-            [channel: <CHANNEL_TAG> (you can only specify device / email or channel tag, cannot use both)]
+        notify:
+          entries:
+            via:
+              pushbullet:
+                apikey: <API_KEY>
+                [device: <DEVICE_IDEN> (can also be a list of device ids, or don't specify any ids to send to all devices)]
+                [email: <EMAIL_ADDRESS> (can also be a list of user email addresses)]
+                [channel: <CHANNEL_TAG> (you can only specify device / email or channel tag, cannot use both)]
 
     Configuration parameters are also supported from entries (eg. through set).
     """
@@ -66,9 +67,7 @@ class PushbulletNotifier:
     }
 
     def notify(self, title, message, config):
-        """
-        Send a Pushbullet notification
-        """
+        """Send a Pushbullet notification."""
         if config.get('device') and not isinstance(config['device'], list):
             config['device'] = [config['device']]
 
@@ -115,7 +114,7 @@ class PushbulletNotifier:
                 if e.response.status_code == 429:
                     reset_time = e.response.headers.get('X-Ratelimit-Reset')
                     if reset_time:
-                        reset_time = datetime.datetime.fromtimestamp(int(reset_time)).strftime(
+                        reset_time = datetime.fromtimestamp(int(reset_time)).strftime(
                             '%Y-%m-%d %H:%M:%S'
                         )
                         message = f'Monthly Pushbullet database operations limit reached. Next reset: {reset_time}'
@@ -128,7 +127,7 @@ class PushbulletNotifier:
         reset_time = response.headers.get('X-Ratelimit-Reset')
         remaining = response.headers.get('X-Ratelimit-Remaining')
         if reset_time and remaining:
-            reset_time = datetime.datetime.fromtimestamp(int(reset_time))
+            reset_time = datetime.fromtimestamp(int(reset_time))
             logger.debug(
                 'Pushbullet notification sent. Database operations remaining until next reset: {}. '
                 'Next reset at: {}',

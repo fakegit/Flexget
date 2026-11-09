@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from urllib.parse import parse_qs, urlencode, urlparse
 
 from loguru import logger
@@ -24,16 +22,13 @@ class SiteRutracker:
 
     @plugin.internet(logger)
     def url_rewrite(self, task, entry):
-        """
-        Gets torrent information for topic from rutracker api
-        """
-
+        """Get torrent information for topic from rutracker api."""
         url = entry['url']
         logger.info('rewriting download url: {}', url)
 
         topic_id = parse_qs(urlparse(url).query)['t'][0]
 
-        api_url = f"{self.base_url}/v1/get_tor_topic_data"
+        api_url = f'{self.base_url}/v1/get_tor_topic_data'
         api_params = {
             'by': 'topic_id',
             'val': topic_id,
@@ -46,12 +41,12 @@ class SiteRutracker:
         topic = topic_request.json()['result'][topic_id]
 
         magnet = {
-            'xt': f"urn:btih:{topic['info_hash']}",
+            'xt': f'urn:btih:{topic["info_hash"]}',
             'tr': [f'http://bt{i}.t-ru.org/ann?magnet' for i in ['', '2', '3', '4']],
             'dn': topic['topic_title'],
         }
         magnet_qs = urlencode(magnet, doseq=True, safe=':')
-        magnet_uri = f"magnet:?{magnet_qs}"
+        magnet_uri = f'magnet:?{magnet_qs}'
         entry['url'] = magnet_uri
 
 

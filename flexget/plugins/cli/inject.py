@@ -1,5 +1,4 @@
 import argparse
-import cgi
 import random
 import string
 
@@ -10,35 +9,31 @@ from flexget.entry import Entry
 from flexget.event import event
 from flexget.terminal import console
 from flexget.utils import requests
+from flexget.utils.requests import parse_header
 
 
 @event('manager.subcommand.inject')
 def do_cli(manager, options):
-    if not options.url:
-        # Determine if first positional argument is a URL or a title
-        if '://' in options.title:
-            options.url = options.title
-            options.title = None
+    # Determine if first positional argument is a URL or a title
+    if not options.url and '://' in options.title:
+        options.url = options.title
+        options.title = None
 
     if options.url and not options.title:
         # Attempt to get a title from the URL response's headers
         try:
-            value, params = cgi.parse_header(
-                requests.head(options.url).headers['Content-Disposition']
-            )
+            value, params = parse_header(requests.head(options.url).headers['Content-Disposition'])
             options.title = params['filename']
         except KeyError:
-            console(
-                'No title given, and couldn\'t get one from the URL\'s HTTP response. Aborting.'
-            )
+            console("No title given, and couldn't get one from the URL's HTTP response. Aborting.")
             return
 
     entry = Entry(title=options.title)
     if options.url:
         entry['url'] = options.url
     else:
-        entry['url'] = 'http://localhost/inject/%s' % ''.join(
-            random.sample(string.ascii_letters + string.digits, 30)
+        entry['url'] = 'http://localhost/inject/{}'.format(
+            ''.join(random.sample(string.ascii_letters + string.digits, 30))
         )
     if options.force:
         entry['immortal'] = True
@@ -72,7 +67,7 @@ def register_parser_arguments():
         '[--fields NAME=VALUE [NAME=VALUE...]] [<execute arguments>]',
         epilog=(
             'If only a URL and no title is given, Flexget will attempt to '
-            'find a title in the URL\'s response headers.'
+            "find a title in the URL's response headers."
         ),
     )
     inject_group = inject_parser.add_argument_group('inject arguments')

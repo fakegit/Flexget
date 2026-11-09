@@ -23,7 +23,7 @@ class TorrentAliveThread(threading.Thread):
     _counter = itertools.count()
 
     def __init__(self, tracker, info_hash):
-        threading.Thread.__init__(self, name='torrent_alive-%d' % next(self._counter))
+        threading.Thread.__init__(self, name=f'torrent_alive-{next(self._counter)}')
         self.tracker = tracker
         self.info_hash = info_hash
         self.tracker_seeds = 0
@@ -38,8 +38,7 @@ class TorrentAliveThread(threading.Thread):
 
 
 def max_seeds_from_threads(threads):
-    """
-    Joins the threads and returns the maximum seeds found from any of them.
+    """Join the threads and return the maximum seeds found from any of them.
 
     :param threads: A list of started `TorrentAliveThread`
     :return: Maximum seeds found from any of the threads
@@ -56,21 +55,25 @@ def max_seeds_from_threads(threads):
 def get_scrape_url(tracker_url, info_hash):
     if 'announce' in tracker_url:
         v = urlsplit(tracker_url)
-        result = urlunsplit(
-            [v.scheme, v.netloc, v.path.replace('announce', 'scrape'), v.query, v.fragment]
-        )
+        result = urlunsplit([
+            v.scheme,
+            v.netloc,
+            v.path.replace('announce', 'scrape'),
+            v.query,
+            v.fragment,
+        ])
     else:
         logger.debug('`announce` not contained in tracker url, guessing scrape address.')
         result = tracker_url + '/scrape'
 
     result += '&' if '?' in result else '?'
-    result += 'info_hash=%s' % quote(binascii.unhexlify(info_hash))
+    result += f'info_hash={quote(binascii.unhexlify(info_hash))}'
     return result
 
 
 def get_udp_seeds(url, info_hash):
-    parsed_url = urlparse(url)
     try:
+        parsed_url = urlparse(url)
         port = parsed_url.port
     except ValueError:
         logger.error('UDP Port Error, url was {}', url)
@@ -96,35 +99,35 @@ def get_udp_seeds(url, info_hash):
         clisocket.connect((parsed_url.hostname, port))
 
         # build packet with connection_ID, using 0 value for action, giving our transaction ID for this packet
-        packet = struct.pack(b">QLL", connection_id, 0, transaction_id)
+        packet = struct.pack(b'>QLL', connection_id, 0, transaction_id)
         clisocket.send(packet)
 
         # set 16 bytes ["QLL" = 16 bytes] for the fmq for unpack
         res = clisocket.recv(16)
-        # check recieved packet for response
-        action, transaction_id, connection_id = struct.unpack(b">LLQ", res)
+        # check received packet for response
+        action, transaction_id, connection_id = struct.unpack(b'>LLQ', res)
 
         # build packet hash out of decoded info_hash
         packet_hash = binascii.unhexlify(info_hash)
 
         # construct packet for scrape with decoded info_hash setting action byte to 2 for scape
-        packet = struct.pack(b">QLL", connection_id, 2, transaction_id) + packet_hash
+        packet = struct.pack(b'>QLL', connection_id, 2, transaction_id) + packet_hash
 
         clisocket.send(packet)
-        # set recieve size of 8 + 12 bytes
+        # set receive size of 8 + 12 bytes
         res = clisocket.recv(20)
 
     except OSError as e:
         logger.warning('Socket Error: {}', e)
         return 0
     # Check for UDP error packet
-    (action,) = struct.unpack(b">L", res[:4])
+    (action,) = struct.unpack(b'>L', res[:4])
     if action == 3:
         logger.error('There was a UDP Packet Error 3')
         return 0
 
     # first 8 bytes are followed by seeders, completed and leechers for requested torrent
-    seeders, _, _ = struct.unpack(b">LLL", res[8:20])
+    seeders, _, _ = struct.unpack(b'>LLL', res[8:20])
     logger.debug('get_udp_seeds is returning: {}', seeders)
     clisocket.close()
     return seeders
@@ -154,18 +157,17 @@ def get_http_seeds(url, info_hash):
     if not data:
         logger.debug('No data received from tracker scrape.')
         return 0
-    logger.debug('get_http_seeds is returning: {}', list(data.values())[0]['complete'])
-    return list(data.values())[0]['complete']
+    logger.debug('get_http_seeds is returning: {}', next(iter(data.values()))['complete'])
+    return next(iter(data.values()))['complete']
 
 
 def get_tracker_seeds(url, info_hash):
     if url.startswith('udp'):
         return get_udp_seeds(url, info_hash)
-    elif url.startswith('http'):
+    if url.startswith('http'):
         return get_http_seeds(url, info_hash)
-    else:
-        logger.warning('There is a problem with the get_tracker_seeds')
-        return 0
+    logger.warning('There is a problem with the get_tracker_seeds')
+    return 0
 
 
 class TorrentAlive:
@@ -201,8 +203,9 @@ class TorrentAlive:
         for entry in task.entries:
             if 'torrent_seeds' in entry and entry['torrent_seeds'] < config['min_seeds']:
                 entry.reject(
-                    reason='Had < %d required seeds. (%s)'
-                    % (config['min_seeds'], entry['torrent_seeds'])
+                    reason='Had < {} required seeds. ({})'.format(
+                        config['min_seeds'], entry['torrent_seeds']
+                    )
                 )
 
     # Run on output phase so that we let torrent plugin output modified torrent file first
@@ -265,7 +268,7 @@ class TorrentAlive:
                 # Reject if needed
                 if seeds < min_seeds:
                     entry.reject(
-                        reason='Tracker(s) had < %s required seeds. (%s)' % (min_seeds, seeds),
+                        reason=f'Tracker(s) had < {min_seeds} required seeds. ({seeds})',
                         remember_time=config['reject_for'],
                     )
                     # Maybe there is better match that has enough seeds

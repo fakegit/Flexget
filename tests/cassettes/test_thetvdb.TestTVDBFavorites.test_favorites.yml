@@ -1,0 +1,624 @@
+interactions:
+- request:
+    body: '{"username": "flexget", "userkey": "80FB8BD0720CA5EC", "apikey": "4D297D8CFDE0E105"}'
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '84'
+      Content-Type:
+      - application/json
+      User-Agent:
+      - FlexGet/2.9.16.dev (www.flexget.com)
+    method: POST
+    uri: https://api.thetvdb.com/login
+  response:
+    body:
+      string: "{\n  \"token\": \"eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE0ODY2NzM4NTMsImlkIjoiRmxleEdldCIsIm9yaWdfaWF0IjoxNDg2NTg3NDUzLCJ1c2VyaWQiOjE5MTAzMSwidXNlcm5hbWUiOiJmbGV4Z2V0In0.ChJiwef9OHSsHv013KkUs5duEjagtQ6abFsUrI_5OLjxljXiKPBBs6CZ-rPS6OlOusj0c5tGDzD813-Y7r0-DITydEzXkFtCpNLe7vHPNRDgf9CIYAAVRAHul-vP399v9DXO3r3N0kV4WQ4F9DHtwq0iHnfkvKL9AQyMVhyIDdcL_tbAtl2JXsOBA0ofO9q4nhHiAQJDVVc_wp1bJw718NsOhnRIh69E191AVBMv9UNfzCumogoW67Mg_IFAvvVAf0WnkPYEnSIIllcjvy0_UX3j_JSi6Do0IUdWam6O8PYwDbdSIf6z9w50CyWCW1uZCjR1LRELr0g4l4nRXeR21w\"\n}"
+    headers:
+      CF-RAY:
+      - 32e1fe9fef5419bc-SYD
+      Connection:
+      - keep-alive
+      Content-Encoding:
+      - gzip
+      Content-Type:
+      - application/json; charset=utf-8
+      Date:
+      - Wed, 08 Feb 2017 20:57:33 GMT
+      Server:
+      - cloudflare-nginx
+      Set-Cookie:
+      - __cfduid=d8420c9ae0f17fda68426dd453d9cdf721486587453; expires=Thu, 08-Feb-18
+        20:57:33 GMT; path=/; domain=.thetvdb.com; HttpOnly
+      Vary:
+      - Accept-Language
+      X-Powered-By:
+      - Thundar!
+      X-Thetvdb-Api-Version:
+      - 2.1.2
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Accept-Language:
+      - en
+      Authorization:
+      - Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE0ODY2NzM4NTMsImlkIjoiRmxleEdldCIsIm9yaWdfaWF0IjoxNDg2NTg3NDUzLCJ1c2VyaWQiOjE5MTAzMSwidXNlcm5hbWUiOiJmbGV4Z2V0In0.ChJiwef9OHSsHv013KkUs5duEjagtQ6abFsUrI_5OLjxljXiKPBBs6CZ-rPS6OlOusj0c5tGDzD813-Y7r0-DITydEzXkFtCpNLe7vHPNRDgf9CIYAAVRAHul-vP399v9DXO3r3N0kV4WQ4F9DHtwq0iHnfkvKL9AQyMVhyIDdcL_tbAtl2JXsOBA0ofO9q4nhHiAQJDVVc_wp1bJw718NsOhnRIh69E191AVBMv9UNfzCumogoW67Mg_IFAvvVAf0WnkPYEnSIIllcjvy0_UX3j_JSi6Do0IUdWam6O8PYwDbdSIf6z9w50CyWCW1uZCjR1LRELr0g4l4nRXeR21w
+      Connection:
+      - keep-alive
+      User-Agent:
+      - FlexGet/2.9.16.dev (www.flexget.com)
+    method: GET
+    uri: https://api.thetvdb.com/user/favorites
+  response:
+    body:
+      string: "{\n  \"data\": {\n    \"favorites\": [\n      \"78804\",\n      \"84946\",\n
+        \     \"164541\",\n      \"73255\",\n      \"81189\"\n    ]\n  }\n}"
+    headers:
+      CF-RAY:
+      - 32e1fea188476533-SYD
+      Cache-Control:
+      - private, max-age=0
+      Connection:
+      - keep-alive
+      Content-Encoding:
+      - gzip
+      Content-Type:
+      - application/json; charset=utf-8
+      Date:
+      - Wed, 08 Feb 2017 20:57:33 GMT
+      Server:
+      - cloudflare-nginx
+      Set-Cookie:
+      - __cfduid=d46823cdd54a23f4d311ae6701a1ab7641486587453; expires=Thu, 08-Feb-18
+        20:57:33 GMT; path=/; domain=.thetvdb.com; HttpOnly
+      Vary:
+      - Accept-Language
+      X-Powered-By:
+      - Thundar!
+      X-Thetvdb-Api-Version:
+      - 2.1.2
+    status:
+      code: 200
+      message: OK
+- request:
+    body: '{"apikey": "4D297D8CFDE0E105"}'
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '30'
+      Content-Type:
+      - application/json
+      User-Agent:
+      - FlexGet/2.9.16.dev (www.flexget.com)
+    method: POST
+    uri: https://api.thetvdb.com/login
+  response:
+    body:
+      string: "{\n  \"token\": \"eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE0ODY2NzM4NTQsImlkIjoiRmxleEdldCIsIm9yaWdfaWF0IjoxNDg2NTg3NDU0fQ.K_b47s8DKOlQfts2f-pm9Ij55h3fZ9WAMLeursl2eB_i4UqELYMG3kqHmDcDRaigJOwMcqauXiXki5c4dYzV3AZ3_1HLLgoCwCARbM8a9JwEht8u1ll8yTGvlowBSSHphOZTWIhB-WsxG0R7OTq84MR_hSVX6Y3jNDm3AhFCtiKHkLeiJHqLvIeU6uBSx1jWugtPQ-9fyuZkjpwT82EPFNce7wU2cItHt0VV5OTpXpFep5aURbcrr1b7l_h94Kf2wTOpOLp1VPQ4kgEuLZcDu_4TAhBI_dJ2ererp9Or5PRPxRZxCtN1V_bDjcaBV1cuB0HQlSjxIxOh6eFZkp293Q\"\n}"
+    headers:
+      CF-RAY:
+      - 32e1fea30d8465b1-SYD
+      Connection:
+      - keep-alive
+      Content-Encoding:
+      - gzip
+      Content-Type:
+      - application/json; charset=utf-8
+      Date:
+      - Wed, 08 Feb 2017 20:57:34 GMT
+      Server:
+      - cloudflare-nginx
+      Set-Cookie:
+      - __cfduid=df3c27dec571c50ca103e77031be241b61486587453; expires=Thu, 08-Feb-18
+        20:57:33 GMT; path=/; domain=.thetvdb.com; HttpOnly
+      Vary:
+      - Accept-Language
+      X-Powered-By:
+      - Thundar!
+      X-Thetvdb-Api-Version:
+      - 2.1.2
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Authorization:
+      - Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE0ODY2NzM4NTQsImlkIjoiRmxleEdldCIsIm9yaWdfaWF0IjoxNDg2NTg3NDU0fQ.K_b47s8DKOlQfts2f-pm9Ij55h3fZ9WAMLeursl2eB_i4UqELYMG3kqHmDcDRaigJOwMcqauXiXki5c4dYzV3AZ3_1HLLgoCwCARbM8a9JwEht8u1ll8yTGvlowBSSHphOZTWIhB-WsxG0R7OTq84MR_hSVX6Y3jNDm3AhFCtiKHkLeiJHqLvIeU6uBSx1jWugtPQ-9fyuZkjpwT82EPFNce7wU2cItHt0VV5OTpXpFep5aURbcrr1b7l_h94Kf2wTOpOLp1VPQ4kgEuLZcDu_4TAhBI_dJ2ererp9Or5PRPxRZxCtN1V_bDjcaBV1cuB0HQlSjxIxOh6eFZkp293Q
+      Connection:
+      - keep-alive
+      User-Agent:
+      - FlexGet/2.9.16.dev (www.flexget.com)
+    method: GET
+    uri: https://api.thetvdb.com/series/78804
+  response:
+    body:
+      string: "{\n  \"data\": {\n    \"id\": 78804,\n    \"seriesName\": \"Doctor
+        Who (2005)\",\n    \"aliases\": [\n      \"Doctor Who 2005\",\n      \"Doctor
+        Who: The Doctors Revisited\",\n      \"Dr Who\",\n      \"The Doctors Revisited\"\n
+        \   ],\n    \"banner\": \"graphical/78804-g41.jpg\",\n    \"seriesId\": \"34391\",\n
+        \   \"status\": \"Continuing\",\n    \"firstAired\": \"2005-03-26\",\n    \"network\":
+        \"BBC One\",\n    \"networkId\": \"\",\n    \"runtime\": \"45\",\n    \"genre\":
+        [\n      \"Adventure\",\n      \"Drama\",\n      \"Science-Fiction\"\n    ],\n
+        \   \"overview\": \"The Doctor is an alien Time Lord from the planet Gallifrey
+        who travels through all of time and space in his TARDIS. He has a long list
+        of friends and companions who have shared journeys with him. Instead of dying,
+        the Doctor is able to \u201Cregenerate\u201D into a new body, taking on a
+        new personality with each regeneration. Twelve actors, plus John Hurt, have
+        played The Doctor thus far.\",\n    \"lastUpdated\": 1486272867,\n    \"airsDayOfWeek\":
+        \"Saturday\",\n    \"airsTime\": \"8:30 PM\",\n    \"rating\": \"TV-PG\",\n
+        \   \"imdbId\": \"tt0436992\",\n    \"zap2itId\": \"EP00750178\",\n    \"added\":
+        \"\",\n    \"addedBy\": null,\n    \"siteRating\": 9.4,\n    \"siteRatingCount\":
+        807\n  }\n}"
+    headers:
+      CF-RAY:
+      - 32e1fea49dd465b1-SYD
+      Cache-Control:
+      - private, max-age=600
+      Connection:
+      - keep-alive
+      Content-Encoding:
+      - gzip
+      Content-Type:
+      - application/json; charset=utf-8
+      Date:
+      - Wed, 08 Feb 2017 20:57:34 GMT
+      Last-Modified:
+      - Sun, 05 Feb 2017 05:34:27 GMT
+      Server:
+      - cloudflare-nginx
+      Set-Cookie:
+      - __cfduid=d854c8c3d8ae4e5d1a5133e6761e5b3811486587454; expires=Thu, 08-Feb-18
+        20:57:34 GMT; path=/; domain=.thetvdb.com; HttpOnly
+      Vary:
+      - Accept-Language
+      X-Powered-By:
+      - Thundar!
+      X-Thetvdb-Api-Version:
+      - 2.1.2
+    status:
+      code: 200
+      message: OK
+- request:
+    body: '{"apikey": "4D297D8CFDE0E105"}'
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '30'
+      Content-Type:
+      - application/json
+      User-Agent:
+      - FlexGet/2.9.16.dev (www.flexget.com)
+    method: POST
+    uri: https://api.thetvdb.com/login
+  response:
+    body:
+      string: "{\n  \"token\": \"eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE0ODY2NzM4NTQsImlkIjoiRmxleEdldCIsIm9yaWdfaWF0IjoxNDg2NTg3NDU0fQ.K_b47s8DKOlQfts2f-pm9Ij55h3fZ9WAMLeursl2eB_i4UqELYMG3kqHmDcDRaigJOwMcqauXiXki5c4dYzV3AZ3_1HLLgoCwCARbM8a9JwEht8u1ll8yTGvlowBSSHphOZTWIhB-WsxG0R7OTq84MR_hSVX6Y3jNDm3AhFCtiKHkLeiJHqLvIeU6uBSx1jWugtPQ-9fyuZkjpwT82EPFNce7wU2cItHt0VV5OTpXpFep5aURbcrr1b7l_h94Kf2wTOpOLp1VPQ4kgEuLZcDu_4TAhBI_dJ2ererp9Or5PRPxRZxCtN1V_bDjcaBV1cuB0HQlSjxIxOh6eFZkp293Q\"\n}"
+    headers:
+      CF-RAY:
+      - 32e1fea65e3a65b1-SYD
+      Connection:
+      - keep-alive
+      Content-Encoding:
+      - gzip
+      Content-Type:
+      - application/json; charset=utf-8
+      Date:
+      - Wed, 08 Feb 2017 20:57:34 GMT
+      Server:
+      - cloudflare-nginx
+      Set-Cookie:
+      - __cfduid=d854c8c3d8ae4e5d1a5133e6761e5b3811486587454; expires=Thu, 08-Feb-18
+        20:57:34 GMT; path=/; domain=.thetvdb.com; HttpOnly
+      Vary:
+      - Accept-Language
+      X-Powered-By:
+      - Thundar!
+      X-Thetvdb-Api-Version:
+      - 2.1.2
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Authorization:
+      - Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE0ODY2NzM4NTQsImlkIjoiRmxleEdldCIsIm9yaWdfaWF0IjoxNDg2NTg3NDU0fQ.K_b47s8DKOlQfts2f-pm9Ij55h3fZ9WAMLeursl2eB_i4UqELYMG3kqHmDcDRaigJOwMcqauXiXki5c4dYzV3AZ3_1HLLgoCwCARbM8a9JwEht8u1ll8yTGvlowBSSHphOZTWIhB-WsxG0R7OTq84MR_hSVX6Y3jNDm3AhFCtiKHkLeiJHqLvIeU6uBSx1jWugtPQ-9fyuZkjpwT82EPFNce7wU2cItHt0VV5OTpXpFep5aURbcrr1b7l_h94Kf2wTOpOLp1VPQ4kgEuLZcDu_4TAhBI_dJ2ererp9Or5PRPxRZxCtN1V_bDjcaBV1cuB0HQlSjxIxOh6eFZkp293Q
+      Connection:
+      - keep-alive
+      User-Agent:
+      - FlexGet/2.9.16.dev (www.flexget.com)
+    method: GET
+    uri: https://api.thetvdb.com/series/84946
+  response:
+    body:
+      string: "{\n  \"data\": {\n    \"id\": 84946,\n    \"seriesName\": \"Treme\",\n
+        \   \"aliases\": [],\n    \"banner\": \"graphical/84946-g2.jpg\",\n    \"seriesId\":
+        \"75910\",\n    \"status\": \"Ended\",\n    \"firstAired\": \"2010-04-11\",\n
+        \   \"network\": \"HBO\",\n    \"networkId\": \"\",\n    \"runtime\": \"60\",\n
+        \   \"genre\": [\n      \"Drama\"\n    ],\n    \"overview\": \"Trem\xE9 takes
+        its name from a neighborhood of New Orleans and portrays life in the aftermath
+        of the 2005 hurricane. Beginning three months after Hurricane Katrina, the
+        residents of New Orleans, including musicians, chefs, Mardi Gras Indians,
+        and other New Orleanians struggle to rebuild their lives, their homes and
+        their unique culture.\",\n    \"lastUpdated\": 1442457352,\n    \"airsDayOfWeek\":
+        \"Sunday\",\n    \"airsTime\": \"10:00 PM\",\n    \"rating\": \"TV-MA\",\n
+        \   \"imdbId\": \"tt1279972\",\n    \"zap2itId\": \"EP01242040\",\n    \"added\":
+        \"2009-02-04 16:19:27\",\n    \"addedBy\": 3071,\n    \"siteRating\": 8.8,\n
+        \   \"siteRatingCount\": 33\n  }\n}"
+    headers:
+      CF-RAY:
+      - 32e1fea7e9a265cf-SYD
+      Cache-Control:
+      - private, max-age=600
+      Connection:
+      - keep-alive
+      Content-Encoding:
+      - gzip
+      Content-Type:
+      - application/json; charset=utf-8
+      Date:
+      - Wed, 08 Feb 2017 20:57:34 GMT
+      Last-Modified:
+      - Thu, 17 Sep 2015 02:35:52 GMT
+      Server:
+      - cloudflare-nginx
+      Set-Cookie:
+      - __cfduid=d4ef5501a2fc1ce5624c842060326c9331486587454; expires=Thu, 08-Feb-18
+        20:57:34 GMT; path=/; domain=.thetvdb.com; HttpOnly
+      Vary:
+      - Accept-Language
+      X-Powered-By:
+      - Thundar!
+      X-Thetvdb-Api-Version:
+      - 2.1.2
+    status:
+      code: 200
+      message: OK
+- request:
+    body: '{"apikey": "4D297D8CFDE0E105"}'
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '30'
+      Content-Type:
+      - application/json
+      User-Agent:
+      - FlexGet/2.9.16.dev (www.flexget.com)
+    method: POST
+    uri: https://api.thetvdb.com/login
+  response:
+    body:
+      string: "{\n  \"token\": \"eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE0ODY2NzM4NTUsImlkIjoiRmxleEdldCIsIm9yaWdfaWF0IjoxNDg2NTg3NDU1fQ.eP_GdXx1kEkhhf0ql97IxT3G-o3RbiTw9wIbQG0HIPihT0-wZa4aQOS4VSpniVOmNEIyNH0V-lGzZzv6MBomBhBmdeo8_hx6CgWxfNAyPQoFjxKp45Sqd0yNHiO0wwkVgXVoH1iE7GdP2Ps0GQUQEgLGXxRbSSG9gva33g84DwJZSB_xLuZzZl2J17JC72FnQ2ofOJFo3RAvAPVJE83r6Mfz7q8iUEX19-x3UvNqpcmyAjI2lrQ3qEE1M1w1xXPdzSnpXBqSdI6BnOj27J4Z6a5f0ekoXh17xhIc9sPFm1Cgn0JgqAG-xT8OIjYyIJzSWgpulzJbLhXhq9_2TXCO-A\"\n}"
+    headers:
+      CF-RAY:
+      - 32e1fea98d0c6599-SYD
+      Connection:
+      - keep-alive
+      Content-Encoding:
+      - gzip
+      Content-Type:
+      - application/json; charset=utf-8
+      Date:
+      - Wed, 08 Feb 2017 20:57:35 GMT
+      Server:
+      - cloudflare-nginx
+      Set-Cookie:
+      - __cfduid=d10b2526e2c9571fb946d91c0d2d9dfed1486587454; expires=Thu, 08-Feb-18
+        20:57:34 GMT; path=/; domain=.thetvdb.com; HttpOnly
+      Vary:
+      - Accept-Language
+      X-Powered-By:
+      - Thundar!
+      X-Thetvdb-Api-Version:
+      - 2.1.2
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Authorization:
+      - Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE0ODY2NzM4NTUsImlkIjoiRmxleEdldCIsIm9yaWdfaWF0IjoxNDg2NTg3NDU1fQ.eP_GdXx1kEkhhf0ql97IxT3G-o3RbiTw9wIbQG0HIPihT0-wZa4aQOS4VSpniVOmNEIyNH0V-lGzZzv6MBomBhBmdeo8_hx6CgWxfNAyPQoFjxKp45Sqd0yNHiO0wwkVgXVoH1iE7GdP2Ps0GQUQEgLGXxRbSSG9gva33g84DwJZSB_xLuZzZl2J17JC72FnQ2ofOJFo3RAvAPVJE83r6Mfz7q8iUEX19-x3UvNqpcmyAjI2lrQ3qEE1M1w1xXPdzSnpXBqSdI6BnOj27J4Z6a5f0ekoXh17xhIc9sPFm1Cgn0JgqAG-xT8OIjYyIJzSWgpulzJbLhXhq9_2TXCO-A
+      Connection:
+      - keep-alive
+      User-Agent:
+      - FlexGet/2.9.16.dev (www.flexget.com)
+    method: GET
+    uri: https://api.thetvdb.com/series/164541
+  response:
+    body:
+      string: "{\n  \"data\": {\n    \"id\": 164541,\n    \"seriesName\": \"Hawaii
+        Five-0\",\n    \"aliases\": [\n      \"Hawaii Five-0 (2010)\",\n      \"Hawaii
+        Five0\"\n    ],\n    \"banner\": \"graphical/164541-g5.jpg\",\n    \"seriesId\":
+        \"\",\n    \"status\": \"Continuing\",\n    \"firstAired\": \"2010-09-20\",\n
+        \   \"network\": \"CBS\",\n    \"networkId\": \"\",\n    \"runtime\": \"45\",\n
+        \   \"genre\": [\n      \"Crime\"\n    ],\n    \"overview\": \"Steve McGarrett
+        returns home to Oahu, in order to find his father's killer. The governor offers
+        him the chance to run his own task force (Five-0). Steve's team is joined
+        by Chin Ho Kelly, Danny \\\"Danno\\\" Williams, and Kono Kalakaua.\",\n    \"lastUpdated\":
+        1486421196,\n    \"airsDayOfWeek\": \"Friday\",\n    \"airsTime\": \"9:00
+        PM\",\n    \"rating\": \"TV-14\",\n    \"imdbId\": \"tt1600194\",\n    \"zap2itId\":
+        \"EP01280063\",\n    \"added\": \"2010-05-21 16:31:03\",\n    \"addedBy\":
+        140571,\n    \"siteRating\": 8.1,\n    \"siteRatingCount\": 165\n  }\n}"
+    headers:
+      CF-RAY:
+      - 32e1feab3f2265b1-SYD
+      Cache-Control:
+      - private, max-age=600
+      Connection:
+      - keep-alive
+      Content-Encoding:
+      - gzip
+      Content-Type:
+      - application/json; charset=utf-8
+      Date:
+      - Wed, 08 Feb 2017 20:57:35 GMT
+      Last-Modified:
+      - Mon, 06 Feb 2017 22:46:36 GMT
+      Server:
+      - cloudflare-nginx
+      Set-Cookie:
+      - __cfduid=d8c4e3eb48dfeccf264ae0fd1eddff4861486587455; expires=Thu, 08-Feb-18
+        20:57:35 GMT; path=/; domain=.thetvdb.com; HttpOnly
+      Vary:
+      - Accept-Language
+      X-Powered-By:
+      - Thundar!
+      X-Thetvdb-Api-Version:
+      - 2.1.2
+    status:
+      code: 200
+      message: OK
+- request:
+    body: '{"apikey": "4D297D8CFDE0E105"}'
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '30'
+      Content-Type:
+      - application/json
+      User-Agent:
+      - FlexGet/2.9.16.dev (www.flexget.com)
+    method: POST
+    uri: https://api.thetvdb.com/login
+  response:
+    body:
+      string: "{\n  \"token\": \"eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE0ODY2NzM4NTUsImlkIjoiRmxleEdldCIsIm9yaWdfaWF0IjoxNDg2NTg3NDU1fQ.eP_GdXx1kEkhhf0ql97IxT3G-o3RbiTw9wIbQG0HIPihT0-wZa4aQOS4VSpniVOmNEIyNH0V-lGzZzv6MBomBhBmdeo8_hx6CgWxfNAyPQoFjxKp45Sqd0yNHiO0wwkVgXVoH1iE7GdP2Ps0GQUQEgLGXxRbSSG9gva33g84DwJZSB_xLuZzZl2J17JC72FnQ2ofOJFo3RAvAPVJE83r6Mfz7q8iUEX19-x3UvNqpcmyAjI2lrQ3qEE1M1w1xXPdzSnpXBqSdI6BnOj27J4Z6a5f0ekoXh17xhIc9sPFm1Cgn0JgqAG-xT8OIjYyIJzSWgpulzJbLhXhq9_2TXCO-A\"\n}"
+    headers:
+      CF-RAY:
+      - 32e1feacba226533-SYD
+      Connection:
+      - keep-alive
+      Content-Encoding:
+      - gzip
+      Content-Type:
+      - application/json; charset=utf-8
+      Date:
+      - Wed, 08 Feb 2017 20:57:35 GMT
+      Server:
+      - cloudflare-nginx
+      Set-Cookie:
+      - __cfduid=d2adc9fa1e6b782ec95b19ea7637e4b111486587455; expires=Thu, 08-Feb-18
+        20:57:35 GMT; path=/; domain=.thetvdb.com; HttpOnly
+      Vary:
+      - Accept-Language
+      X-Powered-By:
+      - Thundar!
+      X-Thetvdb-Api-Version:
+      - 2.1.2
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Authorization:
+      - Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE0ODY2NzM4NTUsImlkIjoiRmxleEdldCIsIm9yaWdfaWF0IjoxNDg2NTg3NDU1fQ.eP_GdXx1kEkhhf0ql97IxT3G-o3RbiTw9wIbQG0HIPihT0-wZa4aQOS4VSpniVOmNEIyNH0V-lGzZzv6MBomBhBmdeo8_hx6CgWxfNAyPQoFjxKp45Sqd0yNHiO0wwkVgXVoH1iE7GdP2Ps0GQUQEgLGXxRbSSG9gva33g84DwJZSB_xLuZzZl2J17JC72FnQ2ofOJFo3RAvAPVJE83r6Mfz7q8iUEX19-x3UvNqpcmyAjI2lrQ3qEE1M1w1xXPdzSnpXBqSdI6BnOj27J4Z6a5f0ekoXh17xhIc9sPFm1Cgn0JgqAG-xT8OIjYyIJzSWgpulzJbLhXhq9_2TXCO-A
+      Connection:
+      - keep-alive
+      User-Agent:
+      - FlexGet/2.9.16.dev (www.flexget.com)
+    method: GET
+    uri: https://api.thetvdb.com/series/73255
+  response:
+    body:
+      string: "{\n  \"data\": {\n    \"id\": 73255,\n    \"seriesName\": \"House\",\n
+        \   \"aliases\": [\n      \"House M.D.\",\n      \"House MD\"\n    ],\n    \"banner\":
+        \"graphical/73255-g7.jpg\",\n    \"seriesId\": \"22374\",\n    \"status\":
+        \"Ended\",\n    \"firstAired\": \"2004-11-16\",\n    \"network\": \"FOX (US)\",\n
+        \   \"networkId\": \"\",\n    \"runtime\": \"45\",\n    \"genre\": [\n      \"Drama\",\n
+        \     \"Mystery\"\n    ],\n    \"overview\": \"Go deeper into the medical
+        mysteries of House, TV's most compelling drama. Hugh Laurie stars as the brilliant
+        but sarcastic Dr. Gregory House, a maverick physician who is devoid of bedside
+        manner. While his behavior can border on antisocial, Dr. House thrives on
+        the challenge of solving the medical puzzles that other doctors give up on.
+        Together with his hand-picked team of young medical experts, he'll do whatever
+        it takes in the race against the clock to solve the case.\",\n    \"lastUpdated\":
+        1486236157,\n    \"airsDayOfWeek\": \"\",\n    \"airsTime\": \"\",\n    \"rating\":
+        \"TV-14\",\n    \"imdbId\": \"tt0412142\",\n    \"zap2itId\": \"EP00688359\",\n
+        \   \"added\": \"\",\n    \"addedBy\": null,\n    \"siteRating\": 9.1,\n    \"siteRatingCount\":
+        1293\n  }\n}"
+    headers:
+      CF-RAY:
+      - 32e1feae498219bc-SYD
+      Cache-Control:
+      - private, max-age=600
+      Connection:
+      - keep-alive
+      Content-Encoding:
+      - gzip
+      Content-Type:
+      - application/json; charset=utf-8
+      Date:
+      - Wed, 08 Feb 2017 20:57:35 GMT
+      Last-Modified:
+      - Sat, 04 Feb 2017 19:22:37 GMT
+      Server:
+      - cloudflare-nginx
+      Set-Cookie:
+      - __cfduid=d18562131bd310d4ce6f5a70c72c9fc4b1486587455; expires=Thu, 08-Feb-18
+        20:57:35 GMT; path=/; domain=.thetvdb.com; HttpOnly
+      Vary:
+      - Accept-Language
+      X-Powered-By:
+      - Thundar!
+      X-Thetvdb-Api-Version:
+      - 2.1.2
+    status:
+      code: 200
+      message: OK
+- request:
+    body: '{"apikey": "4D297D8CFDE0E105"}'
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '30'
+      Content-Type:
+      - application/json
+      User-Agent:
+      - FlexGet/2.9.16.dev (www.flexget.com)
+    method: POST
+    uri: https://api.thetvdb.com/login
+  response:
+    body:
+      string: "{\n  \"token\": \"eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE0ODY2NzM4NTYsImlkIjoiRmxleEdldCIsIm9yaWdfaWF0IjoxNDg2NTg3NDU2fQ.tB7eNmJEsYe1zpnDcNYGNQW85vcloPzklmXjyWadwpKYyGZVlI88r7bCImzzdaD_YIBZYlss7DiAc7KAMaBUkz-a7Upf1dutQBHM1JOAsxA3HfCHsBOMXX87K9P8sm99E09iN68mUOIpfdIUcJjzEvmgf6bERB_ymiKtvfNXxPWuk4XnPBLpFY2sRays84CaYwXYdAZrSBA6r5ZEbuX0PwOHECxoz8rjcK8bG0GA5KgkmcuydJkAs65uqZRtYYck02Hdp9JZvXi3zT3m0FjeZXZaxhL8bi-mDDXhB3LDD53Tx0MguIHWlrjcAiDF1F3d_0K5ALVKjM0ew8ZrLsmgKg\"\n}"
+    headers:
+      CF-RAY:
+      - 32e1feaff99019d4-SYD
+      Connection:
+      - keep-alive
+      Content-Encoding:
+      - gzip
+      Content-Type:
+      - application/json; charset=utf-8
+      Date:
+      - Wed, 08 Feb 2017 20:57:36 GMT
+      Server:
+      - cloudflare-nginx
+      Set-Cookie:
+      - __cfduid=dba3d9cfb3ddadd485b7c0eace21214041486587455; expires=Thu, 08-Feb-18
+        20:57:35 GMT; path=/; domain=.thetvdb.com; HttpOnly
+      Vary:
+      - Accept-Language
+      X-Powered-By:
+      - Thundar!
+      X-Thetvdb-Api-Version:
+      - 2.1.2
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Authorization:
+      - Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE0ODY2NzM4NTYsImlkIjoiRmxleEdldCIsIm9yaWdfaWF0IjoxNDg2NTg3NDU2fQ.tB7eNmJEsYe1zpnDcNYGNQW85vcloPzklmXjyWadwpKYyGZVlI88r7bCImzzdaD_YIBZYlss7DiAc7KAMaBUkz-a7Upf1dutQBHM1JOAsxA3HfCHsBOMXX87K9P8sm99E09iN68mUOIpfdIUcJjzEvmgf6bERB_ymiKtvfNXxPWuk4XnPBLpFY2sRays84CaYwXYdAZrSBA6r5ZEbuX0PwOHECxoz8rjcK8bG0GA5KgkmcuydJkAs65uqZRtYYck02Hdp9JZvXi3zT3m0FjeZXZaxhL8bi-mDDXhB3LDD53Tx0MguIHWlrjcAiDF1F3d_0K5ALVKjM0ew8ZrLsmgKg
+      Connection:
+      - keep-alive
+      User-Agent:
+      - FlexGet/2.9.16.dev (www.flexget.com)
+    method: GET
+    uri: https://api.thetvdb.com/series/81189
+  response:
+    body:
+      string: "{\n  \"data\": {\n    \"id\": 81189,\n    \"seriesName\": \"Breaking
+        Bad\",\n    \"aliases\": [],\n    \"banner\": \"graphical/81189-g21.jpg\",\n
+        \   \"seriesId\": \"74713\",\n    \"status\": \"Ended\",\n    \"firstAired\":
+        \"2008-01-20\",\n    \"network\": \"AMC\",\n    \"networkId\": \"\",\n    \"runtime\":
+        \"45\",\n    \"genre\": [\n      \"Crime\",\n      \"Drama\",\n      \"Suspense\",\n
+        \     \"Thriller\"\n    ],\n    \"overview\": \"Walter White, a struggling
+        high school chemistry teacher, is diagnosed with advanced lung cancer. He
+        turns to a life of crime, producing and selling methamphetamine accompanied
+        by a former student, Jesse Pinkman, with the aim of securing his family's
+        financial future before he dies.\",\n    \"lastUpdated\": 1486484241,\n    \"airsDayOfWeek\":
+        \"Sunday\",\n    \"airsTime\": \"9:00 PM\",\n    \"rating\": \"TV-MA\",\n
+        \   \"imdbId\": \"tt0903747\",\n    \"zap2itId\": \"EP01009396\",\n    \"added\":
+        \"\",\n    \"addedBy\": null,\n    \"siteRating\": 9.4,\n    \"siteRatingCount\":
+        1074\n  }\n}"
+    headers:
+      CF-RAY:
+      - 32e1feb18a2319bc-SYD
+      Cache-Control:
+      - private, max-age=600
+      Connection:
+      - keep-alive
+      Content-Encoding:
+      - gzip
+      Content-Type:
+      - application/json; charset=utf-8
+      Date:
+      - Wed, 08 Feb 2017 20:57:36 GMT
+      Last-Modified:
+      - Tue, 07 Feb 2017 16:17:21 GMT
+      Server:
+      - cloudflare-nginx
+      Set-Cookie:
+      - __cfduid=dc0fb4cad307c917b0522d3264098a8021486587456; expires=Thu, 08-Feb-18
+        20:57:36 GMT; path=/; domain=.thetvdb.com; HttpOnly
+      Vary:
+      - Accept-Language
+      X-Powered-By:
+      - Thundar!
+      X-Thetvdb-Api-Version:
+      - 2.1.2
+    status:
+      code: 200
+      message: OK
+version: 1

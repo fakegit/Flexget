@@ -10,8 +10,7 @@ logger = logger.bind(name=plugin_name)
 
 
 class PluginTemplate:
-    """
-    Appyly templates with preconfigured plugins to a task config.
+    """Appyly templates with preconfigured plugins to a task config.
 
     Example::
 
@@ -29,11 +28,11 @@ class PluginTemplate:
             {
                 'description': 'Apply multiple templates to this task.',
                 'type': 'array',
-                'items': {'$ref': '#/definitions/template'},
+                'items': {'$ref': '#/$defs/template'},
             },
             {
                 'description': 'Apply a single template to this task.',
-                'allOf': [{'$ref': '#/definitions/template'}],
+                'allOf': [{'$ref': '#/$defs/template'}],
             },
             {
                 'description': 'Disable all templates on this task.',
@@ -41,11 +40,10 @@ class PluginTemplate:
                 'enum': [False],
             },
         ],
-        'definitions': {
+        '$defs': {
             'template': {
                 'type': 'string',
                 'description': 'Name of a template which will be applied to this task.',
-                'links': [{'rel': 'settings', 'href': '/api/config/templates/{$}'}],
             }
         },
     }
@@ -62,9 +60,8 @@ class PluginTemplate:
         if config is False:  # handles 'template: no' form to turn off template on this task
             return
         # implements --template NAME
-        if task.options.template:
-            if not config or task.options.template not in config:
-                task.abort('does not use `%s` template' % task.options.template, silent=True)
+        if task.options.template and (not config or task.options.template not in config):
+            task.abort(f'does not use `{task.options.template}` template', silent=True)
 
         config = self.prepare_config(config)
 
@@ -84,7 +81,7 @@ class PluginTemplate:
                 if template == 'global':
                     continue
                 raise plugin.PluginError(
-                    'Unable to find template %s for task %s' % (template, task.name), logger
+                    f'Unable to find template {template} for task {task.name}', logger
                 )
             if toplevel_templates[template] is None:
                 logger.warning('Template `{}` is empty. Nothing to merge.', template)
@@ -111,8 +108,7 @@ class PluginTemplate:
                 task.merge_config(template_config)
             except MergeException as exc:
                 raise plugin.PluginError(
-                    'Failed to merge template %s to task %s. Error: %s'
-                    % (template, task.name, exc.value)
+                    f'Failed to merge template {template} to task {task.name}. Error: {exc.value}'
                 )
 
         logger.trace('templates: {}', config)
@@ -127,7 +123,7 @@ def register_plugin():
 def register_config():
     root_config_schema = {
         'type': 'object',
-        'additionalProperties': plugin.plugin_schemas(interface='task'),
+        'additionalProperties': {'$ref': '/schema/plugins?interface=task'},
     }
     register_config_key('templates', root_config_schema)
 

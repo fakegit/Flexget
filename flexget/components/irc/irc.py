@@ -1,3 +1,4 @@
+import contextlib
 import os
 import re
 import threading
@@ -19,18 +20,14 @@ from flexget.utils.tools import get_config_hash
 try:
     from irc_bot import utils as irc_bot
     from irc_bot.simple_irc_bot import SimpleIRCBot, partial
-except ImportError as e:
+except ImportError:
     irc_bot = None
     SimpleIRCBot = object
 
 logger = logger.bind(name='irc')
 
-MESSAGE_CLEAN = re.compile(
-    r"\x0f|\x1f|\x02|\x03(?:[\d]{1,2}(?:,[\d]{1,2})?)?", re.MULTILINE | re.UNICODE
-)
-URL_MATCHER = re.compile(
-    r'(https?://[\da-z\.-]+\.[a-z\.]{2,6}[/\w\.-\?&]*/?)', re.MULTILINE | re.UNICODE
-)
+MESSAGE_CLEAN = re.compile(r'\x0f|\x1f|\x02|\x03(?:[\d]{1,2}(?:,[\d]{1,2})?)?', re.MULTILINE)
+URL_MATCHER = re.compile(r'(https?://[\da-z\.-]+\.[a-z\.]{2,6}[/\w\.-\?&]*/?)', re.MULTILINE)
 
 channel_pattern = {
     'type': 'string',
@@ -111,8 +108,8 @@ config_hash = {}
 
 
 def create_thread(name, conn):
-    """
-    Creates a new thread and starts it
+    """Create a new thread and start it.
+
     :param conn: IRCConnection or IRCConnectionManager object
     :return: Thread
     """
@@ -122,18 +119,19 @@ def create_thread(name, conn):
 
 
 def irc_prefix(var):
-    """
-    Prefix a string with the irc_
+    """Prefix a string with ``irc_``.
+
     :param var: Variable to prefix
     :return: Prefixed variable
     """
     if isinstance(var, str):
-        return 'irc_%s' % var.lower()
+        return f'irc_{var.lower()}'
+    return None
 
 
 def strip_whitespace(value):
-    """
-    Remove leading and trailing whitespace from strings. Return value if not a string.
+    """Remove leading and trailing whitespace from strings. Return value if not a string.
+
     :param value:
     :return: stripped string or value
     """
@@ -143,15 +141,15 @@ def strip_whitespace(value):
 
 
 class TrackerFileParseError(Exception):
-    """Exception thrown when parsing the tracker file fails"""
+    """Exception thrown when parsing the tracker file fails."""
 
 
 class TrackerFileError(Exception):
-    """Exception thrown when parsing the tracker file fails"""
+    """Exception thrown when parsing the tracker file fails."""
 
 
 class MissingConfigOption(Exception):
-    """Exception thrown when a config option specified in the tracker file is not on the irc config"""
+    """Exception thrown when a config option specified in the tracker file is not on the irc config."""
 
 
 class IRCConnection(SimpleIRCBot):
@@ -171,15 +169,10 @@ class IRCConnection(SimpleIRCBot):
 
         channel_list = []
         if self.tracker_config is not None:
-
             # Validate config with the settings in the torrent file
             for param in self.tracker_config.find('settings'):
-
                 # Handle textbox entries
-                if param.tag == 'textbox':
-                    value_name = param.get('name')
-                else:
-                    value_name = param.tag
+                value_name = param.get('name') if param.tag == 'textbox' else param.tag
 
                 # Strip the gazelle prefix
                 if value_name.startswith('gazelle_'):
@@ -191,8 +184,7 @@ class IRCConnection(SimpleIRCBot):
 
                 if self.config.get(value_name) is None:
                     raise MissingConfigOption(
-                        'missing configuration option on irc config %s: %s'
-                        % (self.connection_name, value_name)
+                        f'missing configuration option on irc config {self.connection_name}: {value_name}'
                     )
 
             # Get the tracker name, for use in the connection name
@@ -206,7 +198,7 @@ class IRCConnection(SimpleIRCBot):
 
             # Process ignore lines
             for regex_values in self.tracker_config.findall('parseinfo/ignore/regex'):
-                rx = re.compile(regex_values.get('value'), re.UNICODE | re.MULTILINE)
+                rx = re.compile(regex_values.get('value'), re.MULTILINE)
                 self.ignore_lines.append((rx, regex_values.get('expected') != 'false'))
 
             # Parse patterns
@@ -247,7 +239,7 @@ class IRCConnection(SimpleIRCBot):
             'servers': self.server_list,
             'port': config['port'],
             'channels': channel_list,
-            'nickname': config.get('nickname', 'Flexget-%s' % str(uuid4())),
+            'nickname': config.get('nickname', f'Flexget-{uuid4()!s}'),
             'password': config.get('password'),
             'invite_nickname': config.get('invite_nickname'),
             'invite_message': config.get('invite_message'),
@@ -266,8 +258,8 @@ class IRCConnection(SimpleIRCBot):
 
     @classmethod
     def read_tracker_config(cls, path):
-        """
-        Attempts to open and parse the .tracker file specified in path
+        """Attempt to open and parse the .tracker file specified in path.
+
         :param path: path to .tracker file
         :return: the parsed XML
         """
@@ -275,16 +267,18 @@ class IRCConnection(SimpleIRCBot):
             with open(path, 'rb') as xml_file:
                 return parse(xml_file).getroot()
         except Exception as e:
-            raise TrackerFileParseError('Unable to parse tracker config file %s: %s' % (path, e))
+            raise TrackerFileParseError(f'Unable to parse tracker config file {path}: {e}')
 
     @classmethod
     def retrieve_tracker_config(cls, tracker_config_file):
-        """
-        Will attempt to retrieve the .tracker file from disk or github. Returns the parsed XML.
+        """Attempt to retrieve the .tracker file from disk or github. Return the parsed XML.
+
         :param tracker_config_file: URL or path to .tracker file
         :return: parsed XML
         """
-        base_url = 'https://raw.githubusercontent.com/autodl-community/autodl-trackers/master/'
+        base_url = (
+            'https://raw.githubusercontent.com/autodl-community/autodl-trackers/master/trackers/'
+        )
         tracker_config_file = os.path.expanduser(tracker_config_file)
 
         # First we attempt to find the file locally as-is
@@ -327,16 +321,15 @@ class IRCConnection(SimpleIRCBot):
             'Tracker file not found on disk. Attempting to fetch tracker config file from Github.'
         )
         tracker = None
-        try:
+        with contextlib.suppress(requests.RequestException, OSError):
             tracker = requests.get(base_url + tracker_config_file)
-        except (requests.RequestException, OSError):
-            pass
         if not tracker:
             try:
                 logger.debug('Trying to search list of tracker files on Github')
                 # Try to see if it's not found due to case sensitivity
                 trackers = (
-                    requests.get(
+                    requests
+                    .get(
                         'https://api.github.com/repos/autodl-community/'
                         'autodl-trackers/git/trees/master?recursive=1'
                     )
@@ -345,7 +338,10 @@ class IRCConnection(SimpleIRCBot):
                 )
                 for t in trackers:
                     name = t.get('path', '')
-                    if not name.endswith('.tracker') or name.lower() != tracker_name.lower():
+                    if (
+                        not name.endswith('.tracker')
+                        or name.lower() != 'trackers/' + tracker_name.lower()
+                    ):
                         continue
                     tracker = requests.get(base_url + name)
                     tracker_name = name
@@ -354,37 +350,35 @@ class IRCConnection(SimpleIRCBot):
                 raise TrackerFileError(e)
         if not tracker:
             raise TrackerFileError(
-                'Unable to find %s on disk or Github. Did you spell it correctly?'
-                % tracker_config_file
+                f'Unable to find {tracker_config_file} on disk or Github. Did you spell it correctly?'
             )
 
         # If we got this far, let's save our work :)
         save_path = os.path.join(base_dir, tracker_name)
         with open(save_path, 'wb') as tracker_file:
-            for chunk in tracker.iter_content(8192):
-                tracker_file.write(chunk)
+            tracker_file.writelines(tracker.iter_content(8192))
         return cls.read_tracker_config(save_path)
 
     def is_alive(self):
         return self.thread and self.thread.is_alive()
 
     def parse_patterns(self, patterns):
-        """
-        Parses the patterns and creates a tuple with the compiled regex pattern and the variables it produces
+        """Parse the patterns and create a tuple with the compiled regex pattern and the variables it produces.
+
         :param patterns: list of regex patterns as .tracker XML
         :return: list of (regex, variables, optional)-pairs
         """
         result = []
         for pattern in patterns:
-            rx = re.compile(pattern.find('regex').get('value'), re.UNICODE | re.MULTILINE)
+            rx = re.compile(pattern.find('regex').get('value'), re.MULTILINE)
             vals = [var.get('name') for idx, var in enumerate(pattern.find('vars'))]
-            optional = True if pattern.get('optional', 'false').lower() == 'true' else False
+            optional = pattern.get('optional', 'false').lower() == 'true'
             result.append((rx, vals, optional))
         return result
 
     def quit(self):
-        """
-        Quit the IRC bot
+        """Quit the IRC bot.
+
         :return:
         """
         if self.inject_before_shutdown and self.entry_queue:
@@ -392,8 +386,8 @@ class IRCConnection(SimpleIRCBot):
         SimpleIRCBot.quit(self)
 
     def run_tasks(self):
-        """
-        Passes entries to the target task(s) configured for this connection
+        """Pass entries to the target task(s) configured for this connection.
+
         :return:
         """
         tasks = self.config.get('task')
@@ -442,8 +436,8 @@ class IRCConnection(SimpleIRCBot):
         self.entry_queue = []
 
     def queue_entry(self, entry):
-        """
-        Stores an entry in the connection entry queue, if the queue is over the size limit then submit them
+        """Store an entry in the connection entry queue, if the queue is over the size limit then submit them.
+
         :param entry: Entry to be queued
         :return:
         """
@@ -458,8 +452,8 @@ class IRCConnection(SimpleIRCBot):
                 self.run_tasks()
 
     def match_message_patterns(self, patterns, msg):
-        """
-        Tries to match the message to the list of patterns. Supports multiline messages.
+        """Try to match the message to the list of patterns. Support multiline messages.
+
         :param patterns: list of (regex, variable)-pairs
         :param msg: The parsed IRC message
         :param multiline: True if msg is multiline
@@ -472,21 +466,19 @@ class IRCConnection(SimpleIRCBot):
             if match:
                 val_names = [irc_prefix(val.lower()) for val in vals]
                 val_values = [strip_whitespace(x) or '' for x in match.groups()]
-                result.update(dict(zip(val_names, val_values)))
-                logger.debug('Found: {}', dict(zip(val_names, val_values)))
+                result.update(dict(zip(val_names, val_values, strict=False)))
+                logger.debug('Found: {}', dict(zip(val_names, val_values, strict=False)))
                 break
-            else:
-                logger.debug('No matches found for {} in {}', rx.pattern, msg)
+            logger.debug('No matches found for {} in {}', rx.pattern, msg)
         return result
 
     def process_tracker_config_rules(self, entry, rules=None):
-        """
-        Processes an Entry object with the linematched rules defined in a tracker config file
+        """Process an Entry object with the linematched rules defined in a tracker config file.
+
         :param entry: Entry to be updated
         :param rules: Ruleset to use.
         :return:
         """
-
         ignore_optionals = []
 
         if rules is None:
@@ -566,7 +558,7 @@ class IRCConnection(SimpleIRCBot):
                 ]
                 match = re.search(regex, fields[source_var])
                 if match:
-                    fields.update(dict(zip(group_names, match.groups())))
+                    fields.update(dict(zip(group_names, match.groups(), strict=False)))
                 else:
                     logger.debug('No match found for rule extract')
 
@@ -621,7 +613,7 @@ class IRCConnection(SimpleIRCBot):
                             continue
                         match = re.match(regex, fields.get(source_var, ''))
                         if match:
-                            fields.update(dict(zip(vars, match.groups())))
+                            fields.update(dict(zip(vars, match.groups(), strict=False)))
                         else:
                             logger.debug('No match for extract with regex: {}', regex)
                     else:
@@ -656,9 +648,9 @@ class IRCConnection(SimpleIRCBot):
         return fields
 
     def on_privmsg(self, msg):
-        """
-        Appends messages for the specific channel in the line cache. Schedules a message processing after 1s to
-        handle multiline announcements.
+        """Append messages for the specific channel in the line cache.
+
+        Schedule a message processing after 1s to handle multiline announcements.
         :param msg: IRCMessage object
         :return:
         """
@@ -678,8 +670,8 @@ class IRCConnection(SimpleIRCBot):
             self.processing_message = True
 
     def process_message(self, nickname, channel):
-        """
-        Pops lines from the line cache and passes them to be parsed
+        """Pop lines from the line cache and pass them to be parsed.
+
         :param str nickname: Nickname of who sent the message
         :param str channel: Channel where the message originated from
         :return: None
@@ -735,11 +727,10 @@ class IRCConnection(SimpleIRCBot):
 
         self.processing_message = False
 
-    def entries_from_linepatterns(self, lines):
-        """
+    def entries_from_linepatterns(self, lines) -> list:
+        """Return list of entries generated from lines.
 
         :param lines: list of lines from irc
-        :return list: list of entries generated from lines
         """
         entries = []
         for line in lines:
@@ -768,11 +759,10 @@ class IRCConnection(SimpleIRCBot):
 
         return entries
 
-    def entries_from_multilinepatterns(self, lines):
-        """
+    def entries_from_multilinepatterns(self, lines) -> list:
+        """Return list of entries generated from lines.
 
         :param lines: list of lines
-        :return list: list of entries generated from lines
         """
         entries = []
         rest = []  # contains the rest of the lines
@@ -784,15 +774,15 @@ class IRCConnection(SimpleIRCBot):
                 logger.debug('Using pattern {} to parse message vars', rx.pattern)
                 # find the next candidate line
                 line = ''
-                for l in list(lines):
+                for candidate in list(lines):
                     # skip ignored lines
                     for ignore_rx, expected in self.ignore_lines:
-                        if ignore_rx.match(l) and expected:
+                        if ignore_rx.match(candidate) and expected:
                             logger.debug('Ignoring message: matched ignore line')
-                            lines.remove(l)
+                            lines.remove(candidate)
                             break
                     else:
-                        line = l
+                        line = candidate
                         break
 
                 raw_message += '\n' + line
@@ -826,11 +816,10 @@ class IRCConnection(SimpleIRCBot):
 
         return entries, rest
 
-    def entries_from_lines(self, lines):
-        """
+    def entries_from_lines(self, lines) -> list:
+        """Return list of entries generated from lines.
 
         :param lines: list of lines
-        :return list: list of entries generated from lines
         """
         entries = []
         for line in lines:
@@ -877,9 +866,9 @@ class IRCConnectionManager:
         return self.thread and self.thread.is_alive()
 
     def start(self):
-        """
-        Checks for dead threads and attempts to restart them. If the connection appears to be throttled, it won't
-        attempt to reconnect for 30s.
+        """Check for dead threads and attempt to restart them.
+
+        If the connection appears to be throttled, it won't attempt to reconnect for 30s.
         :return:
         """
         global irc_connections
@@ -941,11 +930,10 @@ class IRCConnectionManager:
         irc_connections[name].thread.start()
 
     def start_connections(self):
-        """
-        Start all the irc connections. Stop the daemon if there are failures.
+        """Start all the irc connections. Stop the daemon if there are failures.
+
         :return:
         """
-
         # First we validate the config for all connections including their .tracker files
         for conn_name, config in self.config.items():
             try:
@@ -955,18 +943,17 @@ class IRCConnectionManager:
                 config_hash['names'][conn_name] = get_config_hash(config)
             except (MissingConfigOption, TrackerFileParseError, TrackerFileError, OSError) as e:
                 logger.error(e)
-                if conn_name in irc_connections:
-                    del irc_connections[conn_name]  # remove it from the list of connections
+                irc_connections.pop(conn_name, None)  # remove it from the list of connections
 
         # Now we can start
-        for conn_name, connection in irc_connections.items():
+        for connection in irc_connections.values():
             connection.thread.start()
 
     def stop_connections(self, wait, name=None):
         if name:
             self.stop_connection(name, wait)
         else:
-            for name in irc_connections.keys():
+            for name in irc_connections:
                 self.stop_connection(name, wait)
 
     def stop_connection(self, name, wait=False):
@@ -979,15 +966,12 @@ class IRCConnectionManager:
         self.shutdown_event.set()
 
     def status(self, name=None):
-        status = []
         if name:
             if name not in irc_connections:
-                raise ValueError('%s is not a valid irc connection' % name)
-            else:
-                status.append(self.status_dict(name))
+                raise ValueError(f'{name} is not a valid irc connection')
+            status = [self.status_dict(name)]
         else:
-            for n in irc_connections.keys():
-                status.append(self.status_dict(n))
+            status = [self.status_dict(n) for n in irc_connections]
         return status
 
     def status_dict(self, name):
@@ -1037,7 +1021,7 @@ def irc_start(manager):
 
 @event('manager.config_updated')
 def irc_update_config(manager):
-    global irc_manager, config_hash
+    global irc_manager
 
     # Exit if we're not running daemon mode
     if not manager.is_daemon:
@@ -1084,7 +1068,7 @@ def stop_irc(manager, wait=False):
         irc_manager.stop(wait)
         # this check is necessary for when the irc manager is the one shutting down the daemon
         # a thread can't join itself
-        if not threading.current_thread() == irc_manager.thread:
+        if threading.current_thread() != irc_manager.thread:
             # It's important to give the threads time to shut down to avoid socket issues later (eg. quick restart)
             irc_manager.thread.join(len(irc_connections.keys()) * 11)
 

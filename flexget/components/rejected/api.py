@@ -66,9 +66,9 @@ class Rejected(APIResource):
     @etag
     @api.response(NotFoundError)
     @api.response(200, model=rejected_entries_list_schema)
-    @api.doc(parser=rejected_parser)
+    @api.doc(expect=[rejected_parser])
     def get(self, session=None):
-        """ List all rejected entries """
+        """List all rejected entries."""
         args = rejected_parser.parse_args()
 
         # Pagination and sorting params
@@ -78,14 +78,12 @@ class Rejected(APIResource):
         sort_order = args['order']
 
         # Handle max size limit
-        if per_page > 100:
-            per_page = 100
+        per_page = min(per_page, 100)
 
         descending = sort_order == 'desc'
 
         # Handle max size limit
-        if per_page > 100:
-            per_page = 100
+        per_page = min(per_page, 100)
 
         start = per_page * (page - 1)
         stop = start + per_page
@@ -105,10 +103,10 @@ class Rejected(APIResource):
 
         failed_entries = [rejected_entry_to_dict(reject) for reject in db.get_rejected(**kwargs)]
 
-        total_pages = int(ceil(total_items / float(per_page)))
+        total_pages = ceil(total_items / float(per_page))
 
         if page > total_pages:
-            raise NotFoundError('page %s does not exist' % page)
+            raise NotFoundError(f'page {page} does not exist')
 
         # Actual results in page
         actual_size = min(per_page, len(failed_entries))
@@ -126,12 +124,12 @@ class Rejected(APIResource):
 
     @api.response(200, model=base_message_schema)
     def delete(self, session=None):
-        """ Clears all rejected entries"""
+        """Clear all rejected entries."""
         entries = session.query(db.RememberEntry).delete()
         if entries:
             session.commit()
             self.manager.config_changed()
-        return success_response('successfully deleted %i rejected entries' % entries)
+        return success_response(f'successfully deleted {entries} rejected entries')
 
 
 @rejected_api.route('/<int:rejected_entry_id>/')
@@ -140,27 +138,29 @@ class RejectedEntry(APIResource):
     @etag
     @api.response(200, model=rejected_entry_schema)
     def get(self, rejected_entry_id, session=None):
-        """ Returns a rejected entry """
+        """Return a rejected entry."""
         try:
             entry = (
-                session.query(db.RememberEntry)
+                session
+                .query(db.RememberEntry)
                 .filter(db.RememberEntry.id == rejected_entry_id)
                 .one()
             )
         except NoResultFound:
-            raise NotFoundError('rejected entry ID %d not found' % rejected_entry_id)
+            raise NotFoundError(f'rejected entry ID {rejected_entry_id} not found')
         return jsonify(rejected_entry_to_dict(entry))
 
     @api.response(200, model=base_message_schema)
     def delete(self, rejected_entry_id, session=None):
-        """ Deletes a rejected entry """
+        """Delete a rejected entry."""
         try:
             entry = (
-                session.query(db.RememberEntry)
+                session
+                .query(db.RememberEntry)
                 .filter(db.RememberEntry.id == rejected_entry_id)
                 .one()
             )
         except NoResultFound:
-            raise NotFoundError('rejected entry ID %d not found' % rejected_entry_id)
+            raise NotFoundError(f'rejected entry ID {rejected_entry_id} not found')
         session.delete(entry)
-        return success_response('successfully deleted rejected entry %i' % rejected_entry_id)
+        return success_response(f'successfully deleted rejected entry {rejected_entry_id}')

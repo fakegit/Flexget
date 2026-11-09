@@ -1,4 +1,5 @@
-"""Input plugin for www.betaseries.com"""
+"""Input plugin for www.betaseries.com."""
+
 from hashlib import md5
 
 from loguru import logger
@@ -15,46 +16,50 @@ API_URL_PREFIX = 'https://api.betaseries.com/'
 
 
 class BetaSeriesList:
-    """
-    Emits an entry for each serie followed by one or more BetaSeries account.
+    """Emit an entry for each series followed by one or more BetaSeries account.
+
     See https://www.betaseries.com/
 
-    Configuration examples:
+    Configuration examples::
 
-    # will get all series followed by the account identified by your_user_name
-    betaseries_list:
-      username: your_user_name
-      password: your_password
-      api_key: your_api_key
+        # will get all series followed by the account identified by your_user_name
+        betaseries_list:
+          username: your_user_name
+          password: your_password
+          api_key: your_api_key
 
-    # will get all series followed by the account identified by some_other_guy
-    betaseries_list:
-      username: your_user_name
-      password: your_password
-      api_key: your_api_key
-      members:
-        - some_other_guy
+    ::
 
-    # will get all series followed by the accounts identified by guy1 and guy2
-    betaseries_list:
-      username: your_user_name
-      password: your_password
-      api_key: your_api_key
-      members:
-        - guy1
-        - guy2
+        # will get all series followed by the account identified by some_other_guy
+        betaseries_list:
+          username: your_user_name
+          password: your_password
+          api_key: your_api_key
+          members:
+            - some_other_guy
+
+    ::
+
+        # will get all series followed by the accounts identified by guy1 and guy2
+        betaseries_list:
+          username: your_user_name
+          password: your_password
+          api_key: your_api_key
+          members:
+            - guy1
+            - guy2
 
 
     Api key can be requested at https://www.betaseries.com/api.
 
-    This plugin is meant to work with the import_series plugin as follow:
+    This plugin is meant to work with the import_series plugin as follow::
 
-    import_series:
-      from:
-        betaseries_list:
-          username: xxxxx
-          password: xxxxx
-          api_key: xxxxx
+        import_series:
+          from:
+            betaseries_list:
+              username: xxxxx
+              password: xxxxx
+              api_key: xxxxx
     """
 
     schema = {
@@ -63,7 +68,7 @@ class BetaSeriesList:
             'username': {'type': 'string'},
             'password': {'type': 'string'},
             'api_key': {'type': 'string'},
-            'members': {'type': 'array', 'items': {"title": 'member name', "type": "string"}},
+            'members': {'type': 'array', 'items': {'title': 'member name', 'type': 'string'}},
         },
         'required': ['username', 'password', 'api_key'],
         'additionalProperties': False,
@@ -96,8 +101,8 @@ class BetaSeriesList:
 
 
 def create_token(api_key, login, password):
-    """
-    login in and request an new API token.
+    """Login in and request an new API token.
+
     https://www.betaseries.com/wiki/Documentation#cat-members
 
     :param string api_key: Api key requested at https://www.betaseries.com/api
@@ -114,18 +119,18 @@ def create_token(api_key, login, password):
             'X-BetaSeries-Key': api_key,
         },
     )
-    assert r.status_code == 200, "Bad HTTP status code: %s" % r.status_code
+    assert r.status_code == 200, f'Bad HTTP status code: {r.status_code}'
     j = r.json()
     error_list = j['errors']
     for err in error_list:
         logger.error(str(err))
     if not error_list:
         return j['token']
+    return None
 
 
 def query_member_id(api_key, user_token, login_name):
-    """
-    Get the member id of a member identified by its login name.
+    """Get the member id of a member identified by its login name.
 
     :param string api_key: Api key requested at https://www.betaseries.com/api
     :param string user_token: obtained with a call to create_token()
@@ -142,7 +147,7 @@ def query_member_id(api_key, user_token, login_name):
             'X-BetaSeries-Token': user_token,
         },
     )
-    assert r.status_code == 200, "Bad HTTP status code: %s" % r.status_code
+    assert r.status_code == 200, f'Bad HTTP status code: {r.status_code}'
     j = r.json()
     error_list = j['errors']
     for err in error_list:
@@ -157,14 +162,13 @@ def query_member_id(api_key, user_token, login_name):
 
 
 def query_series(api_key, user_token, member_name=None):
-    """
-    Get the list of series followed by the authenticated user
+    """Get the list of series followed by the authenticated user.
 
     :param string api_key: Api key requested at https://www.betaseries.com/api
     :param string user_token: Obtained with a call to create_token()
     :param string member_name: [optional] A member name to get the list of series from. If None, will query the member
         for whom the user_token was for
-    :return: List of serie titles or empty list
+    :return: List of series titles or empty list
     """
     params = {}
     if member_name:
@@ -184,15 +188,14 @@ def query_series(api_key, user_token, member_name=None):
             'X-BetaSeries-Token': user_token,
         },
     )
-    assert r.status_code == 200, "Bad HTTP status code: %s" % r.status_code
+    assert r.status_code == 200, f'Bad HTTP status code: {r.status_code}'
     j = r.json()
     error_list = j['errors']
     for err in error_list:
         logger.error(str(err))
     if not error_list:
         return [x['title'] for x in j['shows'] if x['user']['archived'] is False]
-    else:
-        return []
+    return []
 
 
 @event('plugin.register')

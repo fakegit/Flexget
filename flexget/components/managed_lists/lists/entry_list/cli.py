@@ -5,7 +5,7 @@ from sqlalchemy.orm.exc import NoResultFound
 from flexget import options
 from flexget.event import event
 from flexget.manager import Session
-from flexget.terminal import TerminalTable, TerminalTableError, console, table_parser
+from flexget.terminal import TerminalTable, console, table_parser
 
 from . import db
 
@@ -13,15 +13,15 @@ from . import db
 def attribute_type(attribute):
     if attribute.count('=') != 1:
         raise ArgumentTypeError(
-            'Received attribute in wrong format: %s, '
-            'should be in keyword format like `imdb_id=tt1234567`' % attribute
+            f'Received attribute in wrong format: {attribute}, '
+            'should be in keyword format like `imdb_id=tt1234567`'
         )
     name, value = attribute.split('=', 2)
     return {name: value}
 
 
 def do_cli(manager, options):
-    """Handle entry-list subcommand"""
+    """Handle entry-list subcommand."""
     if options.list_action == 'all':
         entry_list_lists(options)
         return
@@ -48,39 +48,30 @@ def do_cli(manager, options):
 
 
 def entry_list_lists(options):
-    """ Show all entry lists """
+    """Show all entry lists."""
     with Session() as session:
         lists = db.get_entry_lists(session=session)
-        header = ['#', 'List Name']
-        table_data = [header]
+        table = TerminalTable('#', 'List Name', table_type=options.table_type)
         for entry_list in lists:
-            table_data.append([entry_list.id, entry_list.name])
-    table = TerminalTable(options.table_type, table_data)
-    try:
-        console(table.output)
-    except TerminalTableError as e:
-        console('ERROR: %s' % str(e))
+            table.add_row(str(entry_list.id), entry_list.name)
+    console(table)
 
 
 def entry_list_list(options):
-    """List entry list"""
+    """List entry list."""
     with Session() as session:
         try:
             entry_list = db.get_list_by_exact_name(options.list_name, session=session)
         except NoResultFound:
-            console('Could not find entry list with name {}'.format(options.list_name))
+            console(f'Could not find entry list with name {options.list_name}')
             return
         header = ['#', 'Title', '# of fields']
-        table_data = [header]
+        table = TerminalTable(*header, table_type=options.table_type)
         for entry in db.get_entries_by_list_id(
             entry_list.id, order_by='added', descending=True, session=session
         ):
-            table_data.append([entry.id, entry.title, len(entry.entry)])
-    try:
-        table = TerminalTable(options.table_type, table_data)
-        console(table.output)
-    except TerminalTableError as e:
-        console('ERROR: %s' % str(e))
+            table.add_row(str(entry.id), entry.title, str(len(entry.entry)))
+    console(table)
 
 
 def entry_list_show(options):
@@ -88,37 +79,27 @@ def entry_list_show(options):
         try:
             entry_list = db.get_list_by_exact_name(options.list_name, session=session)
         except NoResultFound:
-            console('Could not find entry list with name {}'.format(options.list_name))
+            console(f'Could not find entry list with name {options.list_name}')
             return
 
         try:
             entry = db.get_entry_by_id(entry_list.id, int(options.entry), session=session)
         except NoResultFound:
             console(
-                'Could not find matching entry with ID {} in list `{}`'.format(
-                    int(options.entry), options.list_name
-                )
+                f'Could not find matching entry with ID {int(options.entry)} in list `{options.list_name}`'
             )
             return
         except ValueError:
             entry = db.get_entry_by_title(entry_list.id, options.entry, session=session)
             if not entry:
                 console(
-                    'Could not find matching entry with title `{}` in list `{}`'.format(
-                        options.entry, options.list_name
-                    )
+                    f'Could not find matching entry with title `{options.entry}` in list `{options.list_name}`'
                 )
                 return
-        header = ['Field name', 'Value']
-        table_data = [header]
+        table = TerminalTable('Field name', 'Value', table_type=options.table_type)
         for k, v in sorted(entry.entry.items()):
-            table_data.append([k, str(v)])
-    try:
-        table = TerminalTable(options.table_type, table_data, wrap_columns=[1])
-        table.table.justify_columns[0] = 'center'
-        console(table.output)
-    except TerminalTableError as e:
-        console('ERROR: %s' % str(e))
+            table.add_row(k, str(v))
+    console(table)
 
 
 def entry_list_add(options):
@@ -126,7 +107,7 @@ def entry_list_add(options):
         try:
             entry_list = db.get_list_by_exact_name(options.list_name, session=session)
         except NoResultFound:
-            console('Could not find entry list with name `{}`, creating'.format(options.list_name))
+            console(f'Could not find entry list with name `{options.list_name}`, creating')
             entry_list = db.EntryListList(name=options.list_name)
             session.add(entry_list)
         session.merge(entry_list)
@@ -136,25 +117,18 @@ def entry_list_add(options):
         db_entry = db.get_entry_by_title(list_id=entry_list.id, title=title, session=session)
         if db_entry:
             console(
-                "Entry with the title `{}` already exist with list `{}`. Will replace identifiers if given".format(
-                    title, entry_list.name
-                )
+                f'Entry with the title `{title}` already exist with list `{entry_list.name}`. Will replace identifiers if given'
             )
-            output = 'Successfully updated entry `{}` to entry list `{}` '.format(
-                title, entry_list.name
-            )
+            output = f'Successfully updated entry `{title}` to entry list `{entry_list.name}` '
         else:
-            console("Adding entry with title `{}` to list `{}`".format(title, entry_list.name))
+            console(f'Adding entry with title `{title}` to list `{entry_list.name}`')
             db_entry = db.EntryListEntry(entry=entry, entry_list_id=entry_list.id)
             session.add(db_entry)
-            output = 'Successfully added entry `{}` to entry list `{}` '.format(
-                title, entry_list.name
-            )
+            output = f'Successfully added entry `{title}` to entry list `{entry_list.name}` '
         if options.attributes:
-            console('Adding attributes to entry `{}`'.format(title))
+            console(f'Adding attributes to entry `{title}`')
             for identifier in options.attributes:
-                for k, v in identifier.items():
-                    entry[k] = v
+                entry.update(identifier)
             db_entry.entry = entry
         console(output)
 
@@ -164,27 +138,23 @@ def entry_list_del(options):
         try:
             entry_list = db.get_list_by_exact_name(options.list_name)
         except NoResultFound:
-            console('Could not find entry list with name `{}`'.format(options.list_name))
+            console(f'Could not find entry list with name `{options.list_name}`')
             return
         try:
             db_entry = db.get_entry_by_id(entry_list.id, int(options.entry), session=session)
         except NoResultFound:
             console(
-                'Could not find matching entry with ID {} in list `{}`'.format(
-                    int(options.entry), options.list_name
-                )
+                f'Could not find matching entry with ID {int(options.entry)} in list `{options.list_name}`'
             )
             return
         except ValueError:
             db_entry = db.get_entry_by_title(entry_list.id, options.entry, session=session)
             if not db_entry:
                 console(
-                    'Could not find matching entry with title `{}` in list `{}`'.format(
-                        options.entry, options.list_name
-                    )
+                    f'Could not find matching entry with title `{options.entry}` in list `{options.list_name}`'
                 )
                 return
-        console('Removing entry `%s` from list %s' % (db_entry.title, options.list_name))
+        console(f'Removing entry `{db_entry.title}` from list {options.list_name}')
         session.delete(db_entry)
 
 
@@ -193,9 +163,9 @@ def entry_list_purge(options):
         try:
             entry_list = db.get_list_by_exact_name(options.list_name)
         except NoResultFound:
-            console('Could not find entry list with name `{}`'.format(options.list_name))
+            console(f'Could not find entry list with name `{options.list_name}`')
             return
-        console('Deleting list %s' % options.list_name)
+        console(f'Deleting list {options.list_name}')
         session.delete(entry_list)
 
 
@@ -203,8 +173,8 @@ def entry_list_purge(options):
 def register_parser_arguments():
     # Common option to be used in multiple subparsers
     entry_parser = ArgumentParser(add_help=False)
-    entry_parser.add_argument('entry_title', help="Title of the entry")
-    entry_parser.add_argument('url', help="URL of the entry")
+    entry_parser.add_argument('entry_title', help='Title of the entry')
+    entry_parser.add_argument('url', help='URL of the entry')
 
     global_entry_parser = ArgumentParser(add_help=False)
     global_entry_parser.add_argument('entry', help='Can be entry title or ID')
@@ -215,8 +185,7 @@ def register_parser_arguments():
         metavar='<attributes>',
         nargs='+',
         type=attribute_type,
-        help='Can be a string or a list of string with the format imdb_id=XXX,'
-        ' tmdb_id=XXX, etc',
+        help='Can be a string or a list of string with the format imdb_id=XXX, tmdb_id=XXX, etc',
     )
     list_name_parser = ArgumentParser(add_help=False)
     list_name_parser.add_argument(

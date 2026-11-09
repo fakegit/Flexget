@@ -16,33 +16,32 @@ logger = logger.bind(name='failed')
 
 
 class PluginFailed:
-    """
-    Records entry failures and stores them for trying again after a certain interval.
-    Rejects them after they have failed too many times.
+    """Record entry failures and store them for trying again after a certain interval.
 
+    Reject them after they have failed too many times.
     """
 
     schema = {
-        "oneOf": [
+        'oneOf': [
             # Allow retry_failed: no form to turn off plugin altogether
-            {"type": "boolean"},
+            {'type': 'boolean'},
             {
-                "type": "object",
-                "properties": {
-                    "retry_time": {"type": "string", "format": "interval", "default": "1 hour"},
-                    "max_retries": {
-                        "type": "integer",
-                        "minimum": 0,
-                        "maximum": FAIL_LIMIT,
-                        "default": 3,
+                'type': 'object',
+                'properties': {
+                    'retry_time': {'type': 'string', 'format': 'interval', 'default': '1 hour'},
+                    'max_retries': {
+                        'type': 'integer',
+                        'minimum': 0,
+                        'maximum': FAIL_LIMIT,
+                        'default': 3,
                     },
-                    "retry_time_multiplier": {
+                    'retry_time_multiplier': {
                         # Allow turning off the retry multiplier with 'no' as well as 1
-                        "oneOf": [{"type": "number", "minimum": 0}, {"type": "boolean"}],
-                        "default": 1.5,
+                        'oneOf': [{'type': 'number', 'minimum': 0}, {'type': 'boolean'}],
+                        'default': 1.5,
                     },
                 },
-                "additionalProperties": False,
+                'additionalProperties': False,
             },
         ]
     }
@@ -68,8 +67,7 @@ class PluginFailed:
         retry_secs = base_retry_secs * (config['retry_time_multiplier'] ** fail_count)
         # prevent OverflowError: date value out of range, cap to 30 days
         max = 60 * 60 * 24 * 30
-        if retry_secs > max:
-            retry_secs = max
+        retry_secs = min(retry_secs, max)
         return timedelta(seconds=retry_secs)
 
     @plugin.priority(plugin.PRIORITY_LAST)
@@ -81,13 +79,14 @@ class PluginFailed:
             entry.on_fail(self.add_failed, config=config)
 
     def add_failed(self, entry, reason=None, config=None, **kwargs):
-        """Adds entry to internal failed list, displayed with --failed"""
+        """Add entry to internal failed list, displayed with --failed."""
         # Make sure reason is a string, in case it is set to an exception instance
         reason = str(reason) or 'Unknown'
         with Session() as session:
             # query item's existence
             item = (
-                session.query(db.FailedEntry)
+                session
+                .query(db.FailedEntry)
                 .filter(db.FailedEntry.title == entry['title'])
                 .filter(db.FailedEntry.url == entry['original_url'])
                 .first()
@@ -121,7 +120,8 @@ class PluginFailed:
         max_count = config['max_retries']
         for entry in task.entries:
             item = (
-                task.session.query(db.FailedEntry)
+                task.session
+                .query(db.FailedEntry)
                 .filter(db.FailedEntry.title == entry['title'])
                 .filter(db.FailedEntry.url == entry['original_url'])
                 .first()
@@ -129,13 +129,11 @@ class PluginFailed:
             if item:
                 if item.count > max_count:
                     entry.reject(
-                        'Has already failed %s times in the past. (failure reason: %s)'
-                        % (item.count, item.reason)
+                        f'Has already failed {item.count} times in the past. (failure reason: {item.reason})'
                     )
                 elif item.retry_time and item.retry_time > datetime.now():
                     entry.reject(
-                        'Waiting before retrying entry which has failed in the past. (failure reason: %s)'
-                        % item.reason
+                        f'Waiting before retrying entry which has failed in the past. (failure reason: {item.reason})'
                     )
 
 

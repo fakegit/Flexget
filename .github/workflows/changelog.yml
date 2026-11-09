@@ -3,42 +3,47 @@ name: Changelog Update
 on:
   push:
     branches:
-    - develop
+      - develop
+
+permissions: {}
 
 jobs:
   update-changelog:
     name: Update Changelog
     runs-on: ubuntu-latest
     env:
-      PYTHON_VERSION: 3.7
+      PYTHON_VERSION: '3.13' # renovate: datasource=python-version depName=python
+      UV_VERSION: 0.13.7 # renovate: datasource=pypi depName=uv
     steps:
-    - uses: actions/checkout@v2
-      with:
-        fetch-depth: 0
-    - uses: actions/checkout@v2
-      with:
-        repository: Flexget/wiki
-        path: wiki
-        token: ${{ secrets.flexgetbot_pat }}
-        ref: master
-    - name: Setup Git User
-      run: |
-        git config --global user.email ${{ secrets.git_email }}
-        git config --global user.name ${{ secrets.git_user }}
-    - name: Set up Python ${{ env.PYTHON_VERSION }}
-      uses: actions/setup-python@v2
-      with:
-        python-version: ${{ env.PYTHON_VERSION }}
-    - name: Install dev dependencies
-      run: |
-        pip --cache-dir pip_cache install -r dev-requirements.txt
-    - name: Update the Changelog
-      run: |
-        set -x
-        python update-changelog.py wiki/ChangeLog.md
-        cd wiki
-        git add ChangeLog.md
-        if ! git diff --cached --exit-code; then
-            git commit -m "Automated ChangeLog update"
-            git push origin master
-        fi
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Checkout wiki repo
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          repository: Flexget/wiki
+          path: wiki
+          token: ${{ secrets.flexgetbot_pat }}
+          persist-credentials: true
+          ref: main
+      - name: Setup Git User
+        run: |
+          git config --global user.email github-actions[bot]@users.noreply.github.com
+          git config --global user.name github-actions[bot]
+      - name: Install uv and Python
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          version: ${{ env.UV_VERSION }}
+      - name: Update the Changelog
+        run: |
+          set -x
+          uv run scripts/update_changelog.py wiki/ChangeLog.md
+          cd wiki
+          git add ChangeLog.md
+          if ! git diff --cached --exit-code; then
+              git commit -m "Automated ChangeLog update"
+              git push origin main
+          fi

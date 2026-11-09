@@ -8,14 +8,13 @@ logger = logger.bind(name='reorder_quality')
 
 
 class ReorderQuality:
-    """
-    Allows modifying quality priorities from default ordering.
+    """Allow modifying quality priorities from default ordering.
 
-    Example:
+    Example::
 
-    reorder_quality:
-      webrip:
-        above: hdtv
+        reorder_quality:
+          webrip:
+            above: hdtv
     """
 
     schema = {
@@ -36,23 +35,17 @@ class ReorderQuality:
     def on_task_start(self, task, config):
         self.quality_priorities = {}
         for quality, _config in config.items():
-            action, other_quality = list(_config.items())[0]
+            action, other_quality = next(iter(_config.items()))
 
             if quality not in qualities._registry:
-                raise plugin.PluginError('%s is not a valid quality' % quality)
+                raise plugin.PluginError(f'{quality} is not a valid quality')
 
             quality_component = qualities._registry[quality]
             other_quality_component = qualities._registry[other_quality]
 
             if quality_component.type != other_quality_component.type:
                 raise plugin.PluginError(
-                    '%s=%s and %s=%s do not have the same quality type'
-                    % (
-                        quality,
-                        quality_component.type,
-                        other_quality,
-                        other_quality_component.type,
-                    )
+                    f'{quality}={quality_component.type} and {other_quality}={other_quality_component.type} do not have the same quality type'
                 )
 
             self.quality_priorities[quality] = quality_component.value

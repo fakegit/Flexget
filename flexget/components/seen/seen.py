@@ -9,10 +9,9 @@ logger = logger.bind(name='seen')
 
 
 class FilterSeen:
-    """
-    Remembers previously downloaded content and rejects them in
-    subsequent executions. Without this plugin FlexGet would
-    download all matching content on every execution.
+    """Remember previously downloaded content and reject them in subsequent executions.
+
+    Without this plugin FlexGet would download all matching content on every execution.
 
     This plugin is enabled on all tasks by default.
     See wiki for more information.
@@ -29,8 +28,8 @@ class FilterSeen:
                     'fields': {
                         'type': 'array',
                         'items': {'type': 'string'},
-                        "minItems": 1,
-                        "uniqueItems": True,
+                        'minItems': 1,
+                        'uniqueItems': True,
                     },
                 },
             },
@@ -48,8 +47,7 @@ class FilterSeen:
         elif isinstance(config, bool):
             if config is False:
                 return config
-            else:
-                config = {'local': False}
+            config = {'local': False}
         elif isinstance(config, str):
             config = {'local': config == 'local'}
 
@@ -90,18 +88,20 @@ class FilterSeen:
                         found.value,
                     )
                     se = (
-                        task.session.query(db.SeenEntry)
+                        task.session
+                        .query(db.SeenEntry)
                         .filter(db.SeenEntry.id == found.seen_entry_id)
                         .one()
                     )
                     entry.reject(
-                        'Entry with %s `%s` is already marked seen in the task %s at %s'
-                        % (found.field, found.value, se.task, se.added.strftime('%Y-%m-%d %H:%M')),
+                        'Entry with {} `{}` is already marked seen in the task {} at {}'.format(
+                            found.field, found.value, se.task, se.added.strftime('%Y-%m-%d %H:%M')
+                        ),
                         remember=remember_rejected,
                     )
 
     def on_task_learn(self, task, config):
-        """Remember succeeded entries"""
+        """Remember succeeded entries."""
         config = self.prepare_config(config)
         if config is False:
             logger.debug('disabled')
@@ -120,7 +120,7 @@ class FilterSeen:
                 logger.info("Learned '{}' (will skip this in the future)", entry['title'])
 
     def learn(self, task, entry, fields=None, reason=None, local=False):
-        """Marks entry as seen"""
+        """Mark entry as seen."""
         # no explicit fields given, use default
         if not fields:
             fields = self.fields
@@ -147,6 +147,7 @@ class FilterSeen:
             logger.debug("Forgotten '{}' ({} fields)", title, len(se.fields))
             task.session.delete(se)
             return True
+        return None
 
 
 @event('plugin.register')

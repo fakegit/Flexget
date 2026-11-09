@@ -1,6 +1,7 @@
+import ctypes
 import os
 import random
-from collections import namedtuple
+from typing import NamedTuple
 
 from loguru import logger
 
@@ -10,17 +11,19 @@ from flexget.event import event
 
 logger = logger.bind(name='path_by_space')
 
-disk_stats_tuple = namedtuple(
-    'disk_stats',
-    ['path', 'free_bytes', 'used_bytes', 'total_bytes', 'free_percent', 'used_percent'],
-)
+
+class DiskStats(NamedTuple):
+    path: str
+    free_bytes: ctypes.c_ulonglong | int
+    used_bytes: ctypes.c_ulonglong | int
+    total_bytes: ctypes.c_ulonglong | int
+    free_percent: float
+    used_percent: float
 
 
 def os_disk_stats(folder):
-    """ Return drive free, used and total bytes """
+    """Return drive free, used and total bytes."""
     if os.name == 'nt':
-        import ctypes
-
         free_bytes = ctypes.c_ulonglong(0)
         total_bytes = ctypes.c_ulonglong(0)
         ctypes.windll.kernel32.GetDiskFreeSpaceExW(
@@ -28,9 +31,8 @@ def os_disk_stats(folder):
         )
 
         return free_bytes.value, total_bytes.value
-    else:
-        stats = os.statvfs(folder)
-        return stats.f_bavail * stats.f_frsize, stats.f_blocks * stats.f_frsize
+    stats = os.statvfs(folder)
+    return stats.f_bavail * stats.f_frsize, stats.f_blocks * stats.f_frsize
 
 
 def disk_stats(folder):
@@ -39,9 +41,7 @@ def disk_stats(folder):
     free_percent = 0.0 if total_bytes == 0 else 100 * free_bytes / total_bytes
     used_percent = 0.0 if total_bytes == 0 else 100 * used_bytes / total_bytes
 
-    return disk_stats_tuple(
-        folder, free_bytes, used_bytes, total_bytes, free_percent, used_percent
-    )
+    return DiskStats(folder, free_bytes, used_bytes, total_bytes, free_percent, used_percent)
 
 
 def _path_selector(paths, within, stat_attr):
@@ -53,14 +53,11 @@ def _path_selector(paths, within, stat_attr):
     valid_paths = [paths_stats[0].path]
 
     if within > 0:
-        valid_paths.extend(
-            [
-                path_stat.path
-                for path_stat in paths_stats[1:]
-                if abs(getattr(path_stat, stat_attr) - getattr(paths_stats[0], stat_attr))
-                <= within
-            ]
-        )
+        valid_paths.extend([
+            path_stat.path
+            for path_stat in paths_stats[1:]
+            if abs(getattr(path_stat, stat_attr) - getattr(paths_stats[0], stat_attr)) <= within
+        ])
 
     return random.choice(valid_paths)
 
@@ -90,19 +87,19 @@ selector_map = {
 
 
 class PluginPathBySpace:
-    """Allows setting a field to a folder based on it's space
+    """Allow setting a field to a folder based on it's space.
 
     Path will be selected at random if multiple paths match the within
 
-    Example:
+    Example::
 
-    path_by_space:
-      select: most_free_percent # or most_free, most_used, most_used_percent, has_free
-      within: 9000 # within in MB or percent.
-      paths:
-        - /drive1/
-        - /drive2/
-        - /drive3/
+        path_by_space:
+          select: most_free_percent # or most_free, most_used, most_used_percent, has_free
+          within: 9000 # within in MB or percent.
+          paths:
+            - /drive1/
+            - /drive2/
+            - /drive3/
     """
 
     schema = {
@@ -141,7 +138,7 @@ class PluginPathBySpace:
             for entry in task.all_entries:
                 entry[config['to_field']] = path
         else:
-            task.abort('Unable to select a path based on %s' % config['select'])
+            task.abort('Unable to select a path based on {}'.format(config['select']))
             return
 
 

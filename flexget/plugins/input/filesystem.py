@@ -1,8 +1,8 @@
 import re
 import sys
-from datetime import datetime
 from pathlib import Path
 
+import pendulum
 from loguru import logger
 
 from flexget import plugin
@@ -14,23 +14,23 @@ logger = logger.bind(name='filesystem')
 
 
 class Filesystem:
-    """
-    Uses local path content as an input. Can use recursion if configured.
-    Recursion is False by default. Can be configured to true or get integer that will specify max depth in relation to
-        base folder.
-    All files/dir/symlinks are retrieved by default. Can be changed by using the 'retrieve' property.
+    """Use local path content as an input. Can use recursion if configured.
 
-    Example 1:: Single path
+    Recursion is False by default. Can be configured to true or get integer that will specify max depth in relation to
+    base folder.
+    All files/dir/symlinks are retrieved by default. Can be changed by using the ``retrieve`` property.
+
+    Example 1—Single path::
 
       filesystem: /storage/movies/
 
-    Example 2:: List of paths
+    Example 2—List of paths::
 
       filesystem:
          - /storage/movies/
          - /storage/tv/
 
-    Example 3:: Object with list of paths
+    Example 3—Object with list of paths::
 
       filesystem:
         path:
@@ -88,8 +88,6 @@ class Filesystem:
     def prepare_config(self, config):
         from fnmatch import translate
 
-        config = config
-
         # Converts config to a dict with a list of paths
         if not isinstance(config, dict):
             config = {'path': config}
@@ -108,47 +106,40 @@ class Filesystem:
         return config
 
     def create_entry(self, filepath: Path, test_mode):
-        """
-        Creates a single entry using a filepath and a type (file/dir)
-        """
+        """Create a single entry using a filepath and a type (file/dir)."""
         filepath = filepath.absolute()
         entry = Entry()
-        entry['location'] = str(filepath)
-        entry['url'] = Path(filepath).absolute().as_uri()
+        entry['location'] = filepath
+        entry['url'] = filepath.as_uri()
         entry['filename'] = filepath.name
         if filepath.is_file():
             entry['title'] = filepath.stem
         else:
             entry['title'] = filepath.name
         file_stat = filepath.stat()
-        try:
-            entry['timestamp'] = datetime.fromtimestamp(file_stat.st_mtime)
-        except Exception as e:
-            logger.warning('Error setting timestamp for {}: {}', filepath, e)
-            entry['timestamp'] = None
-        entry['accessed'] = datetime.fromtimestamp(file_stat.st_atime)
-        entry['modified'] = datetime.fromtimestamp(file_stat.st_mtime)
-        entry['created'] = datetime.fromtimestamp(file_stat.st_ctime)
+        entry['atime'] = pendulum.from_timestamp(file_stat.st_atime, tz='local')
+        entry['mtime'] = pendulum.from_timestamp(file_stat.st_mtime, tz='local')
+        entry['ctime'] = pendulum.from_timestamp(file_stat.st_ctime, tz='local')
         if entry.isvalid():
             if test_mode:
-                logger.info("Test mode. Entry includes:")
+                logger.info('Test mode. Entry includes:')
                 logger.info(' Title: {}', entry['title'])
                 logger.info(' URL: {}', entry['url'])
                 logger.info(' Filename: {}', entry['filename'])
                 logger.info(' Location: {}', entry['location'])
-                logger.info(' Timestamp: {}', entry['timestamp'])
+                logger.info(' atime: {}', entry['atime'])
+                logger.info(' ctime: {}', entry['ctime'])
+                logger.info(' mtime: {}', entry['mtime'])
             return entry
-        else:
-            logger.error('Non valid entry created: {} ', entry)
-            return
+        logger.error('Non valid entry created: {} ', entry)
+        return None
 
     def get_max_depth(self, recursion, base_depth):
         if recursion is False:
             return base_depth + 1
-        elif recursion is True:
+        if recursion is True:
             return float('inf')
-        else:
-            return base_depth + recursion
+        return base_depth + recursion
 
     @staticmethod
     def get_folder_objects(folder: Path, recursion: bool):
@@ -182,25 +173,20 @@ class Filesystem:
                     continue
                 entry = None
                 object_depth = len(path_object.parts)
-                if object_depth <= max_depth:
-                    if match(str(path_object)):
-                        if (
-                            (path_object.is_dir() and get_dirs)
-                            or (path_object.is_symlink() and get_symlinks)
-                            or (
-                                path_object.is_file()
-                                and not path_object.is_symlink()
-                                and get_files
-                            )
-                        ):
-                            entry = self.create_entry(path_object, test_mode)
-                        else:
-                            logger.debug(
-                                "Path object's {} type doesn't match requested object types.",
-                                path_object,
-                            )
-                        if entry and entry not in entries:
-                            entries.append(entry)
+                if object_depth <= max_depth and match(str(path_object)):
+                    if (
+                        (path_object.is_dir() and get_dirs)
+                        or (path_object.is_symlink() and get_symlinks)
+                        or (path_object.is_file() and not path_object.is_symlink() and get_files)
+                    ):
+                        entry = self.create_entry(path_object, test_mode)
+                    else:
+                        logger.debug(
+                            "Path object's {} type doesn't match requested object types.",
+                            path_object,
+                        )
+                    if entry and entry not in entries:
+                        entries.append(entry)
 
         return entries
 

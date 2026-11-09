@@ -17,7 +17,7 @@ MAX_TWEETS = 1000
 
 
 class TwitterFeed:
-    """Parses a twitter feed
+    """Parse a twitter feed.
 
     Example::
 
@@ -69,7 +69,7 @@ class TwitterFeed:
 
     def on_task_start(self, task, config):
         try:
-            import twitter  # noqa
+            import twitter  # noqa: F401
         except ImportError:
             raise plugin.PluginError('twitter module required', logger=logger)
 
@@ -88,7 +88,7 @@ class TwitterFeed:
             )
         except twitter.TwitterError as ex:
             raise plugin.PluginError(
-                'Unable to authenticate to twitter for task %s: %s' % (task.name, ex)
+                f'Unable to authenticate to twitter for task {task.name}: {ex}'
             )
 
         if config['all_entries']:
@@ -143,7 +143,7 @@ class TwitterFeed:
                     max_id=max_id,
                 )
             except twitter.TwitterError as e:
-                raise plugin.PluginError('Unable to fetch timeline %s for %s' % (account, e))
+                raise plugin.PluginError(f'Unable to fetch timeline {account} for {e}')
 
             if not tweets:
                 break

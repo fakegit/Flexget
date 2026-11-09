@@ -16,8 +16,7 @@ ID_TYPES = ['ep', 'date', 'sequence', 'id']  # may also be 'special'
 
 
 class SeriesParser(TitleParser):
-    """
-    Parse series.
+    """Parse series.
 
     :name: series name
     :data: data to parse
@@ -41,57 +40,45 @@ class SeriesParser(TitleParser):
     ]
 
     # Make sure none of these are found embedded within a word or other numbers
-    ep_regexps = ReList(
-        [
-            TitleParser.re_not_in_word(regexp)
-            for regexp in [
-                r'(?:series|season|s)\s?(\d{1,4})(?:\s(?:.*\s)?)?(?:episode|ep|e|part|pt)\s?(\d{1,3}|%s)(?:\s?e?(\d{1,2}))?'
-                % roman_numeral_re,
-                r'(?:series|season)\s?(\d{1,4})\s(\d{1,3})\s?of\s?(?:\d{1,3})',
-                r'(\d{1,2})\s?x\s?(\d+)(?:\s(\d{1,2}))?',
-                r'(\d{1,3})\s?of\s?(?:\d{1,3})',
-                r'(?:episode|e|ep|part|pt)\s?(\d{1,3}|%s)' % roman_numeral_re,
-                r'part\s(%s)' % '|'.join(map(str, english_numbers)),
-            ]
+    ep_regexps = ReList([
+        TitleParser.re_not_in_word(regexp)
+        for regexp in [
+            rf'(?:series|season|s)\s?(\d{{1,4}})(?:\s(?:.*\s)?)?(?:episode|ep|e|part|pt)\s?(\d{{1,3}}|{roman_numeral_re})(?:\s?e?(\d{{1,2}}))?',
+            r'(?:series|season)\s?(\d{1,4})\s(\d{1,3})\s?of\s?(?:\d{1,3})',
+            r'(\d{1,2})\s?x\s?(\d+)(?:\s(\d{1,2}))?',
+            r'(\d{1,3})\s?of\s?(?:\d{1,3})',
+            rf'(?:episode|e|ep|part|pt)\s?(\d{{1,3}}|{roman_numeral_re})',
+            r'part\s({})'.format('|'.join(map(str, english_numbers))),
         ]
-    )
-    season_pack_regexps = ReList(
-        [
-            # S01 or Season 1 but not Season 1 Episode|Part 2
-            r'(?:season\s?|s)(\d{1,})(?:\s|$)(?!(?:(?:.*?\s)?(?:episode|e|ep|part|pt)\s?(?:\d{1,3}|%s)|(?:\d{1,3})\s?of\s?(?:\d{1,3})))'
-            % roman_numeral_re,
-            r'(\d{1,3})\s?x\s?all',  # 1xAll
-        ]
-    )
-    unwanted_regexps = ReList(
-        [
-            r'(\d{1,3})\s?x\s?(0+)[^1-9]',  # 5x0
-            r'S(\d{1,3})D(\d{1,3})',  # S3D1
-            r'(?:s|series|\b)\s?\d\s?(?:&\s?\d)?[\s-]*(?:complete|full)',
-            r'disc\s\d',
-        ]
-    )
+    ])
+    season_pack_regexps = ReList([
+        # S01 or Season 1 but not Season 1 Episode|Part 2
+        rf'(?:season\s?|s)(\d{{1,}}\b)(?!(?:(?:.*?\s)?(?:episode|e|ep|part|pt)\s?(?:\d{{1,3}}|{roman_numeral_re})|(?:\d{{1,3}})\s?of\s?(?:\d{{1,3}})))',
+        r'(\d{1,3})\s?x\s?all',  # 1xAll
+    ])
+    unwanted_regexps = ReList([
+        r'(\d{1,3})\s?x\s?(0+)[^1-9]',  # 5x0
+        r'S(\d{1,3})D(\d{1,3})',  # S3D1
+        r'(?:s|series|\b)\s?\d\s?(?:&\s?\d)?[\s-]*(?:complete|full)',
+        r'disc\s\d',
+    ])
     # Make sure none of these are found embedded within a word or other numbers
-    date_regexps = ReList(
-        [
-            TitleParser.re_not_in_word(regexp)
-            for regexp in [
-                r'(\d{2,4})%s(\d{1,2})%s(\d{1,2})' % (separators, separators),
-                r'(\d{1,2})%s(\d{1,2})%s(\d{2,4})' % (separators, separators),
-                r'(\d{4})x(\d{1,2})%s(\d{1,2})' % separators,
-                r'(\d{1,2})(?:st|nd|rd|th)?%s([a-z]{3,10})%s(\d{4})' % (separators, separators),
-            ]
+    date_regexps = ReList([
+        TitleParser.re_not_in_word(regexp)
+        for regexp in [
+            rf'(\d{{2,4}}){separators}(\d{{1,2}}){separators}(\d{{1,2}})',
+            rf'(\d{{1,2}}){separators}(\d{{1,2}}){separators}(\d{{2,4}})',
+            rf'(\d{{4}})x(\d{{1,2}}){separators}(\d{{1,2}})',
+            rf'(\d{{1,2}})(?:st|nd|rd|th)?{separators}([a-z]{{3,10}}){separators}(\d{{4}})',
         ]
-    )
-    sequence_regexps = ReList(
-        [
-            TitleParser.re_not_in_word(regexp)
-            for regexp in [
-                r'(\d{1,3})(?:v(?P<version>\d))?',
-                r'(?:pt|part)\s?(\d+|%s)' % roman_numeral_re,
-            ]
+    ])
+    sequence_regexps = ReList([
+        TitleParser.re_not_in_word(regexp)
+        for regexp in [
+            r'(\d{1,3})(?:v(?P<version>\d))?',
+            rf'(?:pt|part)\s?(\d+|{roman_numeral_re})',
         ]
-    )
+    ])
     unwanted_sequence_regexps = ReList([r'seasons?\s?\d{1,2}'])
     id_regexps = ReList([])
     clean_regexps = ReList([r'\[.*?\]', r'\(.*?\)'])
@@ -117,8 +104,7 @@ class SeriesParser(TitleParser):
         prefer_specials=False,
         assume_special=False,
     ):
-        """
-        Init SeriesParser.
+        """Init SeriesParser.
 
         :param string name: Name of the series parser is going to try to parse. If not supplied series name will be
             guessed from data.
@@ -144,7 +130,6 @@ class SeriesParser(TitleParser):
         :param boolean prefer_specials: If True, label entry which matches both a series identifier and a special
             identifier as a special.
         """
-
         self.episodes = 1
         self.name = name
         self.alternate_names = alternate_names or []
@@ -192,16 +177,16 @@ class SeriesParser(TitleParser):
         self.valid = False
 
     def remove_dirt(self, data):
-        """Replaces some characters with spaces"""
+        """Replace some characters with spaces."""
         return re.sub(r'[_.,\[\]\(\): ]+', ' ', data).strip().lower()
 
     def guess_name(self):
-        """This will attempt to guess a series name based on the provided data."""
+        """Attempt to guess a series name based on the provided data."""
         # We need to replace certain characters with spaces to make sure episode parsing works right
         # We don't remove anything, as the match positions should line up with the original title
         clean_title = re.sub(r'[_.,\[\]\(\):]', ' ', self.data)
         if self.parse_unwanted(clean_title):
-            return
+            return None
         match = self.parse_date(clean_title)
         if match:
             self.identified_by = 'date'
@@ -211,7 +196,7 @@ class SeriesParser(TitleParser):
                 match = self.parse_episode(clean_title)
             self.identified_by = 'ep'
         if not match:
-            return
+            return None
         if match['match'].start() > 1:
             # We start using the original title here, so we can properly ignore unwanted prefixes.
             # Look for unwanted prefixes to find out where the series title starts
@@ -229,6 +214,7 @@ class SeriesParser(TitleParser):
             name = capwords(name)
             self.name = name
             return name
+        return None
 
     def parse(self, data=None, field=None, quality=None):
         # Clear the output variables before parsing
@@ -249,9 +235,7 @@ class SeriesParser(TitleParser):
 
         # check if data appears to be unwanted (abort)
         if self.parse_unwanted(self.remove_dirt(self.data)):
-            raise ParseWarning(
-                self, '`{data}` appears to be an episode pack'.format(data=self.data)
-            )
+            raise ParseWarning(self, f'`{self.data}` appears to be an episode pack')
 
         name = self.remove_dirt(self.name)
 
@@ -266,7 +250,7 @@ class SeriesParser(TitleParser):
             # if we don't have name_regexps, generate one from the name
             self.name_regexps = ReList(
                 name_to_re(name, self.ignore_prefixes, self)
-                for name in [self.name] + self.alternate_names
+                for name in [self.name, *self.alternate_names]
             )
             # With auto regex generation, the first regex group captures the name
             self.re_from_name = True
@@ -345,9 +329,8 @@ class SeriesParser(TitleParser):
         if self.identified_by in ['date', 'auto']:
             date_match = self.parse_date(data_stripped)
             if date_match:
-                if self.strict_name:
-                    if date_match['match'].start() > 1:
-                        return
+                if self.strict_name and date_match['match'].start() > 1:
+                    return
                 self.id = date_match['date']
                 self.id_groups = date_match['match'].groups()
                 self.id_type = 'date'
@@ -361,9 +344,8 @@ class SeriesParser(TitleParser):
             ep_match = self.parse_episode(data_stripped)
             if ep_match:
                 # strict_name
-                if self.strict_name:
-                    if ep_match['match'].start() > 1:
-                        return
+                if self.strict_name and ep_match['match'].start() > 1:
+                    return
 
                 if ep_match['end_episode'] and ep_match['end_episode'] > ep_match['episode'] + 2:
                     # This is a pack of too many episodes, ignore it.
@@ -403,16 +385,20 @@ class SeriesParser(TitleParser):
                 # ressu: Added matching for 0101, 0102... It will fail on
                 #        season 11 though
                 logger.trace('ep identifier expected. Attempting SEE format parsing.')
+                # remove obvious date format from this desperate try
+                desperate = re.sub(
+                    r'\d{4}\s\d{1,2}\s\d{1,2}|\b(?:19|20)\d{2}\b', '', data_stripped
+                )
                 match = re.search(
                     self.re_not_in_word(r'(\d?\d)(\d\d)'),
-                    data_stripped,
-                    re.IGNORECASE | re.UNICODE,
+                    desperate,
+                    re.IGNORECASE,
                 )
                 if match:
+                    logger.trace('-> had luck with SEE')
                     # strict_name
-                    if self.strict_name:
-                        if match.start() > 1:
-                            return
+                    if self.strict_name and match.start() > 1:
+                        return
 
                     self.season = int(match.group(1))
                     self.episode = int(match.group(2))
@@ -421,8 +407,7 @@ class SeriesParser(TitleParser):
                     self.id_type = 'ep'
                     self.valid = True
                     return
-                else:
-                    logger.trace('-> no luck with SEE')
+                logger.trace('-> no luck with SEE')
 
         # Check id regexps
         if self.identified_by in ['id', 'auto'] and not self.valid:
@@ -430,9 +415,8 @@ class SeriesParser(TitleParser):
                 match = re.search(id_re, data_stripped)
                 if match:
                     # strict_name
-                    if self.strict_name:
-                        if match.start() > 1:
-                            return
+                    if self.strict_name and match.start() > 1:
+                        return
                     found_id = '-'.join(g for g in match.groups() if g)
                     if not found_id:
                         # If match groups were all blank, don't accept this match
@@ -443,8 +427,7 @@ class SeriesParser(TitleParser):
                     logger.trace("found id '{}' with regexp '{}'", self.id, id_re.pattern)
                     if not (self.special and self.prefer_specials):
                         return
-                    else:
-                        break
+                    break
             else:
                 logger.trace('-> no luck with id_regexps')
 
@@ -458,9 +441,8 @@ class SeriesParser(TitleParser):
                 match = re.search(sequence_re, data_stripped)
                 if match:
                     # strict_name
-                    if self.strict_name:
-                        if match.start() > 1:
-                            return
+                    if self.strict_name and match.start() > 1:
+                        return
                     # First matching group is the sequence number
                     try:
                         self.id = int(match.group(1))
@@ -469,16 +451,14 @@ class SeriesParser(TitleParser):
                     self.season = 0
                     self.episode = self.id
                     # If anime style version was found, overwrite the proper count with it
-                    if 'version' in match.groupdict():
-                        if match.group('version'):
-                            self.proper_count = int(match.group('version')) - 1
+                    if 'version' in match.groupdict() and match.group('version'):
+                        self.proper_count = int(match.group('version')) - 1
                     self.id_type = 'sequence'
                     self.valid = True
                     logger.trace("found id '{}' with regexp '{}'", self.id, sequence_re.pattern)
                     if not (self.special and self.prefer_specials):
                         return
-                    else:
-                        break
+                    break
             else:
                 logger.trace('-> no luck with sequence_regexps')
 
@@ -493,32 +473,37 @@ class SeriesParser(TitleParser):
         if self.valid:
             return
 
-        msg = 'Title `%s` looks like series `%s` but cannot find ' % (self.data, self.name)
+        msg = f'Title `{self.data}` looks like series `{self.name}` but cannot find '
         if self.identified_by == 'auto':
             msg += 'any series numbering.'
         else:
-            msg += 'a(n) `%s` style identifier.' % self.identified_by
+            msg += f'a(n) `{self.identified_by}` style identifier.'
         raise ParseWarning(self, msg)
 
     def parse_unwanted(self, data):
-        """Parses data for an unwanted hits. Return True if the data contains unwanted hits."""
+        """Parse data for an unwanted hits. Return True if the data contains unwanted hits."""
         for unwanted_re in self.unwanted_regexps:
             match = re.search(unwanted_re, data)
             if match:
                 logger.trace('unwanted regexp {} matched {}', unwanted_re.pattern, match.groups())
                 return True
+        return None
 
     def parse_unwanted_sequence(self, data):
-        """Parses data for an unwanted id hits. Return True if the data contains unwanted hits."""
+        """Parse data for an unwanted id hits.
+
+        Return True if the data contains unwanted hits.
+        """
         for seq_unwanted_re in self.unwanted_sequence_regexps:
             match = re.search(seq_unwanted_re, data)
             if match:
                 logger.trace('unwanted id regexp {} matched {}', seq_unwanted_re, match.groups())
                 return True
+        return None
 
     def parse_date(self, data):
-        """
-        Parses :data: for a date identifier.
+        """Parse :data: for a date identifier.
+
         If found, returns the date and regexp match object
         If no date is found returns False
         """
@@ -566,12 +551,11 @@ class SeriesParser(TitleParser):
         return False
 
     def parse_episode(self, data):
-        """
-        Parses :data: for an episode identifier.
+        """Parse :data: for an episode identifier.
+
         If found, returns a dict with keys for season, episode, end_episode and the regexp match object
         If no episode id is found returns False
         """
-
         # search for season and episode number
         for ep_re in self.ep_regexps:
             match = re.search(ep_re, data)
@@ -615,7 +599,7 @@ class SeriesParser(TitleParser):
                     end_episode = int(matches[2])
                     if end_episode <= episode or end_episode > episode + 12:
                         # end episode cannot be before start episode
-                        # Assume large ranges are not episode packs, ticket #1271 TODO: is this the best way?
+                        # Assume large ranges are not episode packs TODO: is this the best way?
                         end_episode = None
                 # Successfully found an identifier, return the results
                 return {
@@ -627,7 +611,7 @@ class SeriesParser(TitleParser):
         return False
 
     def parse_season_packs(self, data):
-        """Parses data for season packs. Return True if the data contains a hit"""
+        """Parse data for season packs. Return True if the data contains a hit."""
         for season_pack_re in self.season_pack_regexps:
             match = re.search(season_pack_re, data)
             if match:
@@ -639,20 +623,20 @@ class SeriesParser(TitleParser):
                     # Single season full pack, no parts etc
                     season = int(matches[0])
                     return {'season': season, 'match': match}
-                elif len(matches) == 2:
-                    # TODO support other formats of season packs: 1xall, s01-PART1, etc.
+                if len(matches) == 2:
+                    # TODO: support other formats of season packs: 1xall, s01-PART1, etc.
                     pass
+        return None
 
     def roman_to_int(self, roman):
-        """Converts roman numerals up to 39 to integers"""
-
+        """Convert roman numerals up to 39 to integers."""
         roman_map = [('X', 10), ('IX', 9), ('V', 5), ('IV', 4), ('I', 1)]
         roman = roman.upper()
 
         # Return False if this is not a roman numeral we can translate
         for char in roman:
             if char not in 'XVI':
-                raise ValueError('`%s` is not a valid roman numeral' % roman)
+                raise ValueError(f'`{roman}` is not a valid roman numeral')
 
         # Add up the parts of the numeral
         i = result = 0
@@ -668,14 +652,7 @@ class SeriesParser(TitleParser):
         valid = 'INVALID'
         if self.valid:
             valid = 'OK'
-        return '<SeriesParser(data=%s,name=%s,id=%s,season=%s,season_pack=%s,episode=%s,quality=%s,proper=%s,' 'status=%s)>' % (
-            self.data,
-            self.name,
-            str(self.id),
-            self.season,
-            self.season_pack,
-            self.episode,
-            self.quality,
-            self.proper_count,
-            valid,
+        return (
+            f'<SeriesParser(data={self.data},name={self.name},id={self.id!s},id_type={self.id_type},identified_by={self.identified_by},season={self.season},season_pack={self.season_pack},episode={self.episode},quality={self.quality},proper={self.proper_count},'
+            f'status={valid})>'
         )

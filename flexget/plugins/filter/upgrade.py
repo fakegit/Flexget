@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from loguru import logger
-from sqlalchemy import Column, DateTime, Integer, String, Unicode
+from sqlalchemy.orm import Mapped, mapped_column
 
 from flexget import db_schema, plugin
 from flexget.db_schema import Session
@@ -21,16 +21,16 @@ entry_actions = {'accept': Entry.accept, 'reject': Entry.reject, 'fail': Entry.f
 class EntryUpgrade(Base):
     __tablename__ = 'upgrade'
 
-    id = Column(Unicode, primary_key=True, index=True)
-    title = Column(Unicode)
-    _quality = Column('quality', String)
+    id: Mapped[str] = mapped_column(primary_key=True)
+    title: Mapped[str | None]
+    _quality: Mapped[str | None] = mapped_column('quality')
     quality = quality_property('_quality')
-    proper_count = Column(Integer, default=0)
-    first_seen = Column(DateTime, default=datetime.now)
-    updated = Column(DateTime, index=True, default=datetime.now)
+    proper_count: Mapped[int | None] = mapped_column(default=0)
+    first_seen: Mapped[datetime | None] = mapped_column(default=datetime.now)
+    updated: Mapped[datetime | None] = mapped_column(index=True, default=datetime.now)
 
     def __str__(self):
-        return '<Upgrade(id=%s,added=%s,quality=%s)>' % (self.id, self.added, self.quality)
+        return f'<Upgrade(id={self.id},added={self.added},quality={self.quality})>'
 
 
 class FilterUpgrade:
@@ -49,7 +49,7 @@ class FilterUpgrade:
 
     def prepare_config(self, config):
         if not config or config is False:
-            return
+            return None
 
         if config is True:
             config = {}
@@ -63,20 +63,18 @@ class FilterUpgrade:
         return config
 
     def filter_entries(self, entries, existing, target, action_on_lower):
-
         target_requirement = qualities.Requirements(target) if target else None
         filtered = []
 
         for entry in entries:
             # Filter out entries within target
-            if target:
-                if not target_requirement.allows(entry['quality']):
-                    logger.debug(
-                        'Skipping {} as does not meet upgrade quality requirements', entry['title']
-                    )
-                    if action_on_lower:
-                        action_on_lower(entry, 'does not meet upgrade quality requirements')
-                    continue
+            if target and not target_requirement.allows(entry['quality']):
+                logger.debug(
+                    'Skipping {} as does not meet upgrade quality requirements', entry['title']
+                )
+                if action_on_lower:
+                    action_on_lower(entry, 'does not meet upgrade quality requirements')
+                continue
 
             if entry['quality'] < existing.quality:
                 logger.debug('Skipping {} as lower quality then existing', entry['title'])
@@ -114,7 +112,8 @@ class FilterUpgrade:
         with Session() as session:
             # Prefetch Data
             existing_ids = (
-                session.query(EntryUpgrade)
+                session
+                .query(EntryUpgrade)
                 .filter(EntryUpgrade.id.in_(grouped_entries.keys()))
                 .all()
             )
@@ -195,7 +194,8 @@ class FilterUpgrade:
         with Session() as session:
             # Prefetch Data
             existing_ids = (
-                session.query(EntryUpgrade)
+                session
+                .query(EntryUpgrade)
                 .filter(EntryUpgrade.id.in_(grouped_entries.keys()))
                 .all()
             )

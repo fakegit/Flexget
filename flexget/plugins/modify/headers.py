@@ -7,19 +7,19 @@ logger = logger.bind(name='headers')
 
 
 class PluginHeaders:
-    """Allow setting up any headers in all requests (which use urllib2)
+    """Allow setting up any headers in all requests (which use urllib2).
 
-    Example:
+    Example::
 
-    headers:
-      cookie: uid=<YOUR UID>; pass=<YOUR PASS>
+        headers:
+          cookie: uid=<YOUR UID>; pass=<YOUR PASS>
     """
 
     schema = {'type': 'object', 'additionalProperties': {'type': 'string'}}
 
     @plugin.priority(130)
     def on_task_start(self, task, config):
-        """Task starting"""
+        """Task starting."""
         # Set the headers for this task's request session
         logger.debug('headers to add: {}', config)
         if task.requests.headers:

@@ -13,28 +13,31 @@ logger = logger.bind(name='rlsbb')
 
 
 class UrlRewriteRlsbb:
-    r"""
-    rlsbb.ru urlrewriter
+    r"""rlsbb.ru urlrewriter.
+
     Version 0.1
 
-    Configuration
+    Configuration ::
 
-    rlsbb:
-      filehosters_re:
-        - domain\.com
-        - domain2\.org
-      link_text_re:
-        - UPLOADGiG
-        - NiTROFLARE
-        - RAPiDGATOR
-      parse_comments: no
+        rlsbb:
+          filehosters_re:
+            - domain\.com
+            - domain2\.org
+          link_text_re:
+            - UPLOADGiG
+            - NiTROFLARE
+            - RAPiDGATOR
+          parse_comments: no
 
-    filehosters_re: Only add links that match any of the regular expressions
+    filehosters_re
+      Only add links that match any of the regular expressions
       listed under filehosters_re.
-    link_text_re: search for <a> tags where the text (not the url) matches
+    link_text_re
+      search for <a> tags where the text (not the url) matches
       one of the given regular expressions. The href property of these <a> tags
       will be used as the url (or urls).
-    parse_comments: whether the plugin should also parse the comments or only
+    parse_comments
+      whether the plugin should also parse the comments or only
       the main post. Note that it is highly recommended to use filehosters_re
       if you enable parse_comments. Otherwise, the plugin may return too
       many and even some potentially dangerous links.
@@ -46,9 +49,10 @@ class UrlRewriteRlsbb:
     Therefore, it is recommended, that you configure your output to use the
     'urls' field instead of the 'url' field.
 
-    For example, to use jdownloader 2 as output, you would use the exec plugin:
-    exec:
-      - echo "text={{urls}}" >> "/path/to/jd2/folderwatch/{{title}}.crawljob"
+    For example, to use jdownloader 2 as output, you would use the exec plugin::
+
+        exec:
+          - echo "text={{urls}}" >> "/path/to/jd2/folderwatch/{{title}}.crawljob"
     """
 
     DEFAULT_DOWNLOAD_TEXT = ['UPLOADGiG', 'NiTROFLARE', 'RAPiDGATOR']
@@ -96,10 +100,7 @@ class UrlRewriteRlsbb:
         soup = self._get_soup(task, url)
         link_list = soup.find('ol')
         link_divs = link_list.find_all('div')
-        links = []
-        for link in link_divs:
-            links.append(link.string())
-        return links
+        return [link.string() for link in link_divs]
 
     @plugin.internet(logger)
     # urlrewriter API
@@ -132,7 +133,7 @@ class UrlRewriteRlsbb:
         # grab links from comments
         regexps = self.config.get('filehosters_re', [])
         if self.config.get('parse_comments'):
-            comments = soup.find_all('div', id=re.compile("commentbody"))
+            comments = soup.find_all('div', id=re.compile('commentbody'))
             logger.debug('Comment parsing enabled: found {} comments.', len(comments))
             if comments and not regexps:
                 logger.warning(
@@ -171,7 +172,7 @@ class UrlRewriteRlsbb:
             entry['urls'] = urls
             entry['url'] = urls[0]
         else:
-            raise UrlRewritingError('No useable links found at %s' % entry['url'])
+            raise UrlRewritingError('No usable links found at {}'.format(entry['url']))
 
 
 @event('plugin.register')

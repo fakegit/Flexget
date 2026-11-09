@@ -44,7 +44,7 @@ class SearchCPASBIEN:
 
     @plugin.internet(logger)
     def search(self, task, entry, config):
-        """CPASBIEN search plugin
+        """CPASBIEN search plugin.
 
         Config example:
 
@@ -75,7 +75,6 @@ class SearchCPASBIEN:
             series-vostfr
             ebook
         """
-
         base_url = 'http://www.cpasbien.io'
         entries = set()
         for search_string in entry.get('search_strings', [entry['title']]):
@@ -89,7 +88,7 @@ class SearchCPASBIEN:
                 str_url = (base_url, 'recherche', query_url_fragment)
                 url = '/'.join(str_url)
             else:
-                category_url_fragment = '%s' % config['category']
+                category_url_fragment = '{}'.format(config['category'])
                 str_url = (base_url, 'recherche', category_url_fragment, query_url_fragment)
                 url = '/'.join(str_url)
             logger.debug('search url: {}', url + '.html')

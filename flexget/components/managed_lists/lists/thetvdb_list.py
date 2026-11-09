@@ -44,7 +44,7 @@ class TheTVDBSet(MutableSet):
         self._items = None
 
     def __iter__(self):
-        return iter([item for item in self.items])
+        return iter(list(self.items))
 
     def __len__(self):
         return len(self.items)
@@ -66,7 +66,7 @@ class TheTVDBSet(MutableSet):
                 ).get('user/favorites')
                 series_ids = [int(f_id) for f_id in req['favorites'] if f_id != '']
             except RequestException as e:
-                raise PluginError('Error retrieving favorites from thetvdb: %s' % str(e))
+                raise PluginError(f'Error retrieving favorites from thetvdb: {e!s}')
             self._items = []
             for series_id in series_ids:
                 # Lookup the series name from the id
@@ -83,9 +83,7 @@ class TheTVDBSet(MutableSet):
                         series_name, _ = split_title_year(series_name)
                     entry = Entry()
                     entry['title'] = entry['series_name'] = series_name
-                    entry['url'] = 'http://thetvdb.com/index.php?tab=series&id={}'.format(
-                        str(series.id)
-                    )
+                    entry['url'] = f'http://thetvdb.com/index.php?tab=series&id={series.id!s}'
                     entry['tvdb_id'] = str(series.id)
                     self._items.append(entry)
         return self._items
@@ -106,9 +104,7 @@ class TheTVDBSet(MutableSet):
                 api_key=self.config['api_key'],
             ).put('user/favorites/{}'.format(entry['tvdb_id']))
         except RequestException as e:
-            logger.error(
-                'Could not add tvdb_id {} to favourites list: {}'.format(entry['tvdb_id'], e)
-            )
+            logger.error('Could not add tvdb_id {} to favourites list: {}', entry['tvdb_id'], e)
         self.invalidate_cache()
 
     def discard(self, entry):
@@ -130,15 +126,18 @@ class TheTVDBSet(MutableSet):
     def _find_entry(self, entry):
         if not entry.get('tvdb_id'):
             logger.debug('entry does not have `tvdb_id`, skipping: {}', entry)
-            return
+            return None
         for item in self.items:
             if item['tvdb_id'] == entry['tvdb_id']:
                 return item
+        return None
 
     @property
     def online(self):
-        """Set the online status of the plugin, online plugin should be treated differently in certain situations,
-        like test mode"""
+        """Set the online status of the plugin.
+
+        Online plugin should be treated differently in certain situations, like test mode
+        """
         return True
 
 

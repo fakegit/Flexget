@@ -13,8 +13,8 @@ logger = logger.bind(name='archive')
 
 
 class Archive:
-    """
-    Archives all new items into database where they can be later searched and injected.
+    """Archive all new items into database where they can be later searched and injected.
+
     Stores the entries in the state as they are at the exit phase, this way task cleanup for title
     etc is stored into the database. This may however make injecting them back to the original task work
     wrongly.
@@ -24,15 +24,9 @@ class Archive:
 
     def on_task_learn(self, task, config):
         """Add new entries into archive. We use learn phase in case the task corrects title or url via some plugins."""
+        tag_names = [] if isinstance(config, bool) else config
 
-        if isinstance(config, bool):
-            tag_names = []
-        else:
-            tag_names = config
-
-        tags = []
-        for tag_name in set(tag_names):
-            tags.append(db.get_tag(tag_name, task.session))
+        tags = [db.get_tag(tag_name, task.session) for tag_name in set(tag_names)]
 
         count = 0
         processed = []
@@ -40,11 +34,11 @@ class Archive:
             # I think entry can be in multiple of those lists .. not sure though!
             if entry in processed:
                 continue
-            else:
-                processed.append(entry)
+            processed.append(entry)
 
             ae = (
-                task.session.query(db.ArchiveEntry)
+                task.session
+                .query(db.ArchiveEntry)
                 .filter(db.ArchiveEntry.title == entry['title'])
                 .filter(db.ArchiveEntry.url == entry['url'])
                 .first()
@@ -80,32 +74,23 @@ class Archive:
             logger.verbose('Added {} new entries to archive', count)
 
     def on_task_abort(self, task, config):
-        """
-        Archive even on task abort, except if the abort has happened before session
-        was started.
-        """
+        """Archive even on task abort, except if the abort has happened before session was started."""
         if task.session is not None:
             self.on_task_learn(task, config)
 
 
 class UrlrewriteArchive:
-    """
-    Provides capability to rewrite urls from archive or make searches with discover.
-    """
+    """Provides capability to rewrite urls from archive or make searches with discover."""
 
     entry_map = {'title': 'title', 'url': 'url', 'description': 'description'}
 
     schema = {'oneOf': [{'type': 'boolean'}, {'type': 'array', 'items': {'type': 'string'}}]}
 
     def search(self, task, entry, config=None):
-        """Search plugin API method"""
-
+        """Search plugin API method."""
         session = Session()
         entries = set()
-        if isinstance(config, bool):
-            tag_names = None
-        else:
-            tag_names = config
+        tag_names = None if isinstance(config, bool) else config
         try:
             for query in entry.get('search_strings', [entry['title']]):
                 # clean some characters out of the string for better results

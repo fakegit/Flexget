@@ -9,8 +9,7 @@ logger = logger.bind(name='set_series_begin')
 
 
 class SetSeriesBegin:
-    """
-    Set the first episode for series. Uses series_name and series_id.
+    """Set the first episode for series. Uses series_name and series_id.
 
     Example::
 
@@ -26,7 +25,8 @@ class SetSeriesBegin:
         for entry in task.accepted:
             if entry.get('series_name') and entry.get('series_id'):
                 fshow = (
-                    task.session.query(db.Series)
+                    task.session
+                    .query(db.Series)
                     .filter(db.Series.name == entry['series_name'])
                     .first()
                 )

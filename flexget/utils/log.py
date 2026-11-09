@@ -1,12 +1,14 @@
-"""Logging utilities"""
+"""Logging utilities."""
+
+from __future__ import annotations
+
 import hashlib
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
-import loguru
 from loguru import logger
-from sqlalchemy import Column, DateTime, Index, Integer, String
-from sqlalchemy.orm import Session
+from sqlalchemy import Index
+from sqlalchemy.orm import Mapped, Session, mapped_column
 
 from flexget import db_schema
 from flexget.event import event
@@ -15,30 +17,31 @@ from flexget.utils.sqlalchemy_utils import table_schema
 
 logger = logger.bind(name='util.log')
 
+
 if TYPE_CHECKING:
-    Base = object
-else:
-    Base = db_schema.versioned_base('log_once', 0)
+    import loguru
+
+Base = db_schema.versioned_base('log_once', 0)
 
 
 @db_schema.upgrade('log_once')
-def upgrade(ver: Optional[int], session: Session):
+def upgrade(ver: int | None, session: Session):
     if ver is None:
         logger.info('Adding index to md5sum column of log_once table.')
         table = table_schema('log_once', session)
-        Index('log_once_md5sum', table.c.md5sum, unique=True).create()
+        Index('log_once_md5sum', table.c.md5sum, unique=True).create(bind=session.bind)
         ver = 0
     return ver
 
 
 class LogMessage(Base):
-    """Declarative"""
+    """Declarative."""
 
     __tablename__ = 'log_once'
 
-    id = Column(Integer, primary_key=True)
-    md5sum = Column(String, unique=True)
-    added = Column(DateTime, default=datetime.now())
+    id: Mapped[int] = mapped_column(primary_key=True)
+    md5sum: Mapped[str | None] = mapped_column(unique=True)
+    added: Mapped[datetime | None] = mapped_column(default=datetime.now)
 
     def __init__(self, md5sum: str) -> None:
         self.md5sum = md5sum
@@ -49,7 +52,7 @@ class LogMessage(Base):
 
 @event('manager.db_cleanup')
 def purge(manager, session: Session) -> None:
-    """Purge old messages from database"""
+    """Purge old messages from database."""
     old = datetime.now() - timedelta(days=365)
 
     result = session.query(LogMessage).filter(LogMessage.added < old).delete()
@@ -60,15 +63,18 @@ def purge(manager, session: Session) -> None:
 @with_session
 def log_once(
     message: str,
-    logger: 'loguru.Logger' = logger.bind(name='log_once'),
+    logger: loguru.Logger | None = None,
     once_level: str = 'INFO',
     suppressed_level: str = 'VERBOSE',
     session: Session = None,
-) -> Optional[bool]:
-    """
-    Log message only once using given logger`. Returns False if suppressed logging.
+) -> bool | None:
+    """Log message only once using given logger`.
+
+    Return False if suppressed logging.
     When suppressed, `suppressed_level` level is still logged.
     """
+    if logger is None:
+        logger = globals()['logger'].bind(name='log_once')
     # If there is no active manager, don't access the db
     from flexget.manager import manager
 
@@ -78,7 +84,7 @@ def log_once(
         return None
 
     digest = hashlib.md5()
-    digest.update(message.encode('latin1', 'replace'))  # ticket:250
+    digest.update(message.encode('latin1', 'replace'))
     md5sum = digest.hexdigest()
 
     # abort if this has already been logged

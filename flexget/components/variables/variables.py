@@ -1,4 +1,3 @@
-import codecs
 import os
 from datetime import datetime
 
@@ -6,8 +5,7 @@ import yaml
 from jinja2 import TemplateError
 from jinja2.nativetypes import NativeEnvironment
 from loguru import logger
-from sqlalchemy import Column
-from sqlalchemy.sql.sqltypes import DateTime, Integer, Unicode
+from sqlalchemy.orm import Mapped, mapped_column
 
 from flexget import db_schema
 from flexget.config_schema import register_config_key
@@ -15,6 +13,7 @@ from flexget.event import event
 from flexget.manager import Session
 from flexget.plugin import PluginError
 from flexget.utils.database import json_synonym
+from flexget.utils.template import get_filters
 
 logger = logger.bind(name='variables')
 
@@ -25,21 +24,21 @@ Base = db_schema.versioned_base('variables', DB_VERSION)
 class Variables(Base):
     __tablename__ = 'variables'
 
-    id = Column(Integer, primary_key=True)
-    _variables = Column('variables', Unicode)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    _variables: Mapped[str | None] = mapped_column('variables')
     variables = json_synonym('_variables')
-    added = Column(DateTime, default=datetime.now)
+    added: Mapped[datetime | None] = mapped_column(default=datetime.now)
 
 
 def variables_from_file(config_base, filename):
     variables_file = os.path.join(config_base, filename)
     if not os.path.exists(variables_file):
-        raise PluginError('File %s does not exist!' % variables_file)
+        raise PluginError(f'File {variables_file} does not exist!')
     try:
-        with codecs.open(variables_file, 'rb', 'utf-8') as f:
+        with open(variables_file, 'rb') as f:
             variables_dict = yaml.safe_load(f.read())
     except yaml.YAMLError as e:
-        raise PluginError('Invalid variables file: %s' % e)
+        raise PluginError(f'Invalid variables file: {e}')
     return variables_dict or {}
 
 
@@ -48,8 +47,7 @@ def variables_from_db():
         variables = session.query(Variables).first()
         if variables:
             return variables.variables
-        else:
-            return {}
+        return {}
 
 
 def variables_to_db(variables_dict):
@@ -71,8 +69,9 @@ def process_variables(config, manager):
         'variable_end_string': '?}',
     }
     if 'variables' not in config or config.get('variables') is False:
-        return
+        return None
     env = NativeEnvironment(**env_params)
+    env.filters.update(get_filters())
     if isinstance(config['variables'], bool):
         logger.debug('trying to load variables from DB')
         variables = variables_from_db()
@@ -96,20 +95,23 @@ def _process(element, environment):
             if new_key:
                 element[new_key] = element.pop(k)
                 k = new_key
-            val = _process(element[k], environment)
+            val = _process(v, environment)
             if val:
                 element[k] = val
-    elif isinstance(element, list):
+        return None
+    if isinstance(element, list):
         for i, v in enumerate(element):
             val = _process(v, environment)
             if val:
                 element[i] = val
-    elif isinstance(element, str) and '{?' in element:
+        return None
+    if isinstance(element, str) and '{?' in element:
         try:
             template = environment.from_string(element)
             return template.render()
         except (TemplateError, TypeError):
             return None
+    return None
 
 
 variables_config_schema = {'type': ['string', 'boolean', 'object']}

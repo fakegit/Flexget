@@ -1,10 +1,11 @@
 import base64
-import datetime
 import hashlib
 import os
+from datetime import datetime, timedelta
 
 from loguru import logger
-from sqlalchemy import Column, DateTime, Integer, String, Unicode
+from sqlalchemy import String
+from sqlalchemy.orm import Mapped, mapped_column
 
 from flexget import db_schema, plugin
 from flexget.event import event
@@ -35,20 +36,19 @@ def upgrade(ver, session):
 class RSSEntry(Base):
     __tablename__ = 'make_rss'
 
-    id = Column(Integer, primary_key=True)
-    title = Column(Unicode)
-    description = Column(Unicode)
-    link = Column(String)
-    rsslink = Column(String)
-    file = Column(Unicode)
-    published = Column(DateTime, default=datetime.datetime.utcnow)
-    enc_length = Column(Integer)
-    enc_type = Column(String)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    title: Mapped[str | None]
+    description: Mapped[str | None]
+    link: Mapped[str | None]
+    rsslink: Mapped[str | None]
+    file: Mapped[str | None]
+    published: Mapped[datetime | None] = mapped_column(default=datetime.utcnow)
+    enc_length: Mapped[int | None]
+    enc_type: Mapped[str | None]
 
 
 class OutputRSS:
-    """
-    Write RSS containing succeeded (downloaded) entries.
+    """Write RSS containing succeeded (downloaded) entries.
 
     Example::
 
@@ -95,7 +95,7 @@ class OutputRSS:
 
     RSS feed properties:
 
-    You can specify the URL, title, and description to include in tthe header
+    You can specify the URL, title, and description to include in the header
     of the RSS feed.
 
     Example::
@@ -174,7 +174,7 @@ class OutputRSS:
         return config
 
     def on_task_exit(self, task, config):
-        """Store finished / downloaded entries at exit"""
+        """Store finished / downloaded entries at exit."""
         if not rss2gen:
             raise plugin.PluginWarning('plugin make_rss requires PyRSS2Gen library.')
         config = self.prepare_config(config)
@@ -198,14 +198,14 @@ class OutputRSS:
                 )
                 rss.title = entry['title']
             for field in config['link']:
-                if field in entry:
+                if entry.get(field) is not None:
                     rss.link = entry[field]
                     break
 
             try:
                 template = get_template(config['template'], scope='task')
             except ValueError as e:
-                raise plugin.PluginError('Invalid template specified: %s' % e)
+                raise plugin.PluginError(f'Invalid template specified: {e}')
             try:
                 rss.description = render_from_entry(template, entry)
             except RenderError as e:
@@ -217,8 +217,8 @@ class OutputRSS:
             if 'rss_pubdate' in entry:
                 rss.published = entry['rss_pubdate']
 
-            rss.enc_length = entry['size'] if 'size' in entry else None
-            rss.enc_type = entry['type'] if 'type' in entry else None
+            rss.enc_length = entry.get('size', None)
+            rss.enc_type = entry.get('type', None)
 
             # TODO: check if this exists and suggest disabling history if it does since it shouldn't happen normally ...
             logger.debug('Saving {} into rss database', entry['title'])
@@ -231,7 +231,8 @@ class OutputRSS:
             return
 
         db_items = (
-            task.session.query(RSSEntry)
+            task.session
+            .query(RSSEntry)
             .filter(RSSEntry.file == config['file'])
             .order_by(RSSEntry.published.desc())
             .all()
@@ -241,15 +242,12 @@ class OutputRSS:
         rss_items = []
         for db_item in db_items:
             add = True
-            if config['items'] != -1:
-                if len(rss_items) > config['items']:
-                    add = False
-            if config['days'] != -1:
-                if (
-                    datetime.datetime.today() - datetime.timedelta(days=config['days'])
-                    > db_item.published
-                ):
-                    add = False
+            if config['items'] != -1 and len(rss_items) > config['items']:
+                add = False
+            if config['days'] != -1 and (
+                datetime.today() - timedelta(days=config['days']) > db_item.published
+            ):
+                add = False
             if add:
                 # add into generated feed
                 hasher = hashlib.sha1()
@@ -281,7 +279,7 @@ class OutputRSS:
             title=config.get('rsstitle', 'FlexGet'),
             link=config.get('rsslink', 'http://flexget.com'),
             description=config.get('rssdesc', 'FlexGet generated RSS feed'),
-            lastBuildDate=datetime.datetime.utcnow() if config['timestamp'] else None,
+            lastBuildDate=datetime.utcnow() if config['timestamp'] else None,
             items=rss_items,
         )
 

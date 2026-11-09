@@ -11,12 +11,13 @@ logger = logger.bind(name='movieparser')
 
 
 def diff_pos(string1, string2):
-    """Returns first position where string1 and string2 differ."""
-    for (count, c) in enumerate(string1):
+    """Return first position where string1 and string2 differ."""
+    for count, c in enumerate(string1):
         if len(string2) <= count:
             return count
         if string2[count] != c:
             return count
+    return None
 
 
 class MovieParser(TitleParser):
@@ -34,11 +35,10 @@ class MovieParser(TitleParser):
         self.proper_count = 0
 
     def __str__(self):
-        return "<MovieParser(name=%s,year=%s,quality=%s)>" % (self.name, self.year, self.quality)
+        return f'<MovieParser(name={self.name},year={self.year},quality={self.quality})>'
 
     def parse(self, data=None):
-        """Parse movie name. Populates name, year, quality and proper_count attributes"""
-
+        """Parse movie name. Populates name, year, quality and proper_count attributes."""
         # Reset before parsing, so the parser can be reused.
         self.reset()
 
@@ -71,15 +71,14 @@ class MovieParser(TitleParser):
                 continue
             # check for year
             num = str_to_int(part)
-            if num is not None:
-                if 1930 < num <= datetime.now().year:
-                    if self.year_pos == cut_part:
-                        # Looks like a year, but we already set the cutpoint to a year, let's move it forward
-                        cut_part = part_pos
+            if num is not None and 1930 < num <= datetime.now().year:
+                if self.year_pos == cut_part:
+                    # Looks like a year, but we already set the cutpoint to a year, let's move it forward
+                    cut_part = part_pos
 
-                    self.year = num
-                    self.year_pos = part_pos
-                    cut = True
+                self.year = num
+                self.year_pos = part_pos
+                cut = True
             # Don't consider all caps words cut words if the whole title has been all caps
             if not part.isupper():
                 all_caps = False
@@ -89,12 +88,12 @@ class MovieParser(TitleParser):
             # check for cutoff words
             if part.lower() in self.cutoffs:
                 cut = True
-            # check for propers
-            if part.lower() in self.propers:
-                # 'real' and 'final' are too common in movie parsers, only cut if it comes after year
-                if part.lower() not in ['real', 'final'] or self.year:
-                    self.proper_count += 1
-                    cut = True
+            # check for propers, 'real' and 'final' are too common in movie parsers, only cut if it comes after year
+            if (
+                part.lower() in self.propers and part.lower() not in ['real', 'final']
+            ) or self.year:
+                self.proper_count += 1
+                cut = True
             # update cut position
             if cut and parts.index(part) < cut_part:
                 cut_part = part_pos
@@ -102,7 +101,7 @@ class MovieParser(TitleParser):
         if cut_part != 256:
             logger.debug('parts: {}, cut is: {}', parts, parts[cut_part])
 
-        # calculate cut positon from cut_part
+        # calculate cut position from cut_part
         abs_cut = len(' '.join(parts[:cut_part]))
 
         logger.debug(

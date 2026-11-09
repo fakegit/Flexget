@@ -69,12 +69,12 @@ tasks_parser.add_argument(
 
 @tasks_api.route('/status/')
 @status_api.route('/')
-@api.doc(parser=tasks_parser)
+@api.doc(expect=[tasks_parser])
 class TasksStatusAPI(APIResource):
     @etag
     @api.response(200, model=task_status_list)
     def get(self, session=None):
-        """Get status tasks"""
+        """Get status tasks."""
         args = tasks_parser.parse_args()
 
         # Pagination and sorting params
@@ -110,10 +110,10 @@ class TasksStatusAPI(APIResource):
 
         db_status_tasks = db.get_status_tasks(**kwargs)
 
-        total_pages = int(ceil(total_items / float(per_page)))
+        total_pages = ceil(total_items / float(per_page))
 
         if page > total_pages:
-            raise NotFoundError('page %s does not exist' % page)
+            raise NotFoundError(f'page {page} does not exist')
 
         # Actual results in page
         actual_size = min(len(db_status_tasks), per_page)
@@ -139,17 +139,17 @@ class TasksStatusAPI(APIResource):
 
 @tasks_api.route('/status/<int:task_id>/')
 @status_api.route('/<int:task_id>/')
-@api.doc(params={'task_id': 'ID of the status task'}, parser=tasks_parser)
+@api.doc(params={'task_id': 'ID of the status task'}, expect=[tasks_parser])
 class TaskStatusAPI(APIResource):
     @etag
     @api.response(200, model=task_status)
     @api.response(NotFoundError)
     def get(self, task_id, session=None):
-        """Get status task by ID"""
+        """Get status task by ID."""
         try:
             task = session.query(db.StatusTask).filter(db.StatusTask.id == task_id).one()
         except NoResultFound:
-            raise NotFoundError('task status with id %d not found' % task_id)
+            raise NotFoundError(f'task status with id {task_id} not found')
 
         args = tasks_parser.parse_args()
         include_execution = args.get('include_execution')
@@ -178,12 +178,12 @@ executions_parser.add_argument(
     'start_date',
     type=inputs.datetime_from_iso8601,
     default=default_start_date,
-    help='Filter by minimal start date. Example: \'2012-01-01\'. Default is 1 week ago.',
+    help="Filter by minimal start date. Example: '2012-01-01'. Default is 1 week ago.",
 )
 executions_parser.add_argument(
     'end_date',
     type=inputs.datetime_from_iso8601,
-    help='Filter by maximal end date. Example: \'2012-01-01\'',
+    help="Filter by maximal end date. Example: '2012-01-01'",
 )
 
 sort_choices = (
@@ -201,17 +201,17 @@ executions_parser = api.pagination_parser(executions_parser, sort_choices=sort_c
 
 @tasks_api.route('/status/<int:task_id>/executions/')
 @status_api.route('/<int:task_id>/executions/')
-@api.doc(parser=executions_parser, params={'task_id': 'ID of the status task'})
+@api.doc(expect=[executions_parser], params={'task_id': 'ID of the status task'})
 class TaskStatusExecutionsAPI(APIResource):
     @etag
     @api.response(200, model=task_executions)
     @api.response(NotFoundError)
     def get(self, task_id, session=None):
-        """Get task executions by ID"""
+        """Get task executions by ID."""
         try:
             task = session.query(db.StatusTask).filter(db.StatusTask.id == task_id).one()
         except NoResultFound:
-            raise NotFoundError('task status with id %d not found' % task_id)
+            raise NotFoundError(f'task status with id {task_id} not found')
 
         args = executions_parser.parse_args()
 
@@ -227,8 +227,7 @@ class TaskStatusExecutionsAPI(APIResource):
         start_date = args.get('start_date')
         end_date = args.get('end_date')
 
-        if per_page > 100:
-            per_page = 100
+        per_page = min(per_page, 100)
 
         start = per_page * (page - 1)
         stop = start + per_page
@@ -254,10 +253,10 @@ class TaskStatusExecutionsAPI(APIResource):
 
         executions = [e.to_dict() for e in db.get_executions_by_task_id(**kwargs)]
 
-        total_pages = int(ceil(total_items / float(per_page)))
+        total_pages = ceil(total_items / float(per_page))
 
         if page > total_pages:
-            raise NotFoundError('page %s does not exist' % page)
+            raise NotFoundError(f'page {page} does not exist')
 
         # Actual results in page
         actual_size = min(len(executions), per_page)

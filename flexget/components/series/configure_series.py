@@ -11,7 +11,7 @@ logger = logger.bind(name='configure_series')
 
 
 class ConfigureSeries(plugin_series.FilterSeriesBase):
-    """Generates series configuration from any input (supporting API version 2, soon all)
+    """Generates series configuration from any input (supporting API version 2, soon all).
 
     Configuration::
 
@@ -44,7 +44,6 @@ class ConfigureSeries(plugin_series.FilterSeriesBase):
         }
 
     def on_task_prepare(self, task, config):
-
         series = {}
         for input_name, input_config in config.get('from', {}).items():
             input_plugin = plugin.get_plugin_by_name(input_name)
@@ -55,7 +54,11 @@ class ConfigureSeries(plugin_series.FilterSeriesBase):
                 logger.warning('Error during input plugin {}: {}', input_name, e)
                 continue
             if not result:
-                logger.warning('Input {} did not return anything', input_name)
+                msg = f'Input {input_name} did not return anything'
+                if getattr(task, 'no_entries_ok', False):
+                    logger.verbose(msg)
+                else:
+                    logger.warning(msg)
                 continue
 
             for entry in result:

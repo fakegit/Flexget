@@ -7,14 +7,13 @@ logger = logger.bind(name='limit_new')
 
 
 class FilterLimitNew:
-    """
-    Limit number of new items.
+    """Limit number of new items.
 
     Example::
 
       limit_new: 1
 
-    This would allow only one new item to pass trough per execution.
+    This would allow only one new item to pass through per execution.
     Useful for passing torrents slowly into download.
 
     Note that since this is per execution, actual rate depends how often

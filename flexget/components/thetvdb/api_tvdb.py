@@ -1,9 +1,11 @@
-from datetime import datetime, timedelta
+from __future__ import annotations
+
+from datetime import UTC, datetime, timedelta
 
 from loguru import logger
-from sqlalchemy import Boolean, Column, DateTime, Float, Integer, Table, Text, Unicode
+from sqlalchemy import Column, Table
 from sqlalchemy.ext.associationproxy import association_proxy
-from sqlalchemy.orm import relation
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.schema import ForeignKey
 
 from flexget import db_schema
@@ -50,7 +52,7 @@ class TVDBRequest:
 
                 logger.debug(
                     'Authenticating to TheTVDB with {}',
-                    self.username if self.username else 'api_key',
+                    self.username or 'api_key',
                 )
 
                 auth_token.token = (
@@ -115,8 +117,8 @@ def upgrade(ver, session):
 genres_table = Table(
     'tvdb_series_genres',
     Base.metadata,
-    Column('series_id', Integer, ForeignKey('tvdb_series.id')),
-    Column('genre_id', Integer, ForeignKey('tvdb_genres.id')),
+    Column('series_id', ForeignKey('tvdb_series.id')),
+    Column('genre_id', ForeignKey('tvdb_genres.id')),
 )
 Base.register_table(genres_table)
 
@@ -124,59 +126,59 @@ Base.register_table(genres_table)
 class TVDBTokens(Base):
     __tablename__ = 'tvdb_tokens'
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    name = Column(Unicode)
-    token = Column(Text)
-    refreshed = Column(DateTime)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str | None]
+    token: Mapped[str | None]
+    refreshed: Mapped[datetime | None]
 
     def has_expired(self):
         if not self.token or not self.refreshed:
             return True
 
         seconds = (datetime.now() - self.refreshed).total_seconds()
-        if seconds >= 86400:
-            return True
-
-        return False
+        return seconds >= 86400
 
 
 class TVDBSeries(Base):
-    __tablename__ = "tvdb_series"
+    __tablename__ = 'tvdb_series'
 
-    id = Column(Integer, primary_key=True, autoincrement=False)
-    last_updated = Column(Integer)
-    expired = Column(Boolean)
-    name = Column(Unicode)
-    language = Column(Unicode)
-    rating = Column(Float)
-    status = Column(Unicode)
-    runtime = Column(Integer)
-    airs_time = Column(Unicode)
-    airs_dayofweek = Column(Unicode)
-    content_rating = Column(Unicode)
-    network = Column(Unicode)
-    overview = Column(Unicode)
-    imdb_id = Column(Unicode)
-    zap2it_id = Column(Unicode)
-    _banner = Column('banner', Unicode)
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=False)
+    last_updated: Mapped[int | None]
+    expired: Mapped[bool | None]
+    name: Mapped[str | None]
+    language: Mapped[str | None]
+    rating: Mapped[float | None]
+    status: Mapped[str | None]
+    runtime: Mapped[int | None]
+    airs_time: Mapped[str | None]
+    airs_dayofweek: Mapped[str | None]
+    content_rating: Mapped[str | None]
+    network: Mapped[str | None]
+    overview: Mapped[str | None]
+    imdb_id: Mapped[str | None]
+    zap2it_id: Mapped[str | None]
+    _banner: Mapped[str | None] = mapped_column('banner')
 
-    _first_aired = Column('first_aired', DateTime)
+    _first_aired: Mapped[datetime | None] = mapped_column('first_aired')
     first_aired = text_date_synonym('_first_aired')
-    _aliases = Column('aliases', Unicode)
+    _aliases: Mapped[str | None] = mapped_column('aliases')
     aliases = json_synonym('_aliases')
-    _actors = Column('actors', Unicode)
+    _actors: Mapped[str | None] = mapped_column('actors')
     actors_list = json_synonym('_actors')
-    _posters = Column('posters', Unicode)
+    _posters: Mapped[str | None] = mapped_column('posters')
     posters_list = json_synonym('_posters')
 
-    _genres = relation('TVDBGenre', secondary=genres_table)
+    _genres: Mapped[list[TVDBGenre]] = relationship(secondary=genres_table)
     genres = association_proxy('_genres', 'name')
 
-    episodes = relation('TVDBEpisode', backref='series', cascade='all, delete, delete-orphan')
+    episodes: Mapped[list[TVDBEpisode]] = relationship(
+        back_populates='series', cascade='all, delete-orphan'
+    )
+    search_strings: Mapped[list[TVDBSearchResult]] = relationship(back_populates='series')
 
     def __init__(self, tvdb_id, language):
-        """
-        Looks up movie on tvdb and creates a new database model for it.
+        """Look up movie on tvdb and create a new database model for it.
+
         These instances should only be added to a session via `session.merge`.
         """
         self.id = tvdb_id
@@ -207,7 +209,7 @@ class TVDBSeries(Base):
 
         if not self.name:
             raise LookupError(
-                f'Not possible to get name to series with id {self.id} in language \'{self.language}\''
+                f"Not possible to get name to series with id {self.id} in language '{self.language}'"
             )
 
         if self.first_aired is None:
@@ -234,6 +236,7 @@ class TVDBSeries(Base):
     def banner(self):
         if self._banner:
             return TVDBRequest.BANNER_URL + self._banner
+        return None
 
     @property
     def actors(self):
@@ -279,7 +282,7 @@ class TVDBSeries(Base):
 
     def to_dict(self):
         return {
-            'aliases': [a for a in self.aliases],
+            'aliases': list(self.aliases),
             'tvdb_id': self.id,
             'last_updated': datetime.fromtimestamp(self.last_updated).strftime(
                 '%Y-%m-%d %H:%M:%S'
@@ -299,14 +302,14 @@ class TVDBSeries(Base):
             'zap2it_id': self.zap2it_id,
             'banner': self.banner,
             'posters': self.posters,
-            'genres': [g for g in self.genres],
+            'genres': list(self.genres),
             'first_aired': self.first_aired,
         }
 
 
 class TVDBGenre(Base):
     __tablename__ = 'tvdb_genres'
-    id = Column(Unicode, primary_key=True)
+    id: Mapped[str] = mapped_column(primary_key=True)
 
     @property
     def name(self):
@@ -316,25 +319,26 @@ class TVDBGenre(Base):
 class TVDBEpisode(Base):
     __tablename__ = 'tvdb_episodes'
 
-    id = Column(Integer, primary_key=True, autoincrement=False)
-    expired = Column(Boolean)
-    last_updated = Column(Integer)
-    season_number = Column(Integer)
-    episode_number = Column(Integer)
-    absolute_number = Column(Integer)
-    name = Column(Unicode)
-    overview = Column(Unicode)
-    rating = Column(Float)
-    director = Column(Unicode)
-    _image = Column(Unicode)
-    _first_aired = Column('firstaired', DateTime)
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=False)
+    expired: Mapped[bool | None]
+    last_updated: Mapped[int | None]
+    season_number: Mapped[int | None]
+    episode_number: Mapped[int | None]
+    absolute_number: Mapped[int | None]
+    name: Mapped[str | None]
+    overview: Mapped[str | None]
+    rating: Mapped[float | None]
+    director: Mapped[str | None]
+    _image: Mapped[str | None]
+    _first_aired: Mapped[datetime | None] = mapped_column('firstaired')
     first_aired = text_date_synonym('_first_aired')
 
-    series_id = Column(Integer, ForeignKey('tvdb_series.id'), nullable=False)
+    series_id: Mapped[int] = mapped_column(ForeignKey('tvdb_series.id'))
+    series: Mapped[TVDBSeries] = relationship(back_populates='episodes')
 
     def __init__(self, series_id, ep_id, language=None):
-        """
-        Looks up movie on tvdb and creates a new database model for it.
+        """Look up movie on tvdb and create a new database model for it.
+
         These instances should only be added to a session via `session.merge`.
         """
         self.series_id = series_id
@@ -384,15 +388,18 @@ class TVDBEpisode(Base):
     def image(self):
         if self._image:
             return TVDBRequest.BANNER_URL + self._image
+        return None
 
 
 class TVDBSearchResult(Base):
     __tablename__ = 'tvdb_search_results'
 
-    id = Column(Integer, primary_key=True)
-    search = Column(Unicode, nullable=False, unique=True)
-    series_id = Column(Integer, ForeignKey('tvdb_series.id'), nullable=True)
-    series = relation(TVDBSeries, backref='search_strings')
+    id: Mapped[int] = mapped_column(primary_key=True)
+    search: Mapped[str] = mapped_column(unique=True)
+    series_id: Mapped[int | None] = mapped_column(
+        ForeignKey('tvdb_series.id')
+    )  # explicitly allows None
+    series: Mapped[TVDBSeries] = relationship(back_populates='search_strings')
 
     def __init__(self, search, series_id=None, series=None):
         self.search = search.lower()
@@ -403,31 +410,28 @@ class TVDBSearchResult(Base):
 
 
 class TVDBSeriesSearchResult(Base):
-    """
-    This table will hold a single result that results from the /search/series endpoint,
-    which return a series with a minimal set of parameters.
-    """
+    """Table that holds a single result that results from the /search/series endpoint, which return a series with a minimal set of parameters."""
 
     __tablename__ = 'tvdb_series_search_results'
 
-    id = Column(Integer, primary_key=True, autoincrement=False)
-    lookup_term = Column(Unicode)
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=False)
+    lookup_term: Mapped[str | None]
 
-    name = Column(Unicode)
-    status = Column(Unicode)
-    network = Column(Unicode)
-    overview = Column(Unicode)
+    name: Mapped[str | None]
+    status: Mapped[str | None]
+    network: Mapped[str | None]
+    overview: Mapped[str | None]
 
-    _banner = Column('banner', Unicode)
+    _banner: Mapped[str | None] = mapped_column('banner')
 
-    _first_aired = Column('first_aired', DateTime)
+    _first_aired: Mapped[datetime | None] = mapped_column('first_aired')
     first_aired = text_date_synonym('_first_aired')
 
-    _aliases = Column('aliases', Unicode)
+    _aliases: Mapped[str | None] = mapped_column('aliases')
     aliases = json_synonym('_aliases')
 
-    created_at = Column(DateTime)
-    search_name = Column(Unicode)
+    created_at: Mapped[datetime | None] = mapped_column(default=datetime.now)
+    search_name: Mapped[str | None]
 
     def __init__(self, series, lookup_term=None):
         self.lookup_term = lookup_term
@@ -439,16 +443,16 @@ class TVDBSeriesSearchResult(Base):
         self.status = series['status']
         self._banner = series['banner']
         self.aliases = series['aliases']
-        self.created_at = datetime.now()
 
     @property
     def banner(self):
         if self._banner:
             return TVDBRequest.BANNER_URL + self._banner
+        return None
 
     def to_dict(self):
         return {
-            'aliases': [a for a in self.aliases],
+            'aliases': list(self.aliases),
             'banner': self.banner,
             'first_aired': self.first_aired,
             'tvdb_id': self.id,
@@ -460,16 +464,16 @@ class TVDBSeriesSearchResult(Base):
 
     @property
     def expired(self):
-        logger.debug('checking series {} for expiration', self.original_name)
+        logger.debug('checking series {} for expiration', self.name)
         if datetime.now() - self.created_at >= timedelta(days=SEARCH_RESULT_EXPIRATION_DAYS):
-            logger.debug('series {} is expires, should re-fetch', self.original_name)
+            logger.debug('series {} is expires, should re-fetch', self.name)
             return True
-        logger.debug('series {} is not expired', self.original_name)
+        logger.debug('series {} is not expired', self.name)
         return False
 
 
 def find_series_id(name, language=None):
-    """Looks up the tvdb id for a series"""
+    """Look up the tvdb id for a series."""
     try:
         series = TVDBRequest().get('search/series', name=name, language=language)
     except requests.RequestException as e:
@@ -484,7 +488,7 @@ def find_series_id(name, language=None):
     for s in series:
         if s['firstAired']:
             try:
-                s['firstAired'] = datetime.strptime(s['firstAired'], "%Y-%m-%d")
+                s['firstAired'] = datetime.strptime(s['firstAired'], '%Y-%m-%d')
             except ValueError:
                 logger.warning(
                     'Invalid firstAired date "{}" when parsing series {} ',
@@ -498,7 +502,7 @@ def find_series_id(name, language=None):
         s['names'] = [a.lower() for a in s.get('aliases')] if s.get('aliases') else []
         if s.get('seriesName'):
             s['names'].append(s.get('seriesName').lower())
-        s['running'] = True if s['status'] == 'Continuing' else False
+        s['running'] = s['status'] == 'Continuing'
 
         for n in s['names']:
             # Exact matching by stripping our the year
@@ -522,7 +526,7 @@ def _update_search_strings(series, session, search=None):
     search_strings = series.search_strings
     aliases = [a.lower() for a in series.aliases] if series.aliases else []
     searches = [search.lower()] if search else []
-    add = [series.name.lower()] + aliases + searches
+    add = [series.name.lower(), *aliases, *searches]
     for name in set(add):
         if name not in search_strings:
             search_result = (
@@ -536,8 +540,7 @@ def _update_search_strings(series, session, search=None):
 
 @with_session
 def lookup_series(name=None, tvdb_id=None, only_cached=False, session=None, language=None):
-    """
-    Look up information on a series. Will be returned from cache if available, and looked up online and cached if not.
+    """Look up information on a series. Will be returned from cache if available, and looked up online and cached if not.
 
     Either `name` or `tvdb_id` parameter are needed to specify the series.
     :param unicode name: Name of series.
@@ -623,8 +626,7 @@ def lookup_episode(
     session=None,
     language=None,
 ):
-    """
-    Look up information on an episode. Will be returned from cache if available, and looked up online and cached if not.
+    """Look up information on an episode. Will be returned from cache if available, and looked up online and cached if not.
 
     Either `name` or `tvdb_id` parameter are needed to specify the series.
     Either `season_number` and `episode_number`, `absolute_number`, or `first_aired` are required to specify episode
@@ -709,16 +711,15 @@ def lookup_episode(
             raise LookupError(f'Error looking up episode from TVDb ({e})')
     if episode:
         return episode
-    else:
-        raise LookupError(f'No results found for {ep_description}')
+    raise LookupError(f'No results found for {ep_description}')
 
 
 @with_session
 def search_for_series(
     search_name=None, imdb_id=None, zap2it_id=None, force_search=None, session=None, language=None
 ):
-    """
-    Search IMDB using a an identifier, return a list of cached search results.
+    """Search IMDB using a an identifier, return a list of cached search results.
+
     One of `search_name`, `imdb_id` or `zap2it_id` is required.
     :param search_name: Name of search to use
     :param imdb_id: Search via IMDB ID
@@ -742,7 +743,8 @@ def search_for_series(
     if not force_search:
         logger.debug('trying to fetch TVDB search results from DB')
         series_search_results = (
-            session.query(TVDBSeriesSearchResult)
+            session
+            .query(TVDBSeriesSearchResult)
             .filter(TVDBSeriesSearchResult.lookup_term == lookup_term)
             .all()
         )
@@ -763,18 +765,19 @@ def search_for_series(
 
 
 def mark_expired(session):
-    """Marks series and episodes that have expired since we cached them"""
+    """Mark series and episodes that have expired since we cached them."""
     # Only get the expired list every hour
     last_check = persist.get('last_check')
 
+    utcnow = datetime.now(UTC).replace(tzinfo=None)
     if not last_check:
-        persist['last_check'] = datetime.utcnow()
+        persist['last_check'] = utcnow
         return
-    if datetime.utcnow() - last_check <= timedelta(hours=2):
+    if utcnow - last_check <= timedelta(hours=2):
         # It has been less than 2 hour, don't check again
         return
 
-    new_last_check = datetime.utcnow()
+    new_last_check = utcnow
 
     try:
         # Calculate seconds since epoch minus a minute for buffer
@@ -790,12 +793,14 @@ def mark_expired(session):
     # Update our cache to mark the items that have expired
     for chunk in chunked(expired_series):
         series_updated = (
-            session.query(TVDBSeries)
+            session
+            .query(TVDBSeries)
             .filter(TVDBSeries.id.in_(chunk))
             .update({'expired': True}, 'fetch')
         )
         episodes_updated = (
-            session.query(TVDBEpisode)
+            session
+            .query(TVDBEpisode)
             .filter(TVDBEpisode.series_id.in_(chunk))
             .update({'expired': True}, 'fetch')
         )

@@ -1,13 +1,13 @@
 from argparse import ArgumentParser, ArgumentTypeError
 from functools import partial
 
-from colorclass.toggles import disable_all_colors
+from rich.highlighter import ReprHighlighter
 from sqlalchemy.orm.exc import NoResultFound
 
 from flexget import options
 from flexget.event import event
 from flexget.manager import Session
-from flexget.terminal import TerminalTable, TerminalTableError, colorize, console, table_parser
+from flexget.terminal import TerminalTable, console, disable_colors, table_parser
 
 from . import db
 
@@ -15,18 +15,17 @@ from . import db
 def attribute_type(attribute):
     if attribute.count('=') != 1:
         raise ArgumentTypeError(
-            'Received attribute in wrong format: %s, '
-            'should be in keyword format like `imdb_id=tt1234567`' % attribute
+            f'Received attribute in wrong format: {attribute}, '
+            'should be in keyword format like `imdb_id=tt1234567`'
         )
     name, value = attribute.split('=', 2)
     return {name: value}
 
 
 def do_cli(manager, options):
-    """Handle entry-list subcommand"""
-
+    """Handle entry-list subcommand."""
     if hasattr(options, 'table_type') and options.table_type == 'porcelain':
-        disable_all_colors()
+        disable_colors()
 
     action_map = {
         'all': pending_list_lists,
@@ -43,40 +42,33 @@ def do_cli(manager, options):
 
 
 def pending_list_lists(options):
-    """ Show all pending lists """
+    """Show all pending lists."""
     with Session() as session:
         lists = db.get_pending_lists(session=session)
         header = ['#', 'List Name']
-        table_data = [header]
+        table = TerminalTable(*header, table_type=options.table_type)
         for entry_list in lists:
-            table_data.append([entry_list.id, entry_list.name])
-    table = TerminalTable(options.table_type, table_data)
-    try:
-        console(table.output)
-    except TerminalTableError as e:
-        console('ERROR: %s' % str(e))
+            table.add_row(str(entry_list.id), entry_list.name)
+    console(table)
 
 
 def pending_list_list(options):
-    """List pending list entries"""
+    """List pending list entries."""
+    highlighter = ReprHighlighter()
     with Session() as session:
         try:
             pending_list = db.get_list_by_exact_name(options.list_name, session=session)
         except NoResultFound:
-            console('Could not find pending list with name `{}`'.format(options.list_name))
+            console(f'Could not find pending list with name `{options.list_name}`')
             return
         header = ['#', 'Title', '# of fields', 'Approved']
-        table_data = [header]
+        table = TerminalTable(*header, table_type=options.table_type)
         for entry in db.get_entries_by_list_id(
             pending_list.id, order_by='added', descending=True, session=session
         ):
-            approved = colorize('green', entry.approved) if entry.approved else entry.approved
-            table_data.append([entry.id, entry.title, len(entry.entry), approved])
-    table = TerminalTable(options.table_type, table_data)
-    try:
-        console(table.output)
-    except TerminalTableError as e:
-        console('ERROR: %s' % str(e))
+            approved = highlighter(str(entry.approved))
+            table.add_row(str(entry.id), entry.title, str(len(entry.entry)), approved)
+    console(table)
 
 
 def pending_list_show(options):
@@ -84,37 +76,28 @@ def pending_list_show(options):
         try:
             pending_list = db.get_list_by_exact_name(options.list_name, session=session)
         except NoResultFound:
-            console('Could not find pending list with name {}'.format(options.list_name))
+            console(f'Could not find pending list with name {options.list_name}')
             return
 
         try:
             entry = db.get_entry_by_id(pending_list.id, int(options.entry), session=session)
         except NoResultFound:
             console(
-                'Could not find matching pending entry with ID {} in list `{}`'.format(
-                    int(options.entry), options.list_name
-                )
+                f'Could not find matching pending entry with ID {int(options.entry)} in list `{options.list_name}`'
             )
             return
         except ValueError:
             entry = db.get_entry_by_title(pending_list.id, options.entry, session=session)
             if not entry:
                 console(
-                    'Could not find matching pending entry with title `{}` in list `{}`'.format(
-                        options.entry, options.list_name
-                    )
+                    f'Could not find matching pending entry with title `{options.entry}` in list `{options.list_name}`'
                 )
                 return
         header = ['Field name', 'Value']
-        table_data = [header]
+        table = TerminalTable(*header, table_type=options.table_type)
         for k, v in sorted(entry.entry.items()):
-            table_data.append([k, str(v)])
-    table = TerminalTable(options.table_type, table_data, wrap_columns=[1])
-    table.table.justify_columns[0] = 'center'
-    try:
-        console(table.output)
-    except TerminalTableError as e:
-        console('ERROR: %s' % str(e))
+            table.add_row(k, str(v))
+    console(table)
 
 
 def pending_list_add(options):
@@ -122,9 +105,7 @@ def pending_list_add(options):
         try:
             pending_list = db.get_list_by_exact_name(options.list_name, session=session)
         except NoResultFound:
-            console(
-                'Could not find a pending list with name `{}`, creating'.format(options.list_name)
-            )
+            console(f'Could not find a pending list with name `{options.list_name}`, creating')
             pending_list = db.PendingListList(name=options.list_name)
             session.add(pending_list)
         session.merge(pending_list)
@@ -134,13 +115,11 @@ def pending_list_add(options):
         db_entry = db.get_entry_by_title(list_id=pending_list.id, title=title, session=session)
         if db_entry:
             console(
-                "Entry with the title `{}` already exist with list `{}`. Will replace identifiers if given".format(
-                    title, pending_list.name
-                )
+                f'Entry with the title `{title}` already exist with list `{pending_list.name}`. Will replace identifiers if given'
             )
             operation = 'updated'
         else:
-            console("Adding entry with title `{}` to list `{}`".format(title, pending_list.name))
+            console(f'Adding entry with title `{title}` to list `{pending_list.name}`')
             db_entry = db.PendingListEntry(entry=entry, pending_list_id=pending_list.id)
             if options.approved:
                 console('marking entry as approved')
@@ -148,16 +127,11 @@ def pending_list_add(options):
             session.add(db_entry)
             operation = 'added'
         if options.attributes:
-            console('Adding attributes to entry `{}`'.format(title))
+            console(f'Adding attributes to entry `{title}`')
             for identifier in options.attributes:
-                for k, v in identifier.items():
-                    entry[k] = v
+                entry.update(identifier)
             db_entry.entry = entry
-        console(
-            'Successfully {} entry `{}` to pending list `{}` '.format(
-                operation, title, pending_list.name
-            )
-        )
+        console(f'Successfully {operation} entry `{title}` to pending list `{pending_list.name}` ')
 
 
 def pending_list_approve(options, approve=None):
@@ -165,34 +139,30 @@ def pending_list_approve(options, approve=None):
         try:
             entry_list = db.get_list_by_exact_name(options.list_name)
         except NoResultFound:
-            console('Could not find pending list with name `{}`'.format(options.list_name))
+            console(f'Could not find pending list with name `{options.list_name}`')
             return
         try:
             db_entry = db.get_entry_by_id(entry_list.id, int(options.entry), session=session)
         except NoResultFound:
             console(
-                'Could not find matching entry with ID {} in list `{}`'.format(
-                    int(options.entry), options.list_name
-                )
+                f'Could not find matching entry with ID {int(options.entry)} in list `{options.list_name}`'
             )
             return
         except ValueError:
             db_entry = db.get_entry_by_title(entry_list.id, options.entry, session=session)
             if not db_entry:
                 console(
-                    'Could not find matching entry with title `{}` in list `{}`'.format(
-                        options.entry, options.list_name
-                    )
+                    f'Could not find matching entry with title `{options.entry}` in list `{options.list_name}`'
                 )
                 return
         approve_text = 'approved' if approve else 'rejected'
         if (db_entry.approved is True and approve is True) or (
             db_entry.approved is False and approve is False
         ):
-            console('entry {} is already {}'.format(db_entry.title, approve_text))
+            console(f'entry {db_entry.title} is already {approve_text}')
             return
         db_entry.approved = approve
-        console('Successfully marked pending entry {} as {}'.format(db_entry.title, approve_text))
+        console(f'Successfully marked pending entry {db_entry.title} as {approve_text}')
 
 
 def pending_list_del(options):
@@ -200,27 +170,23 @@ def pending_list_del(options):
         try:
             entry_list = db.get_list_by_exact_name(options.list_name)
         except NoResultFound:
-            console('Could not find pending list with name `{}`'.format(options.list_name))
+            console(f'Could not find pending list with name `{options.list_name}`')
             return
         try:
             db_entry = db.get_entry_by_id(entry_list.id, int(options.entry), session=session)
         except NoResultFound:
             console(
-                'Could not find matching entry with ID {} in list `{}`'.format(
-                    int(options.entry), options.list_name
-                )
+                f'Could not find matching entry with ID {int(options.entry)} in list `{options.list_name}`'
             )
             return
         except ValueError:
             db_entry = db.get_entry_by_title(entry_list.id, options.entry, session=session)
             if not db_entry:
                 console(
-                    'Could not find matching entry with title `{}` in list `{}`'.format(
-                        options.entry, options.list_name
-                    )
+                    f'Could not find matching entry with title `{options.entry}` in list `{options.list_name}`'
                 )
                 return
-        console('Removing entry `{}` from list {}'.format(db_entry.title, options.list_name))
+        console(f'Removing entry `{db_entry.title}` from list {options.list_name}')
         session.delete(db_entry)
 
 
@@ -229,9 +195,9 @@ def pending_list_purge(options):
         try:
             entry_list = db.get_list_by_exact_name(options.list_name)
         except NoResultFound:
-            console('Could not find entry list with name `{}`'.format(options.list_name))
+            console(f'Could not find entry list with name `{options.list_name}`')
             return
-        console('Deleting list {}'.format(options.list_name))
+        console(f'Deleting list {options.list_name}')
         session.delete(entry_list)
 
 
@@ -239,8 +205,8 @@ def pending_list_purge(options):
 def register_parser_arguments():
     # Common option to be used in multiple subparsers
     entry_parser = ArgumentParser(add_help=False)
-    entry_parser.add_argument('entry_title', help="Title of the entry")
-    entry_parser.add_argument('url', help="URL of the entry")
+    entry_parser.add_argument('entry_title', help='Title of the entry')
+    entry_parser.add_argument('url', help='URL of the entry')
 
     global_entry_parser = ArgumentParser(add_help=False)
     global_entry_parser.add_argument('entry', help='Can be entry title or ID')
@@ -251,8 +217,7 @@ def register_parser_arguments():
         metavar='<attributes>',
         nargs='+',
         type=attribute_type,
-        help='Can be a string or a list of string with the format imdb_id=XXX,'
-        ' tmdb_id=XXX, etc',
+        help='Can be a string or a list of string with the format imdb_id=XXX, tmdb_id=XXX, etc',
     )
     list_name_parser = ArgumentParser(add_help=False)
     list_name_parser.add_argument(
@@ -282,12 +247,12 @@ def register_parser_arguments():
     subparsers.add_parser(
         'approve',
         parents=[list_name_parser, global_entry_parser],
-        help="Mark a pending entry as approved",
+        help='Mark a pending entry as approved',
     )
     subparsers.add_parser(
         'reject',
         parents=[list_name_parser, global_entry_parser],
-        help="Mark a pending entry as rejected",
+        help='Mark a pending entry as rejected',
     )
     subparsers.add_parser(
         'del',

@@ -9,8 +9,9 @@ logger = logger.bind(name='urlrewrite_search')
 
 
 class PluginSearch:
-    """
-    Search entry from sites. Accepts list of known search plugins, list is in priority order.
+    """Search entry from sites.
+
+    Accept list of known search plugins, list is in priority order.
     Once hit has been found no more searches are performed. Should be used only when
     there is no other way to get working download url, ie. when input plugin does not provide
     any downloadable urls.
@@ -53,7 +54,7 @@ class PluginSearch:
                 search_config = None
                 if isinstance(name, dict):
                     # the name is the first/only key in the dict.
-                    name, search_config = list(name.items())[0]
+                    name, search_config = next(iter(name.items()))
                 logger.verbose('Searching `{}` from {}', entry['title'], name)
                 try:
                     try:
@@ -73,8 +74,7 @@ class PluginSearch:
                             logger.debug('Found url: {}', result['url'])
                             entry['url'] = result['url']
                             break
-                        else:
-                            logger.debug('Match {} is not close enough', result['title'])
+                        logger.debug('Match {} is not close enough', result['title'])
                     else:
                         continue
                     break

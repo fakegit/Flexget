@@ -1,16 +1,13 @@
 import hashlib
 import logging
 import os
-import struct
 
-import pytz
-import tzlocal
 from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 from loguru import logger
 
-from flexget.config_schema import format_checker, register_config_key, register_schema
+from flexget.config_schema import format_checker, one_or_more, register_config_key, register_schema
 from flexget.event import event
 from flexget.manager import manager
 from flexget.utils import json
@@ -44,7 +41,7 @@ interval_schema = {
         'jitter': {'type': 'integer'},
     },
     'anyOf': [{'required': [unit]} for unit in UNITS],
-    'error_anyOf': 'Interval must be specified as one or more of %s' % ', '.join(UNITS),
+    'error_anyOf': 'Interval must be specified as one or more of {}'.format(', '.join(UNITS)),
     'additionalProperties': False,
 }
 
@@ -66,10 +63,10 @@ cron_schema = {
 
 schedule_schema = {
     'type': 'object',
-    'title': 'Schedule',
-    'description': 'A schedule which runs specified tasks periodically.',
+    'title': 'schedule',
+    'description': 'A schedule which runs specified tasks periodically',
     'properties': {
-        'tasks': {'type': ['array', 'string'], 'items': {'type': 'string'}},
+        'tasks': one_or_more({'type': 'string'}),
         'interval': interval_schema,
         'schedule': cron_schema,
     },
@@ -82,14 +79,19 @@ schedule_schema = {
 }
 
 main_schema = {
+    'title': 'scheduler',
+    'description': 'Runs tasks periodically (when FlexGet is run as a daemon)',
     'oneOf': [
-        {'type': 'array', 'title': 'Enable', 'items': schedule_schema},
-        {'type': 'boolean', 'title': 'Disable', 'description': 'Disable task schedules'},
-    ]
+        {'type': 'array', 'items': schedule_schema},
+        {'type': 'boolean'},
+    ],
 }
 
 scheduler = None
 scheduler_job_map = {}
+
+# How often a scheduled run checks that the task queue is still alive while waiting for a task.
+QUEUE_LIVENESS_INTERVAL = 60
 
 
 def job_id(conf):
@@ -98,53 +100,44 @@ def job_id(conf):
 
 
 def run_job(tasks):
-    """Add the execution to the queue and waits until it is finished"""
+    """Add the execution to the queue and waits until it is finished."""
     logger.debug('executing tasks: {}', tasks)
     finished_events = manager.execute(
         options={'tasks': tasks, 'cron': True, 'allow_manual': False}, priority=5
     )
     for _, task_name, event_ in finished_events:
+        # A slow task is fine and keeps waiting, but if the queue thread dies its finished_event
+        # is never set. An unbounded wait there pins this job instance forever, and apscheduler
+        # then skips every later run with 'maximum number of running instances reached'.
+        while not event_.wait(timeout=QUEUE_LIVENESS_INTERVAL):
+            if manager.task_queue.has_died():
+                logger.error(
+                    'Task queue died while waiting for task {} to finish, abandoning this run.',
+                    task_name,
+                )
+                return
         logger.debug('task finished executing: {}', task_name)
-        event_.wait()
     logger.debug('all tasks in schedule finished executing')
 
 
 @event('manager.daemon.started')
 def setup_scheduler(manager):
-    """Configure and start apscheduler"""
+    """Configure and start apscheduler."""
     global scheduler
     if logger.level(manager.options.loglevel).no > logger.level('DEBUG').no:
         logging.getLogger('apscheduler').setLevel(logging.WARNING)
     # Since APScheduler runs in a separate thread, slower devices can sometimes get a DB lock, so use a separate db
     # for the jobs to avoid this
-    db_filename = os.path.join(manager.config_base, 'db-%s-jobs.sqlite' % manager.config_name)
+    db_filename = os.path.join(manager.config_base, f'db-{manager.config_name}-jobs.sqlite')
     # in case running on windows, needs double \\
     db_filename = db_filename.replace('\\', '\\\\')
-    database_uri = 'sqlite:///%s' % db_filename
+    database_uri = f'sqlite:///{db_filename}'
     jobstores = {'default': SQLAlchemyJobStore(url=database_uri)}
     # If job was meant to run within last day while daemon was shutdown, run it once when continuing
     job_defaults = {'coalesce': True, 'misfire_grace_time': 60 * 60 * 24}
-    try:
-        timezone = tzlocal.get_localzone()
-        if timezone.zone == 'local':
-            timezone = None
-    except pytz.UnknownTimeZoneError:
-        timezone = None
-    except struct.error as e:
-        # Hiding exception that may occur in tzfile.py seen in entware
-        logger.warning('Hiding exception from tzlocal: {}', e)
-        timezone = None
-    if not timezone:
-        # The default sqlalchemy jobstore does not work when there isn't a name for the local timezone.
-        # Just fall back to utc in this case
-        # FlexGet #2741, upstream ticket https://github.com/agronholm/apscheduler/issues/59
-        logger.info(
-            'Local timezone name could not be determined. Scheduler will display times in UTC for any log'
-            'messages. To resolve this set up /etc/timezone with correct time zone name.'
-        )
-        timezone = pytz.utc
     scheduler = BackgroundScheduler(
-        jobstores=jobstores, job_defaults=job_defaults, timezone=timezone
+        jobstores=jobstores,
+        job_defaults=job_defaults,
     )
     setup_jobs(manager)
 

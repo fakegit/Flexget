@@ -7,23 +7,20 @@ from flexget.event import event
 
 logger = logger.bind(name='output.sns')
 
-DEFAULT_TEMPLATE_VALUE = json.dumps(
-    {
-        'entry': {
-            'title': '{{title}}',
-            'url': '{{url}}',
-            'original_url': '{{original_url}}',
-            'series': '{{series_name}}',
-            'series_id': '{{series_id}}',
-        },
-        'task': '{{task}}',
-    }
-)
+DEFAULT_TEMPLATE_VALUE = json.dumps({
+    'entry': {
+        'title': '{{title}}',
+        'url': '{{url}}',
+        'original_url': '{{original_url}}',
+        'series': '{{series_name}}',
+        'series_id': '{{series_id}}',
+    },
+    'task': '{{task}}',
+})
 
 
 class SNSNotification:
-    """
-    Emits SNS notifications of entries
+    """Emits SNS notifications of entries.
 
     Optionally writes the torrent itself to S3
 
@@ -57,11 +54,11 @@ class SNSNotification:
     def on_task_start(self, task, config):
         # verify that we actually support Boto 3
         try:
-            import boto3  # noqa
+            import boto3  # noqa: F401
         except ImportError as e:
             logger.debug('Error importing boto3: {}', e)
             raise plugin.DependencyError(
-                "sns", "boto3", "Boto3 module required. ImportError: %s" % e
+                'sns', 'boto3', f'Boto3 module required. ImportError: {e}'
             )
 
     # this has to run near the end of the plugin chain, because we
@@ -94,8 +91,7 @@ class SNSNotificationEmitter:
     def get_topic(self):
         self.build_session()
         sns = self.session.resource('sns')
-        topic = sns.Topic(self.config['sns_topic_arn'])
-        return topic
+        return sns.Topic(self.config['sns_topic_arn'])
 
     def send_notifications(self, task):
         topic = self.get_topic()

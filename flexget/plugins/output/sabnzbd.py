@@ -10,7 +10,8 @@ logger = logger.bind(name='sabnzbd')
 
 
 class OutputSabnzbd:
-    """
+    """The sabnzbd plugin.
+
     Example::
 
       sabnzbd:
@@ -50,7 +51,7 @@ class OutputSabnzbd:
         if 'key' in config:
             params['apikey'] = config['key']
         if 'category' in config:
-            params['cat'] = '%s' % config['category']
+            params['cat'] = '{}'.format(config['category'])
         if 'script' in config:
             params['script'] = config['script']
         if 'pp' in config:
@@ -83,7 +84,7 @@ class OutputSabnzbd:
             # check whether file is local or remote
             if entry['url'].startswith('file://'):
                 params['mode'] = 'addlocalfile'
-                params['name'] = entry['location']
+                params['name'] = str(entry['location'])
             else:
                 params['mode'] = 'addurl'
 
@@ -96,7 +97,7 @@ class OutputSabnzbd:
                 logger.critical('Result was: {}', e.args[0])
                 entry.fail('sabnzbd unreachable')
                 if task.options.debug:
-                    logger.exception(e)
+                    logger.exception('Found an error')
                 continue
 
             if 'error' in response.text.lower():

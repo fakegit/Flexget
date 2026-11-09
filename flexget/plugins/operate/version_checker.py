@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from loguru import logger
-from sqlalchemy import Column, DateTime
+from sqlalchemy.orm import Mapped, mapped_column
 
 from flexget import db_schema, plugin
 from flexget.event import event
@@ -15,7 +15,7 @@ Base = db_schema.versioned_base('version_checker', 0)
 class LastVersionCheck(Base):
     __tablename__ = 'last_version_check'
 
-    last_check_time = Column(DateTime, primary_key=True)
+    last_check_time: Mapped[datetime] = mapped_column(primary_key=True)
 
     def __init__(self):
         self.update()
@@ -42,9 +42,9 @@ schema = {
 
 
 class VersionChecker:
-    """
-    A plugin that checks whether user is running the latest flexget version and place a log warning if not.
-    Checks via interval to avoid hammering, default is 1 day.
+    """A plugin that checks whether user is running the latest flexget version and place a log warning if not.
+
+    Check via interval to avoid hammering, default is 1 day.
 
     Can accept boolean or ['always', 'by_interval'] in config.
     Can also accept object. If check_for_dev_version option is True, version will be checked even if current release
@@ -94,7 +94,7 @@ class VersionChecker:
         if not latest_version:
             logger.warning('Could not get latest version of flexget')
             return
-        elif latest_version != current_version:
+        if latest_version != current_version:
             logger.warning(
                 'You are not running latest Flexget Version. Current is {} and latest is {}',
                 current_version,

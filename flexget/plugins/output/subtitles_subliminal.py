@@ -1,8 +1,9 @@
 import collections
+import contextlib
 import logging
 import os
-import sys
 import tempfile
+from pathlib import Path
 
 from loguru import logger
 
@@ -17,23 +18,22 @@ try:
     PROVIDERS = provider_manager.names()
 except ImportError:
     PROVIDERS = [
-        'argenteam',
-        'legendastv',
+        'addic7ed',
+        'gestdown',
+        'napiprojekt',
         'opensubtitles',
+        'opensubtitlescom',
+        'opensubtitlescomvip',
         'opensubtitlesvip',
         'podnapisi',
-        'shooter',
-        'thesubdb',
         'tvsubtitles',
     ]
 
-AUTHENTICATION_SCHEMA = dict((provider, {'type': 'object'}) for provider in PROVIDERS)
+AUTHENTICATION_SCHEMA = {provider: {'type': 'object'} for provider in PROVIDERS}
 
 
 class PluginSubliminal:
-    r"""
-    Search and download subtitles using Subliminal by Antoine Bertin
-    (https://pypi.python.org/pypi/subliminal).
+    r"""Search and download subtitles using Subliminal by Antoine Bertin (https://pypi.python.org/pypi/subliminal).
 
     Example (complete task)::
 
@@ -50,14 +50,14 @@ class PluginSubliminal:
           alternatives:
             - eng
           exact_match: no
-          providers: legendastv, opensubtitles
+          providers: gestdown, opensubtitles
           single: no
           directory: /disk/subtitles
           hearing_impaired: yes
           authentication:
-            legendastv:
+            opensubtitles:
               username: myuser
-              passsword: mypassword
+              password: mypassword
     """
 
     schema = {
@@ -68,8 +68,8 @@ class PluginSubliminal:
             'exact_match': {'type': 'boolean', 'default': True},
             'providers': {'type': 'array', 'items': {'type': 'string', 'enum': PROVIDERS}},
             'single': {'type': 'boolean', 'default': True},
-            'directory': {'type:': 'string'},
-            'hearing_impaired': {'type': 'boolean', 'default': False},
+            'directory': {'type': 'string'},
+            'subtitle_categories': {'type': 'string', 'default': ''},
             'authentication': {'type': 'object', 'properties': AUTHENTICATION_SCHEMA},
         },
         'required': ['languages'],
@@ -77,28 +77,26 @@ class PluginSubliminal:
     }
 
     def on_task_start(self, task, config):
-        if list(sys.version_info) < [2, 7]:
-            raise plugin.DependencyError(
-                'subliminal', 'Python 2.7', 'Subliminal plugin requires python 2.7.'
-            )
         try:
-            import babelfish  # noqa
+            import babelfish  # noqa: F401
         except ImportError as e:
             logger.debug('Error importing Babelfish: {}', e)
             raise plugin.DependencyError(
-                'subliminal', 'babelfish', 'Babelfish module required. ImportError: %s' % e
+                'subliminal', 'babelfish', f'Babelfish module required. ImportError: {e}'
             )
         try:
-            import subliminal  # noqa
+            import subliminal  # noqa: F401
         except ImportError as e:
             logger.debug('Error importing Subliminal: {}', e)
             raise plugin.DependencyError(
-                'subliminal', 'subliminal', 'Subliminal module required. ImportError: %s' % e
+                'subliminal', 'subliminal', f'Subliminal module required. ImportError: {e}'
             )
 
     def on_task_output(self, task, config):
-        """
+        """Register this as an output plugin.
+
         Configuration::
+
             subliminal:
                 languages: List of languages (as IETF codes) in order of preference. At least one is required.
                 alternatives: List of second-choice languages; subs will be downloaded but entries rejected.
@@ -119,7 +117,7 @@ class PluginSubliminal:
         from babelfish import Language
         from dogpile.cache.exception import RegionAlreadyConfigured
         from subliminal import save_subtitles, scan_video
-        from subliminal.cli import MutexLock
+        from subliminal.cli.helpers import MutexLock
         from subliminal.core import (
             ARCHIVE_EXTENSIONS,
             refine,
@@ -129,7 +127,7 @@ class PluginSubliminal:
         from subliminal.score import episode_scores, movie_scores
         from subliminal.video import VIDEO_EXTENSIONS
 
-        try:
+        with contextlib.suppress(RegionAlreadyConfigured):
             subliminal.region.configure(
                 'dogpile.cache.dbm',
                 arguments={
@@ -137,22 +135,18 @@ class PluginSubliminal:
                     'lock_factory': MutexLock,
                 },
             )
-        except RegionAlreadyConfigured:
-            pass
 
         # Let subliminal be more verbose if our logger is set to DEBUG
         if logger.level(task.manager.options.loglevel).no <= logger.level('DEBUG').no:
-            logging.getLogger("subliminal").setLevel(logging.INFO)
+            logging.getLogger('subliminal').setLevel(logging.INFO)
         else:
-            logging.getLogger("subliminal").setLevel(logging.CRITICAL)
+            logging.getLogger('subliminal').setLevel(logging.CRITICAL)
 
-        logging.getLogger("dogpile").setLevel(logging.CRITICAL)
-        logging.getLogger("enzyme").setLevel(logging.WARNING)
+        logging.getLogger('dogpile').setLevel(logging.CRITICAL)
+        logging.getLogger('enzyme').setLevel(logging.WARNING)
         try:
-            languages = set([Language.fromietf(s) for s in config.get('languages', [])])
-            alternative_languages = set(
-                [Language.fromietf(s) for s in config.get('alternatives', [])]
-            )
+            languages = {Language.fromietf(s) for s in config.get('languages', [])}
+            alternative_languages = {Language.fromietf(s) for s in config.get('alternatives', [])}
         except ValueError as e:
             raise plugin.PluginError(e)
         # keep all downloaded subtitles and save to disk when done (no need to write every time)
@@ -166,7 +160,7 @@ class PluginSubliminal:
         # we ignore the configuration and add the language code to the
         # potentially downloaded files
         single_mode = config.get('single', '') and len(languages | alternative_languages) <= 1
-        hearing_impaired = config.get('hearing_impaired', False)
+        subtitle_categories = config['subtitle_categories']
 
         with subliminal.core.ProviderPool(
             providers=providers_list, provider_configs=provider_configs
@@ -175,18 +169,20 @@ class PluginSubliminal:
                 if 'location' not in entry:
                     logger.warning('Cannot act on entries that do not represent a local file.')
                     continue
-                if not os.path.exists(entry['location']):
-                    entry.fail('file not found: %s' % entry['location'])
+                if not Path(entry['location']).exists():
+                    entry.fail('file not found: {}'.format(entry['location']))
                     continue
-                if '$RECYCLE.BIN' in entry['location']:  # ignore deleted files in Windows shares
+                if '$RECYCLE.BIN' in str(
+                    entry['location']
+                ):  # ignore deleted files in Windows shares
                     continue
 
                 try:
                     entry_languages = set(entry.get('subtitle_languages', [])) or languages
 
-                    if entry['location'].endswith(VIDEO_EXTENSIONS):
+                    if Path(entry['location']).suffix in VIDEO_EXTENSIONS:
                         video = scan_video(entry['location'])
-                    elif entry['location'].endswith(ARCHIVE_EXTENSIONS):
+                    elif Path(entry['location']).suffix in ARCHIVE_EXTENSIONS:
                         video = scan_archive(entry['location'])
                     else:
                         entry.reject(
@@ -196,8 +192,7 @@ class PluginSubliminal:
                     # use metadata refiner to get mkv metadata
                     refiner = ('metadata',)
                     refine(video, episode_refiners=refiner, movie_refiners=refiner)
-                    existing_subtitles = set(search_external_subtitles(entry['location']).values())
-                    video.subtitle_languages |= existing_subtitles
+                    video.subtitles.extend(search_external_subtitles(entry['location']).values())
                     if isinstance(video, subliminal.Episode):
                         title = video.series
                         hash_scores = episode_scores['hash']
@@ -212,52 +207,49 @@ class PluginSubliminal:
                         )
                         entry['subtitles_missing'] = set()
                         continue  # subs for preferred lang(s) already exists
-                    else:
-                        # Gather the subtitles for the alternative languages too, to avoid needing to search the sites
-                        # again. They'll just be ignored if the main languages are found.
-                        all_subtitles = provider_pool.list_subtitles(
-                            video, entry_languages | alternative_languages
+                    # Gather the subtitles for the alternative languages too, to avoid needing to search the sites
+                    # again. They'll just be ignored if the main languages are found.
+                    all_subtitles = provider_pool.list_subtitles(
+                        video, entry_languages | alternative_languages
+                    )
+                    try:
+                        subtitles = provider_pool.download_best_subtitles(
+                            all_subtitles,
+                            video,
+                            entry_languages,
+                            min_score=msc,
+                            subtitle_categories=subtitle_categories,
                         )
-                        try:
-                            subtitles = provider_pool.download_best_subtitles(
-                                all_subtitles,
-                                video,
-                                entry_languages,
-                                min_score=msc,
-                                hearing_impaired=hearing_impaired,
-                            )
-                        except TypeError as e:
-                            logger.error(
-                                'Downloading subtitles failed due to a bug in subliminal. Please seehttps://github.com/Diaoul/subliminal/issues/921. Error: {}',
-                                e,
-                            )
-                            subtitles = []
+                    except TypeError as e:
+                        logger.error(
+                            'Downloading subtitles failed due to a bug in subliminal. Please seehttps://github.com/Diaoul/subliminal/issues/921. Error: {}',
+                            e,
+                        )
+                        subtitles = []
+                    if subtitles:
+                        downloaded_subtitles[video].extend(subtitles)
+                        logger.info('Subtitles found for {}', entry['location'])
+                    else:
+                        # only try to download for alternatives that aren't already downloaded
+                        subtitles = provider_pool.download_best_subtitles(
+                            all_subtitles,
+                            video,
+                            alternative_languages,
+                            min_score=msc,
+                            subtitle_categories=subtitle_categories,
+                        )
+
                         if subtitles:
                             downloaded_subtitles[video].extend(subtitles)
-                            logger.info('Subtitles found for {}', entry['location'])
+                            entry.reject('subtitles found for a second-choice language.')
                         else:
-                            # only try to download for alternatives that aren't already downloaded
-                            subtitles = provider_pool.download_best_subtitles(
-                                all_subtitles,
-                                video,
-                                alternative_languages,
-                                min_score=msc,
-                                hearing_impaired=hearing_impaired,
-                            )
+                            entry.reject('cannot find any subtitles for now.')
 
-                            if subtitles:
-                                downloaded_subtitles[video].extend(subtitles)
-                                entry.reject('subtitles found for a second-choice language.')
-                            else:
-                                entry.reject('cannot find any subtitles for now.')
-
-                        downloaded_languages = set(
-                            [Language.fromietf(str(l.language)) for l in subtitles]
-                        )
-                        if entry_languages:
-                            entry['subtitles_missing'] = entry_languages - downloaded_languages
-                            if len(entry['subtitles_missing']) > 0:
-                                entry.reject('Subtitles for all primary languages not found')
+                    downloaded_languages = {Language.fromietf(str(s.language)) for s in subtitles}
+                    if entry_languages:
+                        entry['subtitles_missing'] = entry_languages - downloaded_languages
+                        if len(entry['subtitles_missing']) > 0:
+                            entry.reject('Subtitles for all primary languages not found')
                 except ValueError as e:
                     logger.error('subliminal error: {}', e)
                     entry.fail()
@@ -274,7 +266,7 @@ class PluginSubliminal:
                     if task.options.test:
                         logger.verbose(
                             '     FOUND LANGUAGES {} for {}',
-                            [str(l.language) for l in subtitle],
+                            [str(s.language) for s in subtitle],
                             video.name,
                         )
                         continue

@@ -1,18 +1,17 @@
-"""
-NOTE:
-
-Avoid using this module on your own or in plugins, this was originally made for 0.9 -> 1.0 transition.
+"""NOTE: Avoid using this module on your own or in plugins, this was originally made for 0.9 -> 1.0 transition.
 
 You can safely use task.simple_persistence and manager.persist, if we implement something better we
 can replace underlying mechanism in single point (and provide transparent switch).
 """
+
 import pickle
 from collections import defaultdict
 from collections.abc import MutableMapping
 from datetime import datetime
 
 from loguru import logger
-from sqlalchemy import Column, DateTime, Index, Integer, String, Unicode, select
+from sqlalchemy import Index, Unicode, select
+from sqlalchemy.orm import Mapped, mapped_column
 
 from flexget import db_schema
 from flexget.event import event
@@ -38,7 +37,7 @@ def upgrade(ver, session):
             # Remove any values that are not loadable.
             table = table_schema('simple_persistence', session)
             for row in session.execute(
-                select([table.c.id, table.c.plugin, table.c.key, table.c.value])
+                select(table.c.id, table.c.plugin, table.c.key, table.c.value)
             ):
                 try:
                     pickle.loads(row['value'])
@@ -57,21 +56,22 @@ def upgrade(ver, session):
         logger.info('Creating index on simple_persistence table.')
         create_index('simple_persistence', session, 'feed', 'plugin', 'key')
         ver = 2
-    if ver == 2 or ver == 3:
+    if ver in (2, 3):
         table = table_schema('simple_persistence', session)
         table_add_column(table, 'json', Unicode, session)
         # Make sure we get the new schema with the added column
         table = table_schema('simple_persistence', session)
         failures = 0
-        for row in session.execute(select([table.c.id, table.c.value])):
+        for row in session.execute(select(table.c.id, table.c.value)):
             try:
                 p = pickle.loads(row['value'])
                 session.execute(
-                    table.update()
+                    table
+                    .update()
                     .where(table.c.id == row['id'])
                     .values(json=json.dumps(p, encode_datetime=True))
                 )
-            except Exception as e:
+            except Exception:
                 failures += 1
         if failures > 0:
             logger.error(
@@ -86,7 +86,7 @@ def upgrade(ver, session):
 def db_cleanup(manager, session):
     """Clean up values in the db from tasks which no longer exist."""
     # SKVs not associated with any task use None as task tame
-    existing_tasks = list(manager.tasks) + [None]
+    existing_tasks = [*list(manager.tasks), None]
     session.query(SimpleKeyValue).filter(~SimpleKeyValue.task.in_(existing_tasks)).delete(
         synchronize_session=False
     )
@@ -95,13 +95,13 @@ def db_cleanup(manager, session):
 class SimpleKeyValue(Base):
     __tablename__ = 'simple_persistence'
 
-    id = Column(Integer, primary_key=True)
-    task = Column('feed', String)
-    plugin = Column(String)
-    key = Column(String)
-    _json = Column('json', Unicode)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    task: Mapped[str | None] = mapped_column('feed')
+    plugin: Mapped[str | None]
+    key: Mapped[str | None]
+    _json: Mapped[str | None] = mapped_column('json')
     value = json_synonym('_json')
-    added = Column(DateTime, default=datetime.now())
+    added: Mapped[datetime | None] = mapped_column(default=datetime.now)
 
     def __init__(self, task, plugin, key, value):
         self.task = task
@@ -110,7 +110,7 @@ class SimpleKeyValue(Base):
         self.value = value
 
     def __repr__(self):
-        return "<SimpleKeyValue('%s','%s','%s')>" % (self.task, self.key, self.value)
+        return f"<SimpleKeyValue('{self.task}','{self.key}','{self.value}')>"
 
 
 Index(
@@ -122,8 +122,7 @@ Index(
 
 
 class SimplePersistence(MutableMapping):
-    """
-    Store simple values that need to be persisted between FlexGet runs. Interface is like a `dict`.
+    """Store simple values that need to be persisted between FlexGet runs. Interface is like a `dict`.
 
     This should only be used if a plugin needs to store a few values, otherwise it should create a full table in
     the database.
@@ -146,7 +145,7 @@ class SimplePersistence(MutableMapping):
 
     def __getitem__(self, key):
         if key not in self.store or self.store[key] == DELETE:
-            raise KeyError('%s is not contained in the simple_persistence table.' % key)
+            raise KeyError(f'{key} is not contained in the simple_persistence table.')
         return self.store[key]
 
     def __delitem__(self, key):
@@ -180,7 +179,8 @@ class SimplePersistence(MutableMapping):
             for pluginname in cls.class_store[task]:
                 for key, value in cls.class_store[task][pluginname].items():
                     query = (
-                        session.query(SimpleKeyValue)
+                        session
+                        .query(SimpleKeyValue)
                         .filter(SimpleKeyValue.task == task)
                         .filter(SimpleKeyValue.plugin == pluginname)
                         .filter(SimpleKeyValue.key == key)
@@ -208,7 +208,7 @@ class SimpleTaskPersistence(SimplePersistence):
 
 @event('manager.startup')
 def load_taskless(manager):
-    """Loads all key/value pairs into memory which aren't associated with a specific task."""
+    """Load all key/value pairs into memory which aren't associated with a specific task."""
     SimplePersistence.load()
 
 
@@ -219,14 +219,14 @@ def flush_taskless(manager):
 
 @event('task.execute.started')
 def load_task(task):
-    """Loads all key/value pairs into memory before a task starts."""
+    """Load all key/value pairs into memory before a task starts."""
     if not SimplePersistence.class_store[task.name]:
         SimplePersistence.load(task.name)
 
 
 @event('task.execute.completed')
 def flush_task(task):
-    """Stores all in memory key/value pairs to database when a task has completed."""
+    """Store all in memory key/value pairs to database when a task has completed."""
     SimplePersistence.flush(task.name)
     # In daemon mode, we don't want to wait until shutdown to flush taskless
     if task.manager.is_daemon:

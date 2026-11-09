@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 from datetime import datetime
 
 from loguru import logger
-from sqlalchemy import Boolean, Column, DateTime, Integer, Unicode, func, select
-from sqlalchemy.orm import relationship
+from sqlalchemy import func, select
+from sqlalchemy.orm import DynamicMapped, Mapped, mapped_column, relationship
 from sqlalchemy.sql.elements import and_
 from sqlalchemy.sql.schema import ForeignKey
 
@@ -24,7 +26,7 @@ def upgrade(ver, session):
         ver = 0
     if ver == 0:
         table = table_schema('wait_list_entries', session)
-        for row in session.execute(select([table.c.id, table.c.json])):
+        for row in session.execute(select(table.c.id, table.c.json)):
             if not row['json']:
                 # Seems there could be invalid data somehow. See #2590
                 continue
@@ -41,11 +43,11 @@ def upgrade(ver, session):
 
 class PendingListList(Base):
     __tablename__ = 'pending_list_lists'
-    id = Column(Integer, primary_key=True)
-    name = Column(Unicode, unique=True)
-    added = Column(DateTime, default=datetime.now)
-    entries = relationship(
-        'PendingListEntry', backref='list', cascade='all, delete, delete-orphan', lazy='dynamic'
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str | None] = mapped_column(unique=True)
+    added: Mapped[datetime | None] = mapped_column(default=datetime.now)
+    entries: DynamicMapped[PendingListEntry] = relationship(
+        back_populates='list_', cascade='all, delete-orphan'
     )
 
     def to_dict(self):
@@ -54,14 +56,15 @@ class PendingListList(Base):
 
 class PendingListEntry(Base):
     __tablename__ = 'wait_list_entries'
-    id = Column(Integer, primary_key=True)
-    list_id = Column(Integer, ForeignKey(PendingListList.id), nullable=False)
-    added = Column(DateTime, default=datetime.now)
-    title = Column(Unicode)
-    original_url = Column(Unicode)
-    _json = Column('json', Unicode)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    list_id: Mapped[int] = mapped_column(ForeignKey(PendingListList.id))
+    list_: Mapped[PendingListList] = relationship(back_populates='entries')
+    added: Mapped[datetime | None] = mapped_column(default=datetime.now)
+    title: Mapped[str | None]
+    original_url: Mapped[str | None]
+    _json: Mapped[str | None] = mapped_column('json')
     entry = entry_synonym('_json')
-    approved = Column(Boolean)
+    approved: Mapped[bool | None]
 
     def __init__(self, entry, pending_list_id):
         self.title = entry['title']
@@ -71,11 +74,7 @@ class PendingListEntry(Base):
         self.approved = False
 
     def __repr__(self):
-        return '<PendingListEntry,title=%s,original_url=%s,approved=%s>' % (
-            self.title,
-            self.original_url,
-            self.approved,
-        )
+        return f'<PendingListEntry,title={self.title},original_url={self.original_url},approved={self.approved}>'
 
     def to_dict(self):
         return {
@@ -103,7 +102,8 @@ def get_pending_lists(name=None, session=None):
 def get_list_by_exact_name(name, session=None):
     logger.debug('returning pending list with name {}', name)
     return (
-        session.query(PendingListList)
+        session
+        .query(PendingListList)
         .filter(func.lower(PendingListList.name) == name.lower())
         .one()
     )
@@ -156,17 +156,20 @@ def get_entry_by_title(list_id, title, session=None):
     if entry_list:
         logger.debug('fetching entry with title `{}` from list id {}', title, list_id)
         return (
-            session.query(PendingListEntry)
+            session
+            .query(PendingListEntry)
             .filter(and_(PendingListEntry.title == title, PendingListEntry.list_id == list_id))
             .first()
         )
+    return None
 
 
 @with_session
 def get_entry_by_id(list_id, entry_id, session=None):
     logger.debug('fetching entry with id {} from list id {}', entry_id, list_id)
     return (
-        session.query(PendingListEntry)
+        session
+        .query(PendingListEntry)
         .filter(and_(PendingListEntry.id == entry_id, PendingListEntry.list_id == list_id))
         .one()
     )

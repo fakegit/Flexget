@@ -1,0 +1,189 @@
+interactions:
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      User-Agent:
+      - FlexGet/2.10.34.dev (www.flexget.com)
+    method: GET
+    uri: https://github.com/Flexget/Flexget/raw/develop/README.MD
+  response:
+    body:
+      string: <html><body>You are being <a href="https://raw.githubusercontent.com/Flexget/Flexget/develop/README.MD">redirected</a>.</body></html>
+    headers:
+      access-control-allow-origin:
+      - https://render.githubusercontent.com
+      age:
+      - '0'
+      cache-control:
+      - no-cache
+      content-length:
+      - '133'
+      content-security-policy:
+      - 'default-src ''none''; base-uri ''self''; block-all-mixed-content; child-src
+        render.githubusercontent.com; connect-src ''self'' uploads.github.com status.github.com
+        collector.githubapp.com api.github.com www.google-analytics.com github-cloud.s3.amazonaws.com
+        wss://live.github.com; font-src assets-cdn.github.com; form-action ''self''
+        github.com gist.github.com; frame-ancestors ''none''; img-src ''self'' data:
+        assets-cdn.github.com identicons.github.com collector.githubapp.com github-cloud.s3.amazonaws.com
+        *.githubusercontent.com; media-src ''none''; script-src assets-cdn.github.com;
+        style-src ''unsafe-inline'' assets-cdn.github.com'
+      content-type:
+      - text/html; charset=utf-8
+      date:
+      - Wed, 19 Apr 2017 15:41:01 GMT
+      location:
+      - https://raw.githubusercontent.com/Flexget/Flexget/develop/README.MD
+      public-key-pins:
+      - max-age=5184000; pin-sha256="WoiWRyIOVNa9ihaBciRSC7XHjliYS9VwUGOIud4PB18=";
+        pin-sha256="RRM1dGqnDFsCJXBTHky16vi1obOlCgFFn/yOhI/y+ho="; pin-sha256="k2v657xBsOVe1PQRwOsHsw3bsGT2VzIqz5K+59sNQws=";
+        pin-sha256="K87oWBWM9UZfyddvDfoxL+8lpNyoUB2ptGtn0fv6G2Q="; pin-sha256="IQBnNBEiFuhj+8x6X8XLgh01V9Ic5/V3IRQLNFFc7v4=";
+        pin-sha256="iie1VXtL7HzAMF+/PVPR9xzT80kQxdZeJ+zduCB3uj0="; pin-sha256="LvRiGEjRqfzurezaWuj8Wie2gyHMrW5Q06LspMnox7A=";
+        includeSubDomains
+      server:
+      - GitHub.com
+      status:
+      - 302 Found
+      strict-transport-security:
+      - max-age=31536000; includeSubdomains; preload
+      vary:
+      - X-PJAX, Accept-Encoding
+      x-content-type-options:
+      - nosniff
+      x-frame-options:
+      - deny
+      x-github-request-id:
+      - DC8B:1DE4:AFFE93:1036902:58F7850D
+      x-ratelimit-limit:
+      - '100'
+      x-ratelimit-remaining:
+      - '100'
+      x-runtime:
+      - '0.047838'
+      x-served-by:
+      - 75d72dcf27484631bfac6100aeeba60c
+      x-ua-compatible:
+      - IE=Edge,chrome=1
+      x-xss-protection:
+      - 1; mode=block
+    status:
+      code: 302
+      message: Found
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      User-Agent:
+      - FlexGet/2.10.34.dev (www.flexget.com)
+    method: GET
+    uri: https://raw.githubusercontent.com/Flexget/Flexget/develop/README.MD
+  response:
+    body:
+      string: "# FlexGet\n\n[![travis](https://api.travis-ci.org/Flexget/Flexget.png?branch=master)](https://travis-ci.org/Flexget/Flexget)\n[![pypi](https://img.shields.io/pypi/v/Flexget.svg)](https://pypi.python.org/pypi/Flexget)\n[![downloads](https://img.shields.io/pypi/dm/Flexget.svg)](https://pypi.python.org/pypi/Flexget)\n[![codacy
+        grade](https://api.codacy.com/project/badge/Grade/81e8ae42c7544dc48853102b1b7f88d5)](https://www.codacy.com/app/Flexget/Flexget?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=Flexget/Flexget&amp;utm_campaign=Badge_Grade)\n[![codacy
+        coverage](https://api.codacy.com/project/badge/Coverage/81e8ae42c7544dc48853102b1b7f88d5)](https://www.codacy.com/app/Flexget/Flexget?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=Flexget/Flexget&amp;utm_campaign=Badge_Coverage)\n[![gitter](https://img.shields.io/gitter/room/nwjs/nw.js.svg)](https://gitter.im/Flexget/Flexget)\n[![isitmaintained.com](http://isitmaintained.com/badge/resolution/Flexget/Flexget.svg)](http://isitmaintained.com/project/Flexget/Flexget)\n\n[FlexGet](https://flexget.com)
+        is a multipurpose automation tool for content like torrents, nzbs,\npodcasts,
+        comics, series, movies, etc. It can use different kinds of sources\nlike RSS-feeds,
+        html pages, csv files, search engines and there are even\nplugins for sites
+        that do not provide any kind of useful feeds.\n\n## Example\n\nFlexget uses
+        a [YAML](http://www.yaml.org/) based configuration file.\nThe following example
+        will look in the RSS feed in the link, will match any item that match the
+        listes series names and download it::\n```yaml\ntasks:\n  tv_task:\n    rss:
+        http://example.com/torrents.xml\n    series:\n    - some series\n    - another
+        series\n    download: /tvshows\n```\n\nThere are numerous plugins that allow
+        utilizing FlexGet in interesting ways\nand more are being added continuously.\n\nFlexGet
+        is extremely useful in conjunction with applications which have watch\ndirectory
+        support or provide interface for external utilities like FlexGet.\nTo get
+        a sense of the many things that can be done with FlexGet you can take a look
+        in our [cookbook](https://flexget.com/Cookbook)\n\n\n**ChangeLog:** https://flexget.com/ChangeLog\n\n**Help:**
+        https://discuss.flexget.com/\n\n**Chat:** http://webchat.freenode.net/?channels=#flexget
+        or https://gitter.im/Flexget/Flexget\n\n**Bugs:** https://github.com/Flexget/Flexget/issues\n\n##
+        Install\n\n\nFlexGet is installable via pip with the command::\n\n    pip
+        install flexget\n  \n\nFor more detailed instructions see the [installation
+        guide](https://flexget.com/Install)\n\n## How to use GIT checkout\n\nCheck
+        that you have Python 2.7 / 3.3 or newer available with command `python -V`.\n\nIn
+        some environments newer python might be available under another name like
+        \n`python2.7` or `python3` in which case you need to use that one instead
+        of \nplain 'python'.\n\nTo start using FlexGet from this directory:\n\nFirst,
+        install (a recent version of) the [virtualenv](https://pypi.python.org/pypi/virtualenv)
+        package to your system.\n\n\nNow, in your checkout directory, run::\n\n    virtualenv
+        .\n\nOr, if you need deluge or transmission libraries from system wide python
+        use::\n\n    virtualenv --system-site-packages .\n\nThis will initialize python
+        virtualenv. This doesn't need to be directly in\nyour checkout directory,
+        but these instructions assume that's where it is.\n\nNext we need to install
+        dependencies and FlexGet itself, this can be done simply::\n\n    bin/pip
+        install -e .\n\nThis does an editable (`-e`) development install of the current
+        directory (`.`).\n\nAfter that FlexGet is usable via ``<checkout directory>/bin/flexget``.
+        Verify\ninstallation by running::\n\n    bin/flexget -V\n\nYou may place the
+        config file in your checkout directory, or in ``~/.flexget``\n(Unix, Mac OS
+        X) or ``C:\\Documents and Setting\\<username>\\flexget`` (Windows).\n\nIf
+        you don't want to use virtualenv there's ``flexget_vanilla.py`` file which\ncan
+        be used to run FlexGet without virtualenv, note that you will need to\ninstall
+        all required dependencies yourself.\n\n## Install using Docker \n\nDocker
+        can be used to install and run FlexGet::\n\n    docker run -it -v /home/<username>/.flexget:/root/.flexget
+        --rm toilal/flexget\n\n"
+    headers:
+      accept-ranges:
+      - bytes
+      access-control-allow-origin:
+      - '*'
+      cache-control:
+      - max-age=300
+      connection:
+      - keep-alive
+      content-encoding:
+      - gzip
+      content-length:
+      - '1780'
+      content-security-policy:
+      - default-src 'none'; style-src 'unsafe-inline'
+      content-type:
+      - text/plain; charset=utf-8
+      date:
+      - Wed, 19 Apr 2017 15:41:02 GMT
+      etag:
+      - '"0f9e7995f9800516376ee3606fd67bf250b896a4"'
+      expires:
+      - Wed, 19 Apr 2017 15:46:02 GMT
+      source-age:
+      - '0'
+      strict-transport-security:
+      - max-age=31536000
+      vary:
+      - Authorization,Accept-Encoding
+      via:
+      - 1.1 varnish
+      x-cache:
+      - MISS
+      x-cache-hits:
+      - '0'
+      x-content-type-options:
+      - nosniff
+      x-fastly-request-id:
+      - 29d38e7d887ff422ffba607ee7e6f7985b12d895
+      x-frame-options:
+      - deny
+      x-geo-block-list:
+      - ''
+      x-github-request-id:
+      - 9E38:41D3:4905DE:4BF6F1:58F7850E
+      x-served-by:
+      - cache-iad2624-IAD
+      x-timer:
+      - S1492616463.904429,VS0,VE37
+      x-xss-protection:
+      - 1; mode=block
+    status:
+      code: 200
+      message: OK
+version: 1

@@ -10,35 +10,33 @@ logger = logger.bind(name='argenteam')
 
 
 class SearchArgenteam:
-    """Argenteam
+    """Argenteam.
+
     Search plugin which gives results from www.argenteam.net, latin american (Argentina) web.
 
     Configuration:
       - force_subtitles: [yes/no] #Force download release with subtitles made by aRGENTeaM. Default is yes
 
-    Example
+    Example:
       argenteam:
         force_subtitles: yes
+
     """
 
     schema = {
         'type': 'object',
         'properties': {'force_subtitles': {'type': 'boolean', 'default': True}},
-        "additionalProperties": False,
+        'additionalProperties': False,
     }
 
     base_url = 'http://www.argenteam.net/api/v1/'
 
     @plugin.internet(logger)
     def search(self, task, entry, config):
-        """
-        Search for releases
-        """
-
+        """Search for releases."""
         entries = set()
 
         for search_string in entry.get('search_strings', [entry['title']]):
-
             try:
                 params = {'q': normalize_scene(search_string)}
                 resp = task.requests.get(self.base_url + 'search', params=params)
@@ -46,7 +44,7 @@ class SearchArgenteam:
                 response = resp.json()
             except RequestException as e:
                 logger.error('Argenteam request failed: {}', e)
-                return
+                return None
 
             if not response:
                 logger.debug('Empty response from Argenteam')
@@ -68,27 +66,23 @@ class SearchArgenteam:
                 response = resp.json()
             except RequestException as e:
                 logger.error('Argenteam request failed: {}', e)
-                return
+                return None
 
             logger.debug('{} releases found.', len(response['releases']))
             for release in response['releases']:
                 for torrent in release['torrents']:
-                    if (
-                        config.get('force_subtitles')
-                        and release['subtitles']
-                        or not config.get('force_subtitles')
+                    if (config.get('force_subtitles') and release['subtitles']) or not config.get(
+                        'force_subtitles'
                     ):
                         e = Entry()
 
-                        e['title'] = ' '.join(
-                            (
-                                search_string,
-                                release['source'],
-                                release['codec'],
-                                release['team'],
-                                release['tags'],
-                            )
-                        )
+                        e['title'] = ' '.join((
+                            search_string,
+                            release['source'],
+                            release['codec'],
+                            release['team'],
+                            release['tags'],
+                        ))
                         e['url'] = torrent['uri']
 
                         # Save aRGENTeaM subtitle URL for this release

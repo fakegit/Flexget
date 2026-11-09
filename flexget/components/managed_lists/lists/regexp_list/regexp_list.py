@@ -67,7 +67,7 @@ class RegexpList(MutableSet):
 
     @with_session
     def _find_entry(self, entry, match_regexp=False, session=None):
-        """Finds `SubtitleListFile` corresponding to this entry, if it exists."""
+        """Find `SubtitleListFile` corresponding to this entry, if it exists."""
         res = None
         if match_regexp:
             for regexp in self._db_list(session).regexps:
@@ -75,7 +75,8 @@ class RegexpList(MutableSet):
                     res = regexp
         else:
             res = (
-                self._db_list(session)
+                self
+                ._db_list(session)
                 .regexps.filter(db.RegexListRegexp.regexp == entry.get('regexp', entry['title']))
                 .first()
             )
@@ -87,8 +88,10 @@ class RegexpList(MutableSet):
 
     @property
     def online(self):
-        """Set the online status of the plugin, online plugin should be treated differently in certain situations,
-        like test mode"""
+        """Set the online status of the plugin.
+
+        Online plugin should be treated differently in certain situations, like test mode
+        """
         return False
 
     @with_session
@@ -98,7 +101,7 @@ class RegexpList(MutableSet):
 
 
 class PluginRegexpList:
-    """Subtitle list"""
+    """Subtitle list."""
 
     schema = RegexpList.schema
 

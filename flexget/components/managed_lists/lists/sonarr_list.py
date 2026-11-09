@@ -12,7 +12,7 @@ logger = logger.bind(name='sonarr_list')
 
 SERIES_ENDPOINT = 'series'
 LOOKUP_ENDPOINT = 'series/lookup'
-PROFILE_ENDPOINT = 'profile'
+PROFILE_ENDPOINT = 'qualityProfile'
 ROOTFOLDER_ENDPOINT = 'Rootfolder'
 DELETE_ENDPOINT = 'series/{}'
 
@@ -36,6 +36,7 @@ class SonarrSet(MutableSet):
             'ignore_episodes_without_files': {'type': 'boolean', 'default': False},
             'ignore_episodes_with_files': {'type': 'boolean', 'default': False},
             'profile_id': {'type': 'integer', 'default': 1},
+            'language_id': {'type': 'integer', 'default': 1},
             'season_folder': {'type': 'boolean', 'default': False},
             'monitored': {'type': 'boolean', 'default': True},
             'root_folder_path': {'type': 'string'},
@@ -44,7 +45,7 @@ class SonarrSet(MutableSet):
                 'enum': ['standard', 'daily', 'anime'],
                 'default': 'standard',
             },
-            "tags": {"type": "array", "items": {'type': 'string'}},
+            'tags': {'type': 'array', 'items': {'type': 'string'}},
         },
         'required': ['api_key'],
         'additionalProperties': False,
@@ -61,30 +62,28 @@ class SonarrSet(MutableSet):
         base_url = self.config['base_url']
         port = self.config['port']
         base_path = self.config['base_path']
-        url = '{}:{}{}/api/{}'.format(base_url, port, base_path, endpoint)
+        url = f'{base_url}:{port}{base_path}/api/v3/{endpoint}'
         headers = {'X-Api-Key': self.config['api_key']}
         if term:
-            url += '?term={}'.format(term)
+            url += f'?term={term}'
         try:
             rsp = requests.request(method, url, headers=headers, json=data)
             data = rsp.json()
             logger.trace('sonarr response: {}', data)
-            return data
         except RequestException as e:
             base_msg = 'Sonarr returned an error. {}'
             if e.response is not None:
                 error = e.response.json()[0]
-                error = '{}: {} \'{}\''.format(
+                error = "{}: {} '{}'".format(
                     error['errorMessage'], error['propertyName'], error['attemptedValue']
                 )
             else:
                 error = str(e)
             raise plugin.PluginError(base_msg.format(error))
+        return data
 
     def translate_quality(self, quality_name):
-        """
-        Translate Sonarr's qualities to ones recognize by Flexget
-        """
+        """Translate Sonarr's qualities to ones recognize by Flexget."""
         if quality_name in QUALITY_MAP:
             return QUALITY_MAP[quality_name]
         return quality_name.replace('-', ' ').lower()
@@ -103,9 +102,9 @@ class SonarrSet(MutableSet):
         tags_ids = []
 
         if not self._tags:
-            self._tags = {t["label"].lower(): t["id"] for t in self._sonarr_request("tag")}
+            self._tags = {t['label'].lower(): t['id'] for t in self._sonarr_request('tag')}
 
-        for tag in self.config.get("tags", []):
+        for tag in self.config.get('tags', []):
             if isinstance(tag, int):
                 # Handle tags by id
                 if tag not in self._tags.values():
@@ -121,7 +120,7 @@ class SonarrSet(MutableSet):
                 found = self._tags.get(tag)
                 if not found:
                     logger.verbose('Adding missing tag {} to Sonarr', tag)
-                    found = self._sonarr_request("tag", method="post", data={"label": tag})["id"]
+                    found = self._sonarr_request('tag', method='post', data={'label': tag})['id']
                     self._tags[tag] = found
                 tags_ids.append(found)
         return tags_ids
@@ -147,7 +146,7 @@ class SonarrSet(MutableSet):
                 # Checks if to retrieve ended shows
                 if show['status'] == 'ended' and not self.config.get('include_ended'):
                     continue
-            profile = profiles_dict.get(show['profileId'])
+            profile = profiles_dict.get(show['qualityProfileId'])
             if profile:
                 fg_qualities, fg_cutoff = self.quality_requirement_builder(profile)
 
@@ -186,12 +185,12 @@ class SonarrSet(MutableSet):
         lookup_results = self._sonarr_request(LOOKUP_ENDPOINT, term=term)
         if not lookup_results:
             logger.debug('could not find series match to {}', entry)
-            return
-        elif len(lookup_results) > 1:
+            return None
+        if len(lookup_results) > 1:
             logger.debug('got multiple results for Sonarr, using first one')
         show = lookup_results[0]
 
-        if show.get("id"):
+        if show.get('id'):
             logger.debug('entry {} already exists in Sonarr list as show {}', entry, show)
             return show
 
@@ -207,20 +206,20 @@ class SonarrSet(MutableSet):
         # Setting defaults for Sonarr
         show['profileId'] = self.config.get('profile_id')
         show['qualityProfileId'] = self.config.get('profile_id')
+        show['languageProfileId'] = self.config.get('language_id')
         show['seasonFolder'] = self.config.get('season_folder')
         show['monitored'] = self.config.get('monitored')
         show['seriesType'] = self.config.get('series_type')
         show['tags'] = self.get_tag_ids(entry)
         show['rootFolderPath'] = root_path
         show['addOptions'] = {
-            "ignoreEpisodesWithFiles": self.config.get('ignore_episodes_with_files'),
-            "ignoreEpisodesWithoutFiles": self.config.get('ignore_episodes_without_files'),
-            "searchForMissingEpisodes": self.config.get('search_missing_episodes'),
+            'ignoreEpisodesWithFiles': self.config.get('ignore_episodes_with_files'),
+            'ignoreEpisodesWithoutFiles': self.config.get('ignore_episodes_without_files'),
+            'searchForMissingEpisodes': self.config.get('search_missing_episodes'),
         }
 
         logger.debug('adding show {} to sonarr', show)
-        returned_show = self._sonarr_request(SERIES_ENDPOINT, method='post', data=show)
-        return returned_show
+        return self._sonarr_request(SERIES_ENDPOINT, method='post', data=show)
 
     def remove_show(self, show):
         logger.debug('sending sonarr delete show request')
@@ -239,6 +238,7 @@ class SonarrSet(MutableSet):
                 return show
             if entry.get('title').lower() == show.get('title').lower():
                 return show
+        return None
 
     def _from_iterable(self, it):
         # TODO: is this the right answer? the returned object won't have our custom __contains__ logic
@@ -276,8 +276,10 @@ class SonarrSet(MutableSet):
 
     @property
     def online(self):
-        """Set the online status of the plugin, online plugin should be treated differently in certain situations,
-        like test mode"""
+        """Set the online status of the plugin.
+
+        Online plugin should be treated differently in certain situations, like test mode
+        """
         return True
 
     def get(self, entry):

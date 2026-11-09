@@ -1,0 +1,88 @@
+interactions:
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      User-Agent:
+      - FlexGet/2.10.20.dev (www.flexget.com)
+    method: GET
+    uri: https://api.tvmaze.com/singlesearch/shows?embed=seasons&q=Shameless
+  response:
+    body:
+      string: '{"id":150,"url":"http://www.tvmaze.com/shows/150/shameless","name":"Shameless","type":"Scripted","language":"English","genres":["Drama","Comedy"],"status":"Running","runtime":60,"premiered":"2011-01-09","schedule":{"time":"21:00","days":["Sunday"]},"rating":{"average":8.8},"weight":4,"network":{"id":9,"name":"Showtime","country":{"name":"United
+        States","code":"US","timezone":"America/New_York"}},"webChannel":null,"externals":{"tvrage":25117,"thetvdb":161511,"imdb":"tt1586680"},"image":{"medium":"http://static.tvmaze.com/uploads/images/medium_portrait/45/114890.jpg","original":"http://static.tvmaze.com/uploads/images/original_untouched/45/114890.jpg"},"summary":"<p><strong>Shameless</strong>
+        is a fiercely engaging and fearlessly twisted series. Chicagoan Frank Gallagher
+        is the proud single dad of six smart, industrious, independent kids, who without
+        him would be... perhaps better off. When Frank''s not at the bar spending
+        what little money they have, he''s passed out on the floor. But the kids have
+        found ways to grow up in spite of him. They may not be like any family you
+        know, but they make no apologies for being exactly who they are.</p>","updated":1487373839,"_links":{"self":{"href":"http://api.tvmaze.com/shows/150"},"previousepisode":{"href":"http://api.tvmaze.com/episodes/928422"}},"_embedded":{"seasons":[{"id":683,"url":"http://www.tvmaze.com/seasons/683/shameless-season-1","number":1,"name":"","episodeOrder":12,"premiereDate":"2011-01-09","endDate":"2011-03-27","network":{"id":9,"name":"Showtime","country":{"name":"United
+        States","code":"US","timezone":"America/New_York"}},"webChannel":null,"image":{"medium":"http://static.tvmaze.com/uploads/images/medium_portrait/42/106803.jpg","original":"http://static.tvmaze.com/uploads/images/original_untouched/42/106803.jpg"},"summary":"<p>Frank
+        goes missing and turns up in Toronto, tries without success to embrace sobriety,
+        and bends the law to protect his disability checks; Fiona falls for Steve,
+        a handsome player with a nice car, a fat wallet, and a big secret; Ian embraces
+        his sexuality, much to the chagrin of his brainy brother Lip; Debbie goes
+        too far at a child''s birthday party; Monica shows up with an announcement
+        about baby Liam.</p>","_links":{"self":{"href":"http://api.tvmaze.com/seasons/683"}}},{"id":684,"url":"http://www.tvmaze.com/seasons/684/shameless-season-2","number":2,"name":"","episodeOrder":12,"premiereDate":"2012-01-08","endDate":"2012-04-01","network":{"id":9,"name":"Showtime","country":{"name":"United
+        States","code":"US","timezone":"America/New_York"}},"webChannel":null,"image":{"medium":"http://static.tvmaze.com/uploads/images/medium_portrait/42/106804.jpg","original":"http://static.tvmaze.com/uploads/images/original_untouched/42/106804.jpg"},"summary":"<p>Frank
+        and Monica rekindle their self-destructive relationship after Frank''s mother
+        returns from prison to wreak havoc; Fiona is thrown for a loop when Steve
+        returns from Rio with a surprise; Lip makes big changes in preparation for
+        the arrival of his and Karen''s baby; Karen and Sheila clash over Karen''s
+        new husband Jody, a good-hearted but weird guy she met in Sexaholics Anonymous;
+        Ian tries to get into West Point; Debbie prepares for the onset of puberty;
+        Kev and Veronica contemplate starting a family.</p>","_links":{"self":{"href":"http://api.tvmaze.com/seasons/684"}}},{"id":685,"url":"http://www.tvmaze.com/seasons/685/shameless-season-3","number":3,"name":"","episodeOrder":12,"premiereDate":"2013-01-13","endDate":"2013-04-07","network":{"id":9,"name":"Showtime","country":{"name":"United
+        States","code":"US","timezone":"America/New_York"}},"webChannel":null,"image":{"medium":"http://static.tvmaze.com/uploads/images/medium_portrait/42/106805.jpg","original":"http://static.tvmaze.com/uploads/images/original_untouched/42/106805.jpg"},"summary":"<p>Jimmy
+        struggles to balance his relationship with Fiona and his obligations to Estefania;
+        Fiona gets a corporate job; Frank completely alienates his children and then
+        tries to win them back; Karen returns and drives a wedge between Lip and Mandy
+        with dire consequences; Sheila and Jody attempt to parent Karen''s baby; Ian
+        falls in love with Mickey; Debbie suffers from growing pains; Carl goes to
+        camp; Kev and V concoct an extremely unconventional way to have a baby of
+        their own.</p>","_links":{"self":{"href":"http://api.tvmaze.com/seasons/685"}}},{"id":686,"url":"http://www.tvmaze.com/seasons/686/shameless-season-4","number":4,"name":"","episodeOrder":12,"premiereDate":"2014-01-12","endDate":"2014-04-06","network":{"id":9,"name":"Showtime","country":{"name":"United
+        States","code":"US","timezone":"America/New_York"}},"webChannel":null,"image":{"medium":"http://static.tvmaze.com/uploads/images/medium_portrait/42/106806.jpg","original":"http://static.tvmaze.com/uploads/images/original_untouched/42/106806.jpg"},"summary":"<p>Fiona
+        gets into romantic trouble with her boss/boyfriend''s wildcard brother, and
+        serious legal trouble after a party goes horribly wrong; Frank battles liver
+        disease and reconnects with a long lost family member; Lip struggles with
+        the realities of college life; Ian forces Mickey to confront his sexuality;
+        Debbie and Carl both find new love; Sheila tries to adopt a Native American
+        family; Kev and V face the reality of a large family.</p>","_links":{"self":{"href":"http://api.tvmaze.com/seasons/686"}}},{"id":687,"url":"http://www.tvmaze.com/seasons/687/shameless-season-5","number":5,"name":"","episodeOrder":12,"premiereDate":"2015-01-11","endDate":"2015-04-05","network":{"id":9,"name":"Showtime","country":{"name":"United
+        States","code":"US","timezone":"America/New_York"}},"webChannel":null,"image":{"medium":"http://static.tvmaze.com/uploads/images/medium_portrait/42/106807.jpg","original":"http://static.tvmaze.com/uploads/images/original_untouched/42/106807.jpg"},"summary":"<p>Fiona
+        gets into a surprising love triangle and experiences some character-building
+        growing pains; Frank falls in love with a dying doctor; Lip commits himself
+        to college life and becomes romantically involved with a mentor; Ian and Mickey
+        struggle to manage Ian''s bi-polar disorder; Sammi remains a serious thorn
+        in everyone''s side; Debbie becomes a woman in more ways than one; Carl gets
+        in serious trouble with the law; Kev and V experience a rough patch.</p>","_links":{"self":{"href":"http://api.tvmaze.com/seasons/687"}}},{"id":8992,"url":"http://www.tvmaze.com/seasons/8992/shameless-season-6","number":6,"name":"","episodeOrder":12,"premiereDate":"2016-01-10","endDate":"2016-04-03","network":{"id":9,"name":"Showtime","country":{"name":"United
+        States","code":"US","timezone":"America/New_York"}},"webChannel":null,"image":{"medium":"http://static.tvmaze.com/uploads/images/medium_portrait/45/114891.jpg","original":"http://static.tvmaze.com/uploads/images/original_untouched/45/114891.jpg"},"summary":"<p>The
+        Gallaghers are finally getting their acts together and striking out on their
+        own, but growing up could also mean growing apart. One thing''s certain: nothing
+        ever comes easy when your last name is Gallagher -- except trouble.</p>","_links":{"self":{"href":"http://api.tvmaze.com/seasons/8992"}}},{"id":32506,"url":"http://www.tvmaze.com/seasons/32506/shameless-season-7","number":7,"name":"","episodeOrder":12,"premiereDate":"2016-10-02","endDate":"2016-12-18","network":{"id":9,"name":"Showtime","country":{"name":"United
+        States","code":"US","timezone":"America/New_York"}},"webChannel":null,"image":null,"summary":"","_links":{"self":{"href":"http://api.tvmaze.com/seasons/32506"}}},{"id":58602,"url":"http://www.tvmaze.com/seasons/58602/shameless-season-8","number":8,"name":"","episodeOrder":12,"premiereDate":null,"endDate":null,"network":{"id":9,"name":"Showtime","country":{"name":"United
+        States","code":"US","timezone":"America/New_York"}},"webChannel":null,"image":null,"summary":null,"_links":{"self":{"href":"http://api.tvmaze.com/seasons/58602"}}}]}}'
+    headers:
+      Access-Control-Allow-Origin:
+      - '*'
+      Cache-Control:
+      - public, max-age=3600
+      Connection:
+      - keep-alive
+      Content-Encoding:
+      - gzip
+      Content-Type:
+      - application/json; charset=UTF-8
+      Date:
+      - Sun, 26 Mar 2017 11:10:43 GMT
+      Server:
+      - nginx/1.10.0 (Ubuntu)
+      Vary:
+      - Accept-Encoding
+    status:
+      code: 200
+      message: OK
+version: 1

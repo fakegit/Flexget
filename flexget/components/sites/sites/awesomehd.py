@@ -14,9 +14,7 @@ logger = logger.bind(name='awesomehd')
 
 
 class SearchAwesomeHD:
-    """
-    AwesomeHD search plugin.
-    """
+    """AwesomeHD search plugin."""
 
     schema = {
         'oneOf': [
@@ -43,23 +41,20 @@ class SearchAwesomeHD:
 
     @plugin.internet(logger)
     def search(self, task, entry, config):
-        """
-        Search for entries on AwesomeHD
-        """
+        """Search for entries on AwesomeHD."""
         # need lxml to parse xml
         try:
-            import lxml  # noqa
+            import lxml  # noqa: F401
         except ImportError as e:
             logger.debug('Error importing lxml: {}', e)
             raise plugin.DependencyError(
-                'awesomehd', 'lxml', 'lxml module required. ImportError: %s' % e
+                'awesomehd', 'lxml', f'lxml module required. ImportError: {e}'
             )
 
         config = self.prepare_config(config)
 
         # set a domain limit, but allow the user to overwrite it
-        if 'awesome-hd.me' not in task.requests.domain_limiters:
-            task.requests.add_domain_limiter(TimedLimiter('awesome-hd.me', '5 seconds'))
+        task.requests.add_domain_limiter(TimedLimiter('awesome-hd.me', '5 seconds'), replace=False)
 
         entries = set()
 
@@ -129,16 +124,16 @@ class SearchAwesomeHD:
             if 'WEB' in source.upper():
                 encoder = re.sub('REMUX', '', encoder, flags=re.IGNORECASE).strip()
 
-            e[
-                'title'
-            ] = '{movie_name} {year} {resolution} {source} {audio} {encoder}-{release_group}'.format(
-                movie_name=result.find('name').get_text(),
-                year=result.find('year').get_text(),
-                resolution=result.find('resolution').get_text(),
-                source=source,
-                audio=audio,
-                encoder=encoder,
-                release_group=e['release_group'],
+            e['title'] = (
+                '{movie_name} {year} {resolution} {source} {audio} {encoder}-{release_group}'.format(
+                    movie_name=result.find('name').get_text(),
+                    year=result.find('year').get_text(),
+                    resolution=result.find('resolution').get_text(),
+                    source=source,
+                    audio=audio,
+                    encoder=encoder,
+                    release_group=e['release_group'],
+                )
             )
 
             entries.add(e)

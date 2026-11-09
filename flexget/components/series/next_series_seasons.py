@@ -17,8 +17,7 @@ MAX_SEASON_DIFF_WITH_BEGIN = 30
 
 
 class NextSeriesSeasons:
-    """
-    Emit next season number from all series configured in this task.
+    """Emit next season number from all series configured in this task.
 
     Supports only 'ep' mode series.
     """
@@ -42,7 +41,7 @@ class NextSeriesSeasons:
         self.rerun_entries = []
 
     def season_identifiers(self, season):
-        return ['S%02d' % season]
+        return [f'S{season:02d}']
 
     def search_entry(self, series, season, task, rerun=True):
         # Extract the alternate names for the series
@@ -51,10 +50,10 @@ class NextSeriesSeasons:
         paren_match = re.match(r'(.+?)( \(.+\))?$', series.name)
         if paren_match.group(2):
             alts.append(paren_match.group(1))
-        search_strings = ['%s %s' % (series.name, id) for id in self.season_identifiers(season)]
-        series_id = 'S%02d' % season
+        search_strings = [f'{series.name} {id}' for id in self.season_identifiers(season)]
+        series_id = f'S{season:02d}'
         for alt in alts:
-            search_strings.extend(['%s %s' % (alt, id) for id in self.season_identifiers(season)])
+            search_strings.extend([f'{alt} {id}' for id in self.season_identifiers(season)])
         entry = Entry(
             title=search_strings[0],
             url='',
@@ -74,7 +73,7 @@ class NextSeriesSeasons:
 
     def on_task_input(self, task, config):
         if not config:
-            return
+            return None
         if isinstance(config, bool):
             config = {}
 
@@ -83,8 +82,7 @@ class NextSeriesSeasons:
             entries = self.rerun_entries
             self.rerun_entries = []
             return entries
-        else:
-            self.rerun_entries = []
+        self.rerun_entries = []
 
         threshold = config.get('threshold')
 
@@ -102,7 +100,7 @@ class NextSeriesSeasons:
                     session.delete(seriestask)
                     continue
 
-                if series.identified_by not in ['ep']:
+                if series.identified_by != 'ep':
                     logger.trace('unsupported identified_by scheme')
                     reason = series.identified_by or 'auto'
                     impossible.setdefault(reason, []).append(series.name)
@@ -184,20 +182,21 @@ class NextSeriesSeasons:
                     elif latest:
                         entries.append(self.search_entry(series, latest.season, task))
                     # First iteration of a new season with no show begin and show has downloads
-                    elif new_season and season == new_season:
+                    elif (
+                        (new_season and season == new_season)
+                        or config.get('from_start')
+                        or config.get('backfill')
+                    ):
                         entries.append(self.search_entry(series, season, task))
                     else:
-                        if config.get('from_start') or config.get('backfill'):
-                            entries.append(self.search_entry(series, season, task))
-                        else:
-                            logger.verbose(
-                                'Series `{}` has no history. Set the begin option in your config, '
-                                'or use the CLI subcommand `series begin "{}" <SxxExx>` '
-                                'to set the first episode to emit',
-                                series.name,
-                                series.name,
-                            )
-                            break
+                        logger.verbose(
+                            'Series `{}` has no history. Set the begin option in your config, '
+                            'or use the CLI subcommand `series begin "{}" <SxxExx>` '
+                            'to set the first episode to emit',
+                            series.name,
+                            series.name,
+                        )
+                        break
                     # Skip older seasons if we are not in backfill mode
                     if not config.get('backfill'):
                         logger.debug('backfill is not enabled; skipping older seasons')
@@ -227,23 +226,20 @@ class NextSeriesSeasons:
                         'season lookup produced an episode result; assuming no season match, no need to rerun'
                     )
                     return
-                else:
-                    logger.debug(
-                        '{} {} was accepted, rerunning to look for next season.',
-                        entry['series_name'],
-                        entry['series_id'],
-                    )
-                    if not any(
-                        e.get('series_season') == latest.season + 1 for e in self.rerun_entries
-                    ):
-                        self.rerun_entries.append(
-                            self.search_entry(series, latest.season + 1, task)
-                        )
-                    # Increase rerun limit by one if we have matches, this way
-                    # we keep searching as long as matches are found!
-                    # TODO: this should ideally be in discover so it would be more generic
-                    task.max_reruns += 1
-                    task.rerun(plugin=plugin_name, reason='Look for next season')
+                logger.debug(
+                    '{} {} was accepted, rerunning to look for next season.',
+                    entry['series_name'],
+                    entry['series_id'],
+                )
+                if not any(
+                    e.get('series_season') == latest.season + 1 for e in self.rerun_entries
+                ):
+                    self.rerun_entries.append(self.search_entry(series, latest.season + 1, task))
+                # Increase rerun limit by one if we have matches, this way
+                # we keep searching as long as matches are found!
+                # TODO: this should ideally be in discover so it would be more generic
+                task.max_reruns += 1
+                task.rerun(plugin=plugin_name, reason='Look for next season')
             elif latest and not latest.completed:
                 # There are known releases of this season, but none were accepted
                 return

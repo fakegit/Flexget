@@ -1,10 +1,17 @@
-from flask import jsonify, request, Response
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+from flask import jsonify, request
 from flask_login import current_user
-from sqlalchemy.orm import Session
 
 from flexget.api import APIResource, api
 from flexget.api.app import BadRequest, base_message_schema, success_response
 from flexget.webserver import WeakPassword, change_password, generate_token
+
+if TYPE_CHECKING:
+    from flask import Response
+    from sqlalchemy.orm import Session
 
 user_api = api.namespace('user', description='Manage user login credentials')
 
@@ -39,7 +46,7 @@ class UserManagementAPI(APIResource):
         'See https://github.com/dropbox/zxcvbn for details'
     )
     def put(self, session: Session = None) -> Response:
-        """ Change user password """
+        """Change user password."""
         user = current_user
         data = request.json
         try:
@@ -61,6 +68,6 @@ class UserManagementTokenAPI(APIResource):
     @api.response(200, 'Successfully changed user token', user_token_response_schema)
     @api.doc(description='Get new user token')
     def put(self, session: Session = None) -> Response:
-        """ Change current user token """
+        """Change current user token."""
         token = generate_token(username=current_user.name, session=session)
         return jsonify({'token': token})

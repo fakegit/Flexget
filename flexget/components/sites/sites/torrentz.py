@@ -22,7 +22,7 @@ REPUTATIONS = {  # Maps reputation name to feed address
 
 
 class Torrentz:
-    """Torrentz search and urlrewriter"""
+    """Torrentz search and urlrewriter."""
 
     schema = {
         'oneOf': [
@@ -40,7 +40,7 @@ class Torrentz:
     }
 
     def process_config(self, config):
-        """Return plugin configuration in advanced form"""
+        """Return plugin configuration in advanced form."""
         if isinstance(config, str):
             config = {'reputation': config}
         if config.get('extra_terms'):
@@ -52,7 +52,7 @@ class Torrentz:
         return REGEXP.match(entry['url'])
 
     def url_rewrite(self, task, entry):
-        """URL rewrite torrentz domain url with infohash to any torrent cache"""
+        """URL rewrite torrentz domain url with infohash to any torrent cache."""
         thash = REGEXP.match(entry['url']).group(2)
         torrent_cache = plugin.get('torrent_cache', self)
         urls = torrent_cache.infohash_urls(thash)
@@ -69,7 +69,9 @@ class Torrentz:
             query = normalize_unicode(search_string.strip() + config.get('extra_terms', ''))
             for domain in ['is', 'pl']:
                 # urllib.quote will crash if the unicode string has non ascii characters, so encode in utf-8 beforehand
-                url = 'http://torrentz2.%s/%s?f=%s' % (domain, feed, quote(query.encode('utf-8')))
+                url = 'http://torrentz2.{}/{}?f={}'.format(
+                    domain, feed, quote(query.encode('utf-8'))
+                )
                 logger.debug('requesting: {}', url)
                 try:
                     r = task.requests.get(url)
@@ -79,14 +81,14 @@ class Torrentz:
                     logger.warning('torrentz.{} connection failed. Error: {}', domain, err)
                     continue
                 except requests.RequestException as err:
-                    raise plugin.PluginError('Error getting torrentz search results: %s' % err)
+                    raise plugin.PluginError(f'Error getting torrentz search results: {err}')
 
             else:
                 raise plugin.PluginError('Error getting torrentz search results')
 
             if not r.content.strip():
                 raise plugin.PluginError(
-                    'No data from %s. Maybe torrentz is blocking the FlexGet User-Agent' % url
+                    f'No data from {url}. Maybe torrentz is blocking the FlexGet User-Agent'
                 )
 
             rss = feedparser.parse(r.content)
@@ -107,7 +109,7 @@ class Torrentz:
                 entry = Entry()
                 entry['title'] = item.title
                 entry['url'] = item.link
-                entry['content_size'] = int(m.group(1))
+                entry['content_size'] = int(m.group(1)) * 1024**2
                 entry['torrent_seeds'] = int(m.group(2).replace(',', ''))
                 entry['torrent_leeches'] = int(m.group(3).replace(',', ''))
                 entry['torrent_info_hash'] = m.group(4).upper()

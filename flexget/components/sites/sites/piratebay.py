@@ -1,6 +1,6 @@
 import re
-from urllib.parse import urlencode, urlparse
 from json import JSONDecodeError
+from urllib.parse import urlencode, urlparse
 
 from loguru import logger
 
@@ -93,10 +93,10 @@ class UrlRewritePirateBay:
             # some api mirrors might contain path, for ex https://pirateproxy.surf/api?url=/q.php?q=ubuntu&cat=0
             # valid URLs are https://piratebay.org/description.php?id=\d+ and https://apibay.org/description.php?id=\d+
             self.url_match = re.compile(
-                fr'^{escaped_url_scheme}://(?:thepiratebay\.org(?:\:\d+)?|{escaped_url_netloc})/description\.php\?id=(\d+)$'
+                rf'^{escaped_url_scheme}://(?:thepiratebay\.org(?:\:\d+)?|{escaped_url_netloc})/description\.php\?id=(\d+)$'
             )
             self.url_search = re.compile(
-                fr'^(?:https?://thepiratebay\.org(?:\:\d+)?|{escaped_url_scheme}://{escaped_url_netloc})/search\.php\?q=.*$'
+                rf'^(?:https?://thepiratebay\.org(?:\:\d+)?|{escaped_url_scheme}://{escaped_url_netloc})/search\.php\?q=.*$'
             )
 
     # urlrewriter API
@@ -109,7 +109,7 @@ class UrlRewritePirateBay:
     # urlrewriter API
     def url_rewrite(self, task, entry):
         if 'url' not in entry:
-            logger.error('Didn\'t actually get a URL...')
+            logger.error("Didn't actually get a URL...")
         else:
             logger.debug('Got the URL: {}', entry['url'])
         if self.url_search.match(entry['url']):
@@ -130,9 +130,7 @@ class UrlRewritePirateBay:
 
     @plugin.internet(logger)
     def search(self, task, entry, config=None):
-        """
-        Search for name from piratebay.
-        """
+        """Search for name from piratebay."""
         if not isinstance(config, dict):
             config = {}
         self.set_urls(config.get('url', URL))
@@ -150,7 +148,7 @@ class UrlRewritePirateBay:
             url = f'{self.url}/q.php'
             try:
                 json_results = task.requests.get(url, params=params).json()
-            except JSONDecodeError as e:
+            except JSONDecodeError:
                 raise plugin.PluginError(
                     f'Error while searching piratebay for {search_string}, invalid json response',
                 )
@@ -171,8 +169,7 @@ class UrlRewritePirateBay:
     def info_hash_to_magnet(info_hash: str, name: str) -> str:
         magnet = {'xt': f'urn:btih:{info_hash}', 'dn': name, 'tr': TRACKERS}
         magnet_qs = urlencode(magnet, doseq=True, safe=':')
-        magnet_uri = f'magnet:?{magnet_qs}'
-        return magnet_uri
+        return f'magnet:?{magnet_qs}'
 
     # convert a single json result to an Entry
     def json_to_entry(self, json_result: dict) -> Entry:
@@ -184,9 +181,7 @@ class UrlRewritePirateBay:
         entry['torrent_availability'] = torrent_availability(
             entry['torrent_seeds'], entry['torrent_leeches']
         )
-        entry['content_size'] = int(
-            round(int(json_result['size']) / (1024 * 1024))
-        )  # content_size is in MiB
+        entry['content_size'] = int(json_result['size'])  # content_size is in bytes
         entry['torrent_info_hash'] = json_result['info_hash']
         entry['url'] = self.info_hash_to_magnet(json_result['info_hash'], json_result['name'])
         return entry

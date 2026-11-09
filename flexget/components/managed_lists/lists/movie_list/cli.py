@@ -7,7 +7,7 @@ from flexget.entry import Entry
 from flexget.event import event
 from flexget.manager import Session
 from flexget.plugin import DependencyError, PluginError
-from flexget.terminal import TerminalTable, TerminalTableError, console, table_parser
+from flexget.terminal import TerminalTable, console, table_parser
 from flexget.utils.tools import split_title_year
 
 from . import db
@@ -26,30 +26,36 @@ def lookup_movie(title, session, identifiers=None):
         tmdb_lookup = None
 
     if not (imdb_lookup or tmdb_lookup):
-        return
+        return None
 
     entry = Entry(title=title)
     if identifiers:
         for identifier in identifiers:
             for key, value in identifier.items():
                 entry[key] = value
-    try:
-        imdb_lookup(entry, session=session)
-    # IMDB lookup raises PluginError instead of the normal ValueError
-    except PluginError:
+
+    imdb_failed = imdb_lookup is None
+    if imdb_lookup:
+        try:
+            imdb_lookup(entry, session=session)
+        # IMDB lookup raises PluginError instead of the normal ValueError
+        except PluginError:
+            imdb_failed = True
+
+    if imdb_failed and tmdb_lookup:
         tmdb_lookup(entry)
 
     # Return only if lookup was successful
     if entry.get('movie_name'):
         return entry
-    return
+    return None
 
 
 def movie_list_keyword_type(identifier):
     if identifier.count('=') != 1:
         raise ArgumentTypeError(
-            'Received identifier in wrong format: {}, '
-            ' should be in keyword format like `imdb_id=tt1234567`'.format(identifier)
+            f'Received identifier in wrong format: {identifier}, '
+            ' should be in keyword format like `imdb_id=tt1234567`'
         )
     name, value = identifier.split('=', 2)
     if name not in MovieListBase().supported_ids:
@@ -62,7 +68,7 @@ def movie_list_keyword_type(identifier):
 
 
 def do_cli(manager, options):
-    """Handle movie-list subcommand"""
+    """Handle movie-list subcommand."""
     if options.list_action == 'all':
         movie_list_lists(options)
         return
@@ -85,46 +91,53 @@ def do_cli(manager, options):
 
 
 def movie_list_lists(options):
-    """ Show all movie lists """
+    """Show all movie lists."""
     lists = db.get_movie_lists()
     header = ['#', 'List Name']
-    table_data = [header]
+    table = TerminalTable(*header, table_type=options.table_type)
     for movie_list in lists:
-        table_data.append([movie_list.id, movie_list.name])
-    try:
-        table = TerminalTable(options.table_type, table_data)
-    except TerminalTableError as e:
-        console('ERROR: {}'.format(e))
-    else:
-        console(table.output)
+        table.add_row(str(movie_list.id), movie_list.name)
+
+    console(table)
 
 
 def movie_list_list(options):
-    """List movie list"""
+    """List movie list."""
     with Session() as session:
         try:
             movie_list = db.get_list_by_exact_name(options.list_name)
         except NoResultFound:
-            console('Could not find movie list with name {}'.format(options.list_name))
+            console(f'Could not find movie list with name {options.list_name}')
             return
-    header = ['#', 'Movie Name', 'Movie year']
-    header += db.MovieListBase().supported_ids
-    table_data = [header]
+
     movies = db.get_movies_by_list_id(
         movie_list.id, order_by='added', descending=True, session=session
     )
+
+    # Find which identifiers are actually used by any movie
+    used_identifiers = set()
     for movie in movies:
-        movie_row = [movie.id, movie.title, movie.year or '']
-        for identifier in db.MovieListBase().supported_ids:
-            movie_row.append(movie.identifiers.get(identifier, ''))
-        table_data.append(movie_row)
-    title = '{} Movies in movie list: `{}`'.format(len(movies), options.list_name)
-    try:
-        table = TerminalTable(options.table_type, table_data, title, drop_columns=[5, 2, 4])
-    except TerminalTableError as e:
-        console('ERROR: {}'.format(e))
-    else:
-        console(table.output)
+        used_identifiers.update(movie.identifiers.keys())
+
+    # Only include identifier columns that are actually used
+    relevant_identifiers = [
+        identifier
+        for identifier in db.MovieListBase().supported_ids
+        if identifier in used_identifiers
+    ]
+
+    header = ['#', 'Movie Name', 'Movie year']
+    header += relevant_identifiers
+
+    title = f'{len(movies)} Movies in movie list: `{options.list_name}`'
+    table = TerminalTable(*header, table_type=options.table_type, title=title)
+    for movie in movies:
+        movie_row = [str(movie.id), movie.title, str(movie.year) if movie.year else '']
+        movie_row.extend([
+            str(movie.identifiers.get(identifier, '')) for identifier in relevant_identifiers
+        ])
+        table.add_row(*movie_row)
+    console(table)
 
 
 def movie_list_add(options):
@@ -132,18 +145,16 @@ def movie_list_add(options):
         try:
             movie_list = db.get_list_by_exact_name(options.list_name, session=session)
         except NoResultFound:
-            console('Could not find movie list with name {}, creating'.format(options.list_name))
+            console(f'Could not find movie list with name {options.list_name}, creating')
             movie_list = db.MovieListList(name=options.list_name)
             session.add(movie_list)
             session.commit()
 
         title, year = split_title_year(options.movie_title)
-        console('Trying to lookup movie title: `{}`'.format(title))
+        console(f'Trying to lookup movie title: `{title}`')
         movie_lookup = lookup_movie(title=title, session=session, identifiers=options.identifiers)
         if not movie_lookup:
-            console(
-                'ERROR: movie lookup failed for movie {}, aborting'.format(options.movie_title)
-            )
+            console(f'ERROR: movie lookup failed for movie {options.movie_title}, aborting')
             return
 
         title = movie_lookup['movie_name']
@@ -151,10 +162,10 @@ def movie_list_add(options):
             list_id=movie_list.id, title=title, year=year, session=session
         )
         if not movie:
-            console("Adding movie with title {} to list {}".format(title, movie_list.name))
+            console(f'Adding movie with title {title} to list {movie_list.name}')
             movie = db.MovieListMovie(title=title, year=year, list_id=movie_list.id)
         else:
-            console("Movie with title {} already exist in list {}".format(title, movie_list.name))
+            console(f'Movie with title {title} already exist in list {movie_list.name}')
 
         id_list = []
         if options.identifiers:
@@ -167,10 +178,10 @@ def movie_list_add(options):
             console('Setting movie identifiers:')
             for ident in id_list:
                 for key in ident:
-                    console('{}: {}'.format(key, ident[key]))
+                    console(f'{key}: {ident[key]}')
             movie.ids = db.get_db_movie_identifiers(identifier_list=id_list, session=session)
         session.merge(movie)
-        console('Successfully added movie {} to movie list {} '.format(title, movie_list.name))
+        console(f'Successfully added movie {title} to movie list {movie_list.name} ')
 
 
 def movie_list_del(options):
@@ -178,7 +189,7 @@ def movie_list_del(options):
         try:
             movie_list = db.get_list_by_exact_name(options.list_name)
         except NoResultFound:
-            console('Could not find movie list with name {}'.format(options.list_name))
+            console(f'Could not find movie list with name {options.list_name}')
             return
 
         try:
@@ -187,9 +198,7 @@ def movie_list_del(options):
             )
         except NoResultFound:
             console(
-                'Could not find movie with ID {} in list `{}`'.format(
-                    int(options.movie), options.list_name
-                )
+                f'Could not find movie with ID {int(options.movie)} in list `{options.list_name}`'
             )
             return
         except ValueError:
@@ -198,15 +207,10 @@ def movie_list_del(options):
                 list_id=movie_list.id, title=title, year=year, session=session
             )
         if not movie_exist:
-            console(
-                'Could not find movie with title {} in list {}'.format(
-                    options.movie, options.list_name
-                )
-            )
+            console(f'Could not find movie with title {options.movie} in list {options.list_name}')
             return
-        else:
-            console('Removing movie {} from list {}'.format(movie_exist.title, options.list_name))
-            session.delete(movie_exist)
+        console(f'Removing movie {movie_exist.title} from list {options.list_name}')
+        session.delete(movie_exist)
 
 
 def movie_list_purge(options):
@@ -214,9 +218,9 @@ def movie_list_purge(options):
         try:
             movie_list = db.get_list_by_exact_name(options.list_name)
         except NoResultFound:
-            console('Could not find movie list with name {}'.format(options.list_name))
+            console(f'Could not find movie list with name {options.list_name}')
             return
-        console('Deleting list {}'.format(options.list_name))
+        console(f'Deleting list {options.list_name}')
         session.delete(movie_list)
 
 
@@ -224,11 +228,11 @@ def movie_list_purge(options):
 def register_parser_arguments():
     # Common option to be used in multiple subparsers
     movie_parser = ArgumentParser(add_help=False)
-    movie_parser.add_argument('movie_title', metavar='<MOVIE TITLE>', help="Title of the movie")
+    movie_parser.add_argument('movie_title', metavar='<MOVIE TITLE>', help='Title of the movie')
 
     name_or_id_parser = ArgumentParser(add_help=False)
     name_or_id_parser.add_argument(
-        'movie', metavar='<NAME or ID>', help="Title or ID of the movie"
+        'movie', metavar='<NAME or ID>', help='Title or ID of the movie'
     )
 
     identifiers_parser = ArgumentParser(add_help=False)
@@ -238,8 +242,7 @@ def register_parser_arguments():
         metavar='<identifiers>',
         nargs='+',
         type=movie_list_keyword_type,
-        help='Can be a string or a list of string with the format imdb_id=XXX,'
-        ' tmdb_id=XXX, etc',
+        help='Can be a string or a list of string with the format imdb_id=XXX, tmdb_id=XXX, etc',
     )
     list_name_parser = ArgumentParser(add_help=False)
     list_name_parser.add_argument(
@@ -247,7 +250,7 @@ def register_parser_arguments():
         nargs='?',
         metavar='<LIST NAME>',
         default='movies',
-        help='Name of movie list to operate on (Default is \'movies\')',
+        help="Name of movie list to operate on (Default is 'movies')",
     )
     # Register subcommand
     parser = options.register_command('movie-list', do_cli, help='View and manage movie lists')

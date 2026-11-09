@@ -20,12 +20,29 @@ except ImportError:
 logger = logger.bind(name='ftp_list')
 
 
+class ReuseTLSSessionFTP(ftplib.FTP_TLS):
+    """Explicit FTPS, with shared TLS session.
+
+    This is a workaround for https://github.com/python/cpython/issues/63699.
+    """
+
+    def ntransfercmd(self, cmd, rest=None):
+        """Initiate a transfer using shared TLS session over the data connection."""
+        conn, size = ftplib.FTP.ntransfercmd(self, cmd, rest)
+        if self._prot_p:
+            conn = self.context.wrap_socket(
+                conn, server_hostname=self.host, session=self.sock.session
+            )
+        return conn, size
+
+
 class FTPList:
     def __init__(self):
         self.username = None
         self.password = None
         self.host = None
         self.port = None
+        self.encoding = None
         self.FTP = None
 
     schema = {
@@ -36,6 +53,7 @@ class FTPList:
             'host': {'type': 'string'},
             'port': {'type': 'integer'},
             'ssl': {'type': 'boolean'},
+            'encoding': {'type': 'string'},
             'dirs': one_or_more({'type': 'string'}),
             'recursion': {'type': 'boolean'},
             'recursion_depth': {'type': 'integer'},
@@ -50,8 +68,9 @@ class FTPList:
     def prepare_config(config):
         config.setdefault('retrieve', ['files'])
         config.setdefault('ssl', False)
-        config.setdefault('dirs', [''])
+        config.setdefault('dirs', ['/'])
         config.setdefault('port', 21)
+        config.setdefault('encoding', 'utf-8')
         config.setdefault('recursion', False)
         if not isinstance(config['dirs'], list):
             config['dirs'] = [config['dirs']]
@@ -67,16 +86,14 @@ class FTPList:
 
         entry['title'] = title
         entry['location'] = location
-        entry['url'] = 'ftp://{}:{}@{}:{}/{}'.format(
-            self.username, self.password, self.host, self.port, location
-        )
+        entry['url'] = f'ftp://{self.username}:{self.password}@{self.host}:{self.port}{location}'
         entry['filename'] = title
 
         logger.debug('adding entry {}', entry)
         if entry.isvalid():
             return entry
-        else:
-            logger.warning('tried to return an illegal entry: {}', entry)
+        logger.warning('tried to return an illegal entry: {}', entry)
+        return None
 
     def get_content(self, path, recursion, recursion_depth, content_types):
         content_list = []
@@ -95,11 +112,8 @@ class FTPList:
                     if 'files' in content_types or 'symlinks' in content_types:
                         for _file in files:
                             content = ftp.path.join(base, _file)
-                            if (
-                                ftp.path.isfile(content)
-                                and 'files' in content_types
-                                or ftp.path.islink(path)
-                                and 'symlinks' in content_types
+                            if (ftp.path.isfile(content) and 'files' in content_types) or (
+                                ftp.path.islink(path) and 'symlinks' in content_types
                             ):
                                 logger.debug(
                                     'type match successful for file {}, trying to create entry',
@@ -109,11 +123,8 @@ class FTPList:
                     if 'dirs' in content_types or 'symlinks' in content_types:
                         for _dir in dirs:
                             content = ftp.path.join(base, _dir)
-                            if (
-                                ftp.path.isdir(content)
-                                and 'dirs' in content_types
-                                or ftp.path.islink(path)
-                                and 'symlinks' in content_types
+                            if (ftp.path.isdir(content) and 'dirs' in content_types) or (
+                                ftp.path.islink(path) and 'symlinks' in content_types
                             ):
                                 logger.debug(
                                     'type match successful for dir {}, trying to create entry',
@@ -143,32 +154,36 @@ class FTPList:
         self.password = config.get('password')
         self.host = config.get('host')
         self.port = config.get('port')
+        self.encoding = config.get('encoding')
 
         directories = config.get('dirs')
         recursion = config.get('recursion')
         content_types = config.get('retrieve')
         recursion_depth = -1 if recursion else 0
 
-        base_class = ftplib.FTP_TLS if config.get('ssl') else ftplib.FTP
-        session_factory = ftputil.session.session_factory(port=self.port, base_class=base_class)
+        base_class = ReuseTLSSessionFTP if config.get('ssl') else ftplib.FTP
+        session_factory = ftputil.session.session_factory(
+            base_class=base_class, port=self.port, encoding=self.encoding
+        )
+        logger.verbose(
+            'trying to establish connection to FTP: {}:{}@{}:{}',
+            self.username,
+            self.password,
+            self.host,
+            self.port,
+        )
         try:
-            logger.verbose(
-                'trying to establish connection to FTP: {}:<HIDDEN>@{}:{}',
-                self.username,
-                self.host,
-                self.port,
-            )
             self.FTP = ftputil.FTPHost(
                 self.host, self.username, self.password, session_factory=session_factory
             )
         except FTPOSError as e:
-            raise PluginError('Could not connect to FTP: {}'.format(e.args[0]))
+            raise PluginError(f'Could not connect to FTP: {e}')
 
-        entries = []
-        for d in directories:
-            for content in self.get_content(d, recursion, recursion_depth, content_types):
-                entries.append(self._to_entry(content))
-        return entries
+        return [
+            self._to_entry(content)
+            for d in directories
+            for content in self.get_content(d, recursion, recursion_depth, content_types)
+        ]
 
 
 @event('plugin.register')

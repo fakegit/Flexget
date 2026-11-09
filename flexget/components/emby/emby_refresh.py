@@ -1,19 +1,19 @@
 from loguru import logger
 
-from flexget.components.emby.api_emby import EmbyAuth, EmbyApiLibrary
-from flexget.config_schema import one_or_more
 from flexget import plugin
-from flexget.event import event
+from flexget.components.emby.api_emby import EmbyApiLibrary, EmbyAuth
 from flexget.components.emby.emby_util import SCHEMA_SERVER_TAG
+from flexget.config_schema import one_or_more
+from flexget.event import event
 
 logger = logger.bind(name='emby_reload')
 
 
 class EmbyRefreshLibrary:
-    """
-    Refresh Emby Library
+    """Refresh Emby Library.
 
-    Example:
+    Example::
+
         emby_refresh:
             server:
                 host: http://localhost:8096
@@ -29,12 +29,10 @@ class EmbyRefreshLibrary:
         'type': 'object',
         'properties': {
             **SCHEMA_SERVER_TAG,
-            'when': one_or_more(
-                {
-                    'type': 'string',
-                    'enum': ['accepted', 'rejected', 'failed', 'no_entries', 'aborted', 'always'],
-                }
-            ),
+            'when': one_or_more({
+                'type': 'string',
+                'enum': ['accepted', 'rejected', 'failed', 'no_entries', 'aborted', 'always'],
+            }),
         },
         'required': ['server'],
         'additionalProperties': False,
@@ -56,8 +54,6 @@ class EmbyRefreshLibrary:
         when = config['when']
         if when and not isinstance(when, list):
             config['when'] = [when]
-
-        return
 
     def library_refresh(self):
         EmbyApiLibrary.library_refresh(self.auth)

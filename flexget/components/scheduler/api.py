@@ -45,9 +45,9 @@ def _schedule_by_id(schedule_id, schedules):
 
 
 schedule_desc = (
-    "Schedule ID changes upon daemon restart. The schedules object supports either interval or schedule"
-    " (cron) objects, see the model definition for details. Tasks also support string or list "
-    "(Not displayed as Swagger does yet not support anyOf or oneOf."
+    'Schedule ID changes upon daemon restart. The schedules object supports either interval or schedule'
+    ' (cron) objects, see the model definition for details. Tasks also support string or list '
+    '(Not displayed as Swagger does yet not support anyOf or oneOf.'
 )
 
 
@@ -58,7 +58,7 @@ class SchedulesAPI(APIResource):
     @etag
     @api.response(200, model=api_schedules_list_schema)
     def get(self, session=None):
-        """ List schedules """
+        """List schedules."""
         schedule_list = []
 
         schedules = self.manager.config.get('schedules', [])
@@ -82,7 +82,7 @@ class SchedulesAPI(APIResource):
     @api.response(201, model=api_schedule_schema)
     @api.response(APIError)
     def post(self, session=None):
-        """ Add new schedule """
+        """Add new schedule."""
         data = request.json
 
         schedules = self.manager.config.get('schedules', [])
@@ -119,7 +119,7 @@ class ScheduleAPI(APIResource):
     @etag
     @api.response(200, model=api_schedule_schema)
     def get(self, schedule_id, session=None):
-        """ Get schedule details """
+        """Get schedule details."""
         schedules = self.manager.config.get('schedules', [])
 
         # Checks for boolean config
@@ -130,7 +130,7 @@ class ScheduleAPI(APIResource):
 
         schedule, _ = _schedule_by_id(schedule_id, schedules)
         if schedule is None:
-            raise NotFoundError('schedule %d not found' % schedule_id)
+            raise NotFoundError(f'schedule {schedule_id} not found')
 
         job_id = scheduler_job_map.get(schedule_id)
         if job_id:
@@ -154,7 +154,7 @@ class ScheduleAPI(APIResource):
     @api.validate(base_schedule_schema, description='Updated Schedule Object')
     @api.response(201, model=api_schedule_schema)
     def put(self, schedule_id, session=None):
-        """ Update schedule """
+        """Update schedule."""
         new_schedule = request.json
 
         schedules = self.manager.config.get('schedules', [])
@@ -167,7 +167,7 @@ class ScheduleAPI(APIResource):
 
         schedule, idx = _schedule_by_id(schedule_id, self.manager.config['schedules'])
         if not schedule:
-            raise NotFoundError('schedule %d not found' % schedule_id)
+            raise NotFoundError(f'schedule {schedule_id} not found')
 
         new_schedule['id'] = id(schedule)
         self.manager.config['schedules'][idx] = new_schedule
@@ -180,13 +180,13 @@ class ScheduleAPI(APIResource):
 
     @api.response(200, description='Schedule deleted', model=base_message_schema)
     def delete(self, schedule_id, session=None):
-        """ Delete a schedule """
+        """Delete a schedule."""
         schedules = self.manager.config.get('schedules')
 
         # Checks for boolean config
         if schedules is True:
             raise Conflict('Schedules usage is set to default, cannot delete')
-        elif schedules is False:
+        if schedules is False:
             raise Conflict('Schedules are disables in config')
 
         for i in range(len(self.manager.config.get('schedules', []))):
@@ -194,6 +194,6 @@ class ScheduleAPI(APIResource):
                 del self.manager.config['schedules'][i]
                 self.manager.save_config()
                 self.manager.config_changed()
-                return success_response('schedule %d successfully deleted' % schedule_id)
+                return success_response(f'schedule {schedule_id} successfully deleted')
 
-        raise NotFoundError('schedule %d not found' % schedule_id)
+        raise NotFoundError(f'schedule {schedule_id} not found')

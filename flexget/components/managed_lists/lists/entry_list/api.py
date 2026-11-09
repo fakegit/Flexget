@@ -88,10 +88,10 @@ entry_list_parser.add_argument('name', help='Filter results by list name')
 @entry_list_api.route('/')
 class EntryListListsAPI(APIResource):
     @etag
-    @api.doc(parser=entry_list_parser)
+    @api.doc(expect=[entry_list_parser])
     @api.response(200, 'Successfully retrieved entry lists', entry_list_return_lists_schema)
     def get(self, session=None):
-        """ Get entry lists """
+        """Get entry lists."""
         args = entry_list_parser.parse_args()
         name = args.get('name')
 
@@ -104,7 +104,7 @@ class EntryListListsAPI(APIResource):
     @api.response(201, model=entry_list_object_schema)
     @api.response(Conflict)
     def post(self, session=None):
-        """ Create a new entry list """
+        """Create a new entry list."""
         data = request.json
         name = data.get('name')
         new_list = False
@@ -113,7 +113,7 @@ class EntryListListsAPI(APIResource):
         except NoResultFound:
             new_list = True
         if not new_list:
-            raise Conflict('list with name \'%s\' already exists' % name)
+            raise Conflict(f"list with name '{name}' already exists")
         entry_list = db.EntryListList(name=name)
         session.add(entry_list)
         session.commit()
@@ -129,21 +129,21 @@ class EntryListListAPI(APIResource):
     @api.response(NotFoundError)
     @api.response(200, model=entry_list_object_schema)
     def get(self, list_id, session=None):
-        """ Get list by ID """
+        """Get list by ID."""
         try:
             list = db.get_list_by_id(list_id=list_id, session=session)
         except NoResultFound:
-            raise NotFoundError('list_id %d does not exist' % list_id)
+            raise NotFoundError(f'list_id {list_id} does not exist')
         return jsonify(list.to_dict())
 
     @api.response(200, description='list successfully deleted', model=base_message_schema)
     @api.response(NotFoundError)
     def delete(self, list_id, session=None):
-        """ Delete list by ID """
+        """Delete list by ID."""
         try:
             db.delete_list_by_id(list_id=list_id, session=session)
         except NoResultFound:
-            raise NotFoundError('list_id %d does not exist' % list_id)
+            raise NotFoundError(f'list_id {list_id} does not exist')
         return success_response('list successfully deleted')
 
 
@@ -164,13 +164,13 @@ entries_parser = api.pagination_parser(sort_choices=sort_choices, default='title
 class EntryListEntriesAPI(APIResource):
     @etag
     @api.response(200, model=entry_lists_entries_return_schema)
-    @api.doc(params={'list_id': 'ID of the list'}, parser=entries_parser)
+    @api.doc(params={'list_id': 'ID of the list'}, expect=[entries_parser])
     def get(self, list_id, session=None):
-        """ Get entries by list ID """
+        """Get entries by list ID."""
         try:
             list = db.get_list_by_id(list_id=list_id, session=session)
         except NoResultFound:
-            raise NotFoundError('list_id %d does not exist' % list_id)
+            raise NotFoundError(f'list_id {list_id} does not exist')
 
         args = entries_parser.parse_args()
 
@@ -181,8 +181,7 @@ class EntryListEntriesAPI(APIResource):
         sort_order = args['order']
 
         # Handle max size limit
-        if per_page > 100:
-            per_page = 100
+        per_page = min(per_page, 100)
 
         start = per_page * (page - 1)
         stop = start + per_page
@@ -206,10 +205,10 @@ class EntryListEntriesAPI(APIResource):
         entries = [entry.to_dict() for entry in db.get_entries_by_list_id(**kwargs)]
 
         # Total number of pages
-        total_pages = int(ceil(total_items / float(per_page)))
+        total_pages = ceil(total_items / float(per_page))
 
         if page > total_pages:
-            raise NotFoundError('page %s does not exist' % page)
+            raise NotFoundError(f'page {page} does not exist')
 
         # Actual results in page
         actual_size = min(len(entries), per_page)
@@ -230,16 +229,16 @@ class EntryListEntriesAPI(APIResource):
     )
     @api.response(Conflict)
     def post(self, list_id, session=None):
-        """ Create a new entry object"""
+        """Create a new entry object."""
         try:
             db.get_list_by_id(list_id=list_id, session=session)
         except NoResultFound:
-            raise NotFoundError('list_id %d does not exist' % list_id)
+            raise NotFoundError(f'list_id {list_id} does not exist')
         data = request.json
         title = data.get('title')
         entry_object = db.get_entry_by_title(list_id=list_id, title=title, session=session)
         if entry_object:
-            raise Conflict('entry with title \'%s\' already exists' % title)
+            raise Conflict(f"entry with title '{title}' already exists")
         entry_object = db.EntryListEntry(entry=data, entry_list_id=list_id)
         session.add(entry_object)
         session.commit()
@@ -255,24 +254,24 @@ class EntryListEntryAPI(APIResource):
     @etag
     @api.response(200, model=entry_list_entry_base_schema)
     def get(self, list_id, entry_id, session=None):
-        """ Get an entry by list ID and entry ID """
+        """Get an entry by list ID and entry ID."""
         try:
             entry = db.get_entry_by_id(list_id=list_id, entry_id=entry_id, session=session)
         except NoResultFound:
-            raise NotFoundError('could not find entry with id %d in list %d' % (entry_id, list_id))
+            raise NotFoundError(f'could not find entry with id {entry_id} in list {list_id}')
 
         return jsonify(entry.to_dict())
 
     @api.response(200, model=base_message_schema)
     def delete(self, list_id, entry_id, session=None):
-        """ Delete an entry by list ID and entry ID """
+        """Delete an entry by list ID and entry ID."""
         try:
             entry = db.get_entry_by_id(list_id=list_id, entry_id=entry_id, session=session)
         except NoResultFound:
-            raise NotFoundError('could not find entry with id %d in list %d' % (entry_id, list_id))
+            raise NotFoundError(f'could not find entry with id {entry_id} in list {list_id}')
         logger.debug('deleting movie {}', entry.id)
         session.delete(entry)
-        return success_response('successfully deleted entry %d' % entry.id)
+        return success_response(f'successfully deleted entry {entry.id}')
 
     @api.validate(model=base_entry_schema)
     @api.response(201, model=entry_list_entry_base_schema)
@@ -280,13 +279,12 @@ class EntryListEntryAPI(APIResource):
         description='Sent entry data will override any existing entry data the existed before'
     )
     def put(self, list_id, entry_id, session=None):
-        """ Sets entry object's entry data """
+        """Set entry object's entry data."""
         try:
             entry = db.get_entry_by_id(list_id=list_id, entry_id=entry_id, session=session)
         except NoResultFound:
-            raise NotFoundError('could not find entry with id %d in list %d' % (entry_id, list_id))
-        data = request.json
-        entry.entry = data
+            raise NotFoundError(f'could not find entry with id {entry_id} in list {list_id}')
+        entry.entry = data = request.json
         if data.get('title'):
             entry.title = data['title']
         if data.get('original_url'):
@@ -305,7 +303,7 @@ class EntryListEntriesBatchAPI(APIResource):
     @api.validate(model=entry_list_batch_remove_schema)
     @api.doc(description='Remove multiple entries')
     def delete(self, list_id, session=None):
-        """Remove multiple entries"""
+        """Remove multiple entries."""
         data = request.json
         entry_ids = data.get('ids')
         try:

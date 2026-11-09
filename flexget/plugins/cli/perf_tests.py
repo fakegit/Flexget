@@ -12,7 +12,7 @@ TESTS = ['imdb_query']
 
 def cli_perf_test(manager, options):
     if options.test_name not in TESTS:
-        console('Unknown performance test %s' % options.test_name)
+        console(f'Unknown performance test {options.test_name}')
         return
     session = Session()
     try:
@@ -25,8 +25,8 @@ def cli_perf_test(manager, options):
 def imdb_query(session):
     import time
 
-    from progressbar import ETA, Bar, Percentage, ProgressBar
-    from sqlalchemy.orm import joinedload_all
+    from rich.progress import track
+    from sqlalchemy.orm import joinedload
     from sqlalchemy.sql.expression import select
 
     # NOTE: importing other plugins directly is discouraged
@@ -37,7 +37,7 @@ def imdb_query(session):
 
     logger.info('Getting imdb_urls ...')
     # query so that we avoid loading whole object (maybe cached?)
-    for _, url in session.execute(select([Movie.id, Movie.url])):
+    for _, url in session.execute(select(Movie.id, Movie.url)):
         imdb_urls.append(url)
     logger.info('Got {} urls from database', len(imdb_urls))
     if not imdb_urls:
@@ -46,20 +46,21 @@ def imdb_query(session):
 
     # commence testing
 
-    widgets = ['Benchmarking - ', ETA(), ' ', Percentage(), ' ', Bar(left='[', right=']')]
-    bar = ProgressBar(widgets=widgets, maxval=len(imdb_urls)).start()
-
     log_query_count('test')
     start_time = time.time()
-    for index, url in enumerate(imdb_urls):
-        bar.update(index)
-
+    for url in track(imdb_urls, description='Benchmarking...'):
         # movie = session.query(Movie).filter(Movie.url == url).first()
         # movie = session.query(Movie).options(subqueryload(Movie.genres)).filter(Movie.url == url).one()
 
         movie = (
-            session.query(Movie)
-            .options(joinedload_all(Movie.genres, Movie.languages, Movie.actors, Movie.directors))
+            session
+            .query(Movie)
+            .options(
+                joinedload(Movie.genres),
+                joinedload(Movie.languages),
+                joinedload(Movie.actors),
+                joinedload(Movie.directors),
+            )
             .filter(Movie.url == url)
             .first()
         )
@@ -68,11 +69,11 @@ def imdb_query(session):
         [x.name for x in movie.genres]
         [x.name for x in movie.directors]
         [x.name for x in movie.actors]
-        [x.name for x in movie.languages]
+        [x.language for x in movie.languages]
 
     log_query_count('test')
     took = time.time() - start_time
-    logger.debug('Took %.2f seconds to query %i movies' % (took, len(imdb_urls)))
+    logger.debug('Took {:.2f} seconds to query {} movies', took, len(imdb_urls))
 
 
 @event('options.register')

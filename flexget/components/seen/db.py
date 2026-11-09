@@ -1,4 +1,5 @@
-"""
+"""Provide functionality for managing a database of seen entries and fields.
+
 Listens events:
 
 forget (string)
@@ -7,22 +8,21 @@ forget (string)
     task name then everything in that task will be forgotten. With title all learned fields from it and the
     title will be forgotten. With field value only that particular field is forgotten.
 """
+
+from __future__ import annotations
+
 from datetime import datetime
 
 from loguru import logger
 from sqlalchemy import (
     Boolean,
-    Column,
-    DateTime,
     ForeignKey,
     Index,
-    Integer,
-    Unicode,
     or_,
     select,
     update,
 )
-from sqlalchemy.orm import relation
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from flexget import db_schema, plugin
 from flexget.event import event
@@ -36,9 +36,10 @@ try:
 except ImportError:
     raise plugin.DependencyError(issued_by=__name__, missing='imdb')
 
-
 logger = logger.bind(name='seen.db')
 Base = db_schema.versioned_base('seen', 4)
+
+ESCAPE_QUERY = '\\'
 
 
 @db_schema.upgrade('seen')
@@ -65,7 +66,7 @@ def upgrade(ver, session):
         # setting the default to False in the last migration was broken, fix the data
         logger.info('Repairing seen table')
         entry_table = table_schema('seen_entry', session)
-        session.execute(update(entry_table, entry_table.c.local == None, {'local': False}))
+        session.execute(update(entry_table, entry_table.c.local.is_(None), {'local': False}))
         ver = 4
 
     return ver
@@ -74,14 +75,16 @@ def upgrade(ver, session):
 class SeenEntry(Base):
     __tablename__ = 'seen_entry'
 
-    id = Column(Integer, primary_key=True)
-    title = Column(Unicode)
-    reason = Column(Unicode)
-    task = Column('feed', Unicode)
-    added = Column(DateTime)
-    local = Column(Boolean)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    title: Mapped[str | None]
+    reason: Mapped[str | None]
+    task: Mapped[str | None] = mapped_column('feed')
+    added: Mapped[datetime | None] = mapped_column(default=datetime.now)
+    local: Mapped[bool | None]
 
-    fields = relation('SeenField', backref='seen_entry', cascade='all, delete, delete-orphan')
+    fields: Mapped[list[SeenField]] = relationship(
+        back_populates='seen_entry', cascade='all, delete-orphan'
+    )
 
     def __init__(self, title, task, reason=None, local=None):
         if local is None:
@@ -89,23 +92,15 @@ class SeenEntry(Base):
         self.title = title
         self.reason = reason
         self.task = task
-        self.added = datetime.now()
         self.local = local
 
     def __str__(self):
-        return '<SeenEntry(title=%s,reason=%s,task=%s,added=%s)>' % (
-            self.title,
-            self.reason,
-            self.task,
-            self.added,
-        )
+        return f'<SeenEntry(title={self.title},reason={self.reason},task={self.task},added={self.added})>'
 
     def to_dict(self):
-        fields = []
-        for field in self.fields:
-            fields.append(field.to_dict())
+        fields = [field.to_dict() for field in self.fields]
 
-        seen_entry_object = {
+        return {
             'id': self.id,
             'title': self.title,
             'reason': self.reason,
@@ -114,25 +109,24 @@ class SeenEntry(Base):
             'local': self.local,
             'fields': fields,
         }
-        return seen_entry_object
 
 
 class SeenField(Base):
     __tablename__ = 'seen_field'
 
-    id = Column(Integer, primary_key=True)
-    seen_entry_id = Column(Integer, ForeignKey('seen_entry.id'), nullable=False, index=True)
-    field = Column(Unicode)
-    value = Column(Unicode, index=True)
-    added = Column(DateTime)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    seen_entry_id: Mapped[int] = mapped_column(ForeignKey('seen_entry.id'), index=True)
+    seen_entry: Mapped[SeenEntry] = relationship(back_populates='fields')
+    field: Mapped[str | None]
+    value: Mapped[str | None] = mapped_column(index=True)
+    added: Mapped[datetime | None] = mapped_column(default=datetime.now)
 
     def __init__(self, field, value):
         self.field = field
         self.value = value
-        self.added = datetime.now()
 
     def __str__(self):
-        return '<SeenField(field=%s,value=%s,added=%s)>' % (self.field, self.value, self.added)
+        return f'<SeenField(field={self.field},value={self.value},added={self.added})>'
 
     def to_dict(self):
         return {
@@ -146,8 +140,7 @@ class SeenField(Base):
 
 @with_session
 def add(title, task_name, fields, reason=None, local=None, session=None):
-    """
-    Adds seen entries to DB
+    """Add seen entries to DB.
 
     :param title: name of title to be added
     :param task_name: name of task to be added
@@ -164,40 +157,73 @@ def add(title, task_name, fields, reason=None, local=None, session=None):
 
 
 @event('forget')
-def forget(value):
-    """
-    See module docstring
+def forget(value, tasks=None, test=False):
+    """See module docstring.
 
-    :param string value: Can be task name, entry title or field value
+    :param string value: Can be entry title or field value
     :return: count, field_count where count is number of entries removed and field_count number of fields
     """
     with Session() as session:
         logger.debug('forget called with {}', value)
         count = 0
         field_count = 0
-        for se in (
-            session.query(SeenEntry)
-            .filter(or_(SeenEntry.title == value, SeenEntry.task == value))
-            .all()
-        ):
-            field_count += len(se.fields)
-            count += 1
-            logger.debug('forgetting {}', se)
-            session.delete(se)
 
-        for sf in session.query(SeenField).filter(SeenField.value == value).all():
-            se = session.query(SeenEntry).filter(SeenEntry.id == sf.seen_entry_id).first()
+        if isinstance(tasks, list):
+            pass
+        elif isinstance(tasks, str):
+            tasks = [tasks]
+        else:
+            tasks = None
+
+        if tasks:
+            query_se = session.query(SeenEntry).filter(SeenEntry.task.in_(tasks))
+            # If we just got a wildcard no need for further filtering
+            if value != '%':
+                query_se = query_se.filter(SeenEntry.title.like(value, escape=ESCAPE_QUERY))
+            query_sf = session.query(SeenField).filter(
+                SeenField.value.like(value, escape=ESCAPE_QUERY)
+            )
+        else:
+            query_se = session.query(SeenEntry).filter(SeenEntry.title == value)
+            query_sf = session.query(SeenField).filter(SeenField.value == value)
+
+        for se in query_se.all():
             field_count += len(se.fields)
             count += 1
-            logger.debug('forgetting {}', se)
-            session.delete(se)
+
+            if test:
+                logger.info(
+                    'Testing: would forget entry with title `{}` of task `{}`', se.title, se.task
+                )
+            else:
+                logger.debug('forgetting {}', se)
+                session.delete(se)
+
+        for sf in query_sf.all():
+            se = sf.seen_entry
+            if tasks and se.task not in tasks:
+                continue
+            field_count += len(se.fields)
+            count += 1
+
+            if test:
+                logger.info(
+                    'Testing: would forget entry `{}` of task `{}` based on field `{}` with value `{}`',
+                    se.title,
+                    se.task,
+                    sf.field,
+                    sf.value,
+                )
+            else:
+                logger.debug('forgetting {}', se)
+                session.delete(se)
     return count, field_count
 
 
 @with_session
 def search_by_field_values(field_value_list, task_name, local=False, session=None):
-    """
-    Return a SeenEntry instance if it matches field values
+    """Return a SeenEntry instance if it matches field values.
+
     :param field_value_list: List of field values to match
     :param task_name: Name of task to compare to in case local flag is sent
     :param local: Local flag
@@ -209,15 +235,14 @@ def search_by_field_values(field_value_list, task_name, local=False, session=Non
         found = found.filter(SeenEntry.task == task_name)
     else:
         # Entries added from CLI were having local marked as None rather than False for a while gh#879
-        found = found.filter(or_(SeenEntry.local == False, SeenEntry.local == None))
+        found = found.filter(or_(~SeenEntry.local, SeenEntry.local.is_(None)))
     return found.first()
 
 
 @event('manager.db_cleanup')
 def db_cleanup(manager, session):
     # TODO: Look into this, is it still valid?
-    logger.debug('TODO: Disabled because of ticket #1321')
-    return
+    logger.debug('TODO: Disabled')
 
     # Remove seen fields over a year old
     # result = session.query(SeenField).filter(SeenField.added < datetime.now() - timedelta(days=365)).delete()
@@ -232,22 +257,33 @@ def search(
     status=None,
     start=None,
     stop=None,
+    tasks=None,
     order_by='added',
     descending=False,
     session=None,
 ):
     query = session.query(SeenEntry).join(SeenField)
     if value:
-        query = query.filter(SeenField.value.like(value))
+        query = query.filter(SeenField.value.like(value, escape=ESCAPE_QUERY))
     if status is not None:
         query = query.filter(SeenEntry.local == status)
+
+    if isinstance(tasks, list):
+        pass
+    elif isinstance(tasks, str):
+        tasks = [tasks]
+    else:
+        tasks = None
+
+    if tasks:
+        query = query.filter(SeenEntry.task.in_(tasks))
     if count:
         return query.group_by(SeenEntry).count()
     if descending:
         query = query.order_by(getattr(SeenEntry, order_by).desc())
     else:
         query = query.order_by(getattr(SeenEntry, order_by))
-    return query.group_by(SeenEntry).slice(start, stop).from_self()
+    return query.group_by(SeenEntry).slice(start, stop)
 
 
 @with_session
@@ -257,8 +293,8 @@ def get_entry_by_id(entry_id, session=None):
 
 @with_session
 def forget_by_id(entry_id, session=None):
-    """
-    Delete SeenEntry via its ID
+    """Delete SeenEntry via its ID.
+
     :param entry_id: SeenEntry ID
     :param session: DB Session
     """

@@ -1,0 +1,1039 @@
+interactions:
+- request:
+    body: '{"label": "tag_by_id"}'
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '22'
+      User-Agent:
+      - python-requests/2.24.0
+      X-Api-Key:
+      - 65e246ce581a426781e1a8645f0a1f2c
+    method: POST
+    uri: http://127.0.0.1:7878/api/v3/tag
+  response:
+    body:
+      string: "{\n  \"label\": \"tag_by_id\",\n  \"id\": 1\n}"
+    headers:
+      Access-Control-Allow-Origin:
+      - '*'
+      Cache-Control:
+      - no-cache, no-store, must-revalidate, max-age=0
+      Content-Encoding:
+      - gzip
+      Content-Type:
+      - application/json; charset=utf-8
+      Date:
+      - Wed, 11 Nov 2020 04:11:18 GMT
+      Expires:
+      - '0'
+      Pragma:
+      - no-cache
+      Server:
+      - Kestrel
+      Vary:
+      - Accept
+      X-ApplicationVersion:
+      - 3.0.0.3989
+    status:
+      code: 201
+      message: Created
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      User-Agent:
+      - python-requests/2.24.0
+      X-Api-Key:
+      - 65e246ce581a426781e1a8645f0a1f2c
+    method: GET
+    uri: http://127.0.0.1:7878/api/v3/qualityProfile
+  response:
+    body:
+      string: "[\n  {\n    \"name\": \"Any\",\n    \"cutoff\": {\n      \"id\": 20,\n
+        \     \"name\": \"Bluray-480p\",\n      \"source\": \"bluray\",\n      \"resolution\":
+        480,\n      \"modifier\": \"none\"\n    },\n    \"items\": [\n      {\n        \"quality\":
+        {\n          \"id\": 0,\n          \"name\": \"Unknown\",\n          \"source\":
+        \"unknown\",\n          \"resolution\": 0,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 24,\n          \"name\": \"WORKPRINT\",\n          \"source\":
+        \"workprint\",\n          \"resolution\": 0,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": true\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 25,\n          \"name\": \"CAM\",\n          \"source\":
+        \"cam\",\n          \"resolution\": 0,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": true\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 26,\n          \"name\": \"TELESYNC\",\n          \"source\":
+        \"telesync\",\n          \"resolution\": 0,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": true\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 27,\n          \"name\": \"TELECINE\",\n          \"source\":
+        \"telecine\",\n          \"resolution\": 0,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": true\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 29,\n          \"name\": \"REGIONAL\",\n          \"source\":
+        \"dvd\",\n          \"resolution\": 480,\n          \"modifier\": \"regional\"\n
+        \       },\n        \"allowed\": true\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 28,\n          \"name\": \"DVDSCR\",\n          \"source\":
+        \"dvd\",\n          \"resolution\": 480,\n          \"modifier\": \"screener\"\n
+        \       },\n        \"allowed\": true\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 1,\n          \"name\": \"SDTV\",\n          \"source\":
+        \"tv\",\n          \"resolution\": 480,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": true\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 2,\n          \"name\": \"DVD\",\n          \"source\":
+        \"dvd\",\n          \"resolution\": 480,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": true\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 23,\n          \"name\": \"DVD-R\",\n          \"source\":
+        \"dvd\",\n          \"resolution\": 480,\n          \"modifier\": \"remux\"\n
+        \       },\n        \"allowed\": true\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 8,\n          \"name\": \"WEBDL-480p\",\n          \"source\":
+        \"webdl\",\n          \"resolution\": 480,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": true\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 12,\n          \"name\": \"WEBRip-480p\",\n          \"source\":
+        \"webrip\",\n          \"resolution\": 480,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": true\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 20,\n          \"name\": \"Bluray-480p\",\n          \"source\":
+        \"bluray\",\n          \"resolution\": 480,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": true\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 21,\n          \"name\": \"Bluray-576p\",\n          \"source\":
+        \"bluray\",\n          \"resolution\": 576,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": true\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 4,\n          \"name\": \"HDTV-720p\",\n          \"source\":
+        \"tv\",\n          \"resolution\": 720,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": true\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 5,\n          \"name\": \"WEBDL-720p\",\n          \"source\":
+        \"webdl\",\n          \"resolution\": 720,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": true\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 14,\n          \"name\": \"WEBRip-720p\",\n          \"source\":
+        \"webrip\",\n          \"resolution\": 720,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": true\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 6,\n          \"name\": \"Bluray-720p\",\n          \"source\":
+        \"bluray\",\n          \"resolution\": 720,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": true\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 9,\n          \"name\": \"HDTV-1080p\",\n          \"source\":
+        \"tv\",\n          \"resolution\": 1080,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": true\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 3,\n          \"name\": \"WEBDL-1080p\",\n          \"source\":
+        \"webdl\",\n          \"resolution\": 1080,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": true\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 15,\n          \"name\": \"WEBRip-1080p\",\n          \"source\":
+        \"webrip\",\n          \"resolution\": 1080,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": true\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 7,\n          \"name\": \"Bluray-1080p\",\n          \"source\":
+        \"bluray\",\n          \"resolution\": 1080,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": true\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 30,\n          \"name\": \"Remux-1080p\",\n          \"source\":
+        \"bluray\",\n          \"resolution\": 1080,\n          \"modifier\": \"remux\"\n
+        \       },\n        \"allowed\": true\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 16,\n          \"name\": \"HDTV-2160p\",\n          \"source\":
+        \"tv\",\n          \"resolution\": 2160,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": true\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 18,\n          \"name\": \"WEBDL-2160p\",\n          \"source\":
+        \"webdl\",\n          \"resolution\": 2160,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": true\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 17,\n          \"name\": \"WEBRip-2160p\",\n          \"source\":
+        \"webrip\",\n          \"resolution\": 2160,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": true\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 19,\n          \"name\": \"Bluray-2160p\",\n          \"source\":
+        \"bluray\",\n          \"resolution\": 2160,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": true\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 31,\n          \"name\": \"Remux-2160p\",\n          \"source\":
+        \"bluray\",\n          \"resolution\": 2160,\n          \"modifier\": \"remux\"\n
+        \       },\n        \"allowed\": true\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 22,\n          \"name\": \"BR-DISK\",\n          \"source\":
+        \"bluray\",\n          \"resolution\": 1080,\n          \"modifier\": \"brdisk\"\n
+        \       },\n        \"allowed\": true\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 10,\n          \"name\": \"Raw-HD\",\n          \"source\":
+        \"tv\",\n          \"resolution\": 1080,\n          \"modifier\": \"rawhd\"\n
+        \       },\n        \"allowed\": false\n      }\n    ],\n    \"minFormatScore\":
+        0,\n    \"cutoffFormatScore\": 0,\n    \"formatItems\": [],\n    \"language\":
+        {\n      \"id\": 1,\n      \"name\": \"English\"\n    },\n    \"id\": 1\n
+        \ },\n  {\n    \"name\": \"SD\",\n    \"cutoff\": {\n      \"id\": 20,\n      \"name\":
+        \"Bluray-480p\",\n      \"source\": \"bluray\",\n      \"resolution\": 480,\n
+        \     \"modifier\": \"none\"\n    },\n    \"items\": [\n      {\n        \"quality\":
+        {\n          \"id\": 0,\n          \"name\": \"Unknown\",\n          \"source\":
+        \"unknown\",\n          \"resolution\": 0,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 24,\n          \"name\": \"WORKPRINT\",\n          \"source\":
+        \"workprint\",\n          \"resolution\": 0,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": true\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 25,\n          \"name\": \"CAM\",\n          \"source\":
+        \"cam\",\n          \"resolution\": 0,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": true\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 26,\n          \"name\": \"TELESYNC\",\n          \"source\":
+        \"telesync\",\n          \"resolution\": 0,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": true\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 27,\n          \"name\": \"TELECINE\",\n          \"source\":
+        \"telecine\",\n          \"resolution\": 0,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": true\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 29,\n          \"name\": \"REGIONAL\",\n          \"source\":
+        \"dvd\",\n          \"resolution\": 480,\n          \"modifier\": \"regional\"\n
+        \       },\n        \"allowed\": true\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 28,\n          \"name\": \"DVDSCR\",\n          \"source\":
+        \"dvd\",\n          \"resolution\": 480,\n          \"modifier\": \"screener\"\n
+        \       },\n        \"allowed\": true\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 1,\n          \"name\": \"SDTV\",\n          \"source\":
+        \"tv\",\n          \"resolution\": 480,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": true\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 2,\n          \"name\": \"DVD\",\n          \"source\":
+        \"dvd\",\n          \"resolution\": 480,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": true\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 23,\n          \"name\": \"DVD-R\",\n          \"source\":
+        \"dvd\",\n          \"resolution\": 480,\n          \"modifier\": \"remux\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 8,\n          \"name\": \"WEBDL-480p\",\n          \"source\":
+        \"webdl\",\n          \"resolution\": 480,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": true\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 12,\n          \"name\": \"WEBRip-480p\",\n          \"source\":
+        \"webrip\",\n          \"resolution\": 480,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": true\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 20,\n          \"name\": \"Bluray-480p\",\n          \"source\":
+        \"bluray\",\n          \"resolution\": 480,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": true\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 21,\n          \"name\": \"Bluray-576p\",\n          \"source\":
+        \"bluray\",\n          \"resolution\": 576,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": true\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 4,\n          \"name\": \"HDTV-720p\",\n          \"source\":
+        \"tv\",\n          \"resolution\": 720,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 5,\n          \"name\": \"WEBDL-720p\",\n          \"source\":
+        \"webdl\",\n          \"resolution\": 720,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 14,\n          \"name\": \"WEBRip-720p\",\n          \"source\":
+        \"webrip\",\n          \"resolution\": 720,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 6,\n          \"name\": \"Bluray-720p\",\n          \"source\":
+        \"bluray\",\n          \"resolution\": 720,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 9,\n          \"name\": \"HDTV-1080p\",\n          \"source\":
+        \"tv\",\n          \"resolution\": 1080,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 3,\n          \"name\": \"WEBDL-1080p\",\n          \"source\":
+        \"webdl\",\n          \"resolution\": 1080,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 15,\n          \"name\": \"WEBRip-1080p\",\n          \"source\":
+        \"webrip\",\n          \"resolution\": 1080,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 7,\n          \"name\": \"Bluray-1080p\",\n          \"source\":
+        \"bluray\",\n          \"resolution\": 1080,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 30,\n          \"name\": \"Remux-1080p\",\n          \"source\":
+        \"bluray\",\n          \"resolution\": 1080,\n          \"modifier\": \"remux\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 16,\n          \"name\": \"HDTV-2160p\",\n          \"source\":
+        \"tv\",\n          \"resolution\": 2160,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 18,\n          \"name\": \"WEBDL-2160p\",\n          \"source\":
+        \"webdl\",\n          \"resolution\": 2160,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 17,\n          \"name\": \"WEBRip-2160p\",\n          \"source\":
+        \"webrip\",\n          \"resolution\": 2160,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 19,\n          \"name\": \"Bluray-2160p\",\n          \"source\":
+        \"bluray\",\n          \"resolution\": 2160,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 31,\n          \"name\": \"Remux-2160p\",\n          \"source\":
+        \"bluray\",\n          \"resolution\": 2160,\n          \"modifier\": \"remux\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 22,\n          \"name\": \"BR-DISK\",\n          \"source\":
+        \"bluray\",\n          \"resolution\": 1080,\n          \"modifier\": \"brdisk\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 10,\n          \"name\": \"Raw-HD\",\n          \"source\":
+        \"tv\",\n          \"resolution\": 1080,\n          \"modifier\": \"rawhd\"\n
+        \       },\n        \"allowed\": false\n      }\n    ],\n    \"minFormatScore\":
+        0,\n    \"cutoffFormatScore\": 0,\n    \"formatItems\": [],\n    \"language\":
+        {\n      \"id\": 1,\n      \"name\": \"English\"\n    },\n    \"id\": 2\n
+        \ },\n  {\n    \"name\": \"HD-720p\",\n    \"cutoff\": {\n      \"id\": 6,\n
+        \     \"name\": \"Bluray-720p\",\n      \"source\": \"bluray\",\n      \"resolution\":
+        720,\n      \"modifier\": \"none\"\n    },\n    \"items\": [\n      {\n        \"quality\":
+        {\n          \"id\": 0,\n          \"name\": \"Unknown\",\n          \"source\":
+        \"unknown\",\n          \"resolution\": 0,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 24,\n          \"name\": \"WORKPRINT\",\n          \"source\":
+        \"workprint\",\n          \"resolution\": 0,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 25,\n          \"name\": \"CAM\",\n          \"source\":
+        \"cam\",\n          \"resolution\": 0,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 26,\n          \"name\": \"TELESYNC\",\n          \"source\":
+        \"telesync\",\n          \"resolution\": 0,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 27,\n          \"name\": \"TELECINE\",\n          \"source\":
+        \"telecine\",\n          \"resolution\": 0,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 29,\n          \"name\": \"REGIONAL\",\n          \"source\":
+        \"dvd\",\n          \"resolution\": 480,\n          \"modifier\": \"regional\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 28,\n          \"name\": \"DVDSCR\",\n          \"source\":
+        \"dvd\",\n          \"resolution\": 480,\n          \"modifier\": \"screener\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 1,\n          \"name\": \"SDTV\",\n          \"source\":
+        \"tv\",\n          \"resolution\": 480,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 2,\n          \"name\": \"DVD\",\n          \"source\":
+        \"dvd\",\n          \"resolution\": 480,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 23,\n          \"name\": \"DVD-R\",\n          \"source\":
+        \"dvd\",\n          \"resolution\": 480,\n          \"modifier\": \"remux\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 8,\n          \"name\": \"WEBDL-480p\",\n          \"source\":
+        \"webdl\",\n          \"resolution\": 480,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 12,\n          \"name\": \"WEBRip-480p\",\n          \"source\":
+        \"webrip\",\n          \"resolution\": 480,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 20,\n          \"name\": \"Bluray-480p\",\n          \"source\":
+        \"bluray\",\n          \"resolution\": 480,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 21,\n          \"name\": \"Bluray-576p\",\n          \"source\":
+        \"bluray\",\n          \"resolution\": 576,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 4,\n          \"name\": \"HDTV-720p\",\n          \"source\":
+        \"tv\",\n          \"resolution\": 720,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": true\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 5,\n          \"name\": \"WEBDL-720p\",\n          \"source\":
+        \"webdl\",\n          \"resolution\": 720,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": true\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 14,\n          \"name\": \"WEBRip-720p\",\n          \"source\":
+        \"webrip\",\n          \"resolution\": 720,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": true\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 6,\n          \"name\": \"Bluray-720p\",\n          \"source\":
+        \"bluray\",\n          \"resolution\": 720,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": true\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 9,\n          \"name\": \"HDTV-1080p\",\n          \"source\":
+        \"tv\",\n          \"resolution\": 1080,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 3,\n          \"name\": \"WEBDL-1080p\",\n          \"source\":
+        \"webdl\",\n          \"resolution\": 1080,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 15,\n          \"name\": \"WEBRip-1080p\",\n          \"source\":
+        \"webrip\",\n          \"resolution\": 1080,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 7,\n          \"name\": \"Bluray-1080p\",\n          \"source\":
+        \"bluray\",\n          \"resolution\": 1080,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 30,\n          \"name\": \"Remux-1080p\",\n          \"source\":
+        \"bluray\",\n          \"resolution\": 1080,\n          \"modifier\": \"remux\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 16,\n          \"name\": \"HDTV-2160p\",\n          \"source\":
+        \"tv\",\n          \"resolution\": 2160,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 18,\n          \"name\": \"WEBDL-2160p\",\n          \"source\":
+        \"webdl\",\n          \"resolution\": 2160,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 17,\n          \"name\": \"WEBRip-2160p\",\n          \"source\":
+        \"webrip\",\n          \"resolution\": 2160,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 19,\n          \"name\": \"Bluray-2160p\",\n          \"source\":
+        \"bluray\",\n          \"resolution\": 2160,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 31,\n          \"name\": \"Remux-2160p\",\n          \"source\":
+        \"bluray\",\n          \"resolution\": 2160,\n          \"modifier\": \"remux\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 22,\n          \"name\": \"BR-DISK\",\n          \"source\":
+        \"bluray\",\n          \"resolution\": 1080,\n          \"modifier\": \"brdisk\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 10,\n          \"name\": \"Raw-HD\",\n          \"source\":
+        \"tv\",\n          \"resolution\": 1080,\n          \"modifier\": \"rawhd\"\n
+        \       },\n        \"allowed\": false\n      }\n    ],\n    \"minFormatScore\":
+        0,\n    \"cutoffFormatScore\": 0,\n    \"formatItems\": [],\n    \"language\":
+        {\n      \"id\": 1,\n      \"name\": \"English\"\n    },\n    \"id\": 3\n
+        \ },\n  {\n    \"name\": \"HD-1080p\",\n    \"cutoff\": {\n      \"id\": 7,\n
+        \     \"name\": \"Bluray-1080p\",\n      \"source\": \"bluray\",\n      \"resolution\":
+        1080,\n      \"modifier\": \"none\"\n    },\n    \"items\": [\n      {\n        \"quality\":
+        {\n          \"id\": 0,\n          \"name\": \"Unknown\",\n          \"source\":
+        \"unknown\",\n          \"resolution\": 0,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 24,\n          \"name\": \"WORKPRINT\",\n          \"source\":
+        \"workprint\",\n          \"resolution\": 0,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 25,\n          \"name\": \"CAM\",\n          \"source\":
+        \"cam\",\n          \"resolution\": 0,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 26,\n          \"name\": \"TELESYNC\",\n          \"source\":
+        \"telesync\",\n          \"resolution\": 0,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 27,\n          \"name\": \"TELECINE\",\n          \"source\":
+        \"telecine\",\n          \"resolution\": 0,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 29,\n          \"name\": \"REGIONAL\",\n          \"source\":
+        \"dvd\",\n          \"resolution\": 480,\n          \"modifier\": \"regional\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 28,\n          \"name\": \"DVDSCR\",\n          \"source\":
+        \"dvd\",\n          \"resolution\": 480,\n          \"modifier\": \"screener\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 1,\n          \"name\": \"SDTV\",\n          \"source\":
+        \"tv\",\n          \"resolution\": 480,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 2,\n          \"name\": \"DVD\",\n          \"source\":
+        \"dvd\",\n          \"resolution\": 480,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 23,\n          \"name\": \"DVD-R\",\n          \"source\":
+        \"dvd\",\n          \"resolution\": 480,\n          \"modifier\": \"remux\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 8,\n          \"name\": \"WEBDL-480p\",\n          \"source\":
+        \"webdl\",\n          \"resolution\": 480,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 12,\n          \"name\": \"WEBRip-480p\",\n          \"source\":
+        \"webrip\",\n          \"resolution\": 480,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 20,\n          \"name\": \"Bluray-480p\",\n          \"source\":
+        \"bluray\",\n          \"resolution\": 480,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 21,\n          \"name\": \"Bluray-576p\",\n          \"source\":
+        \"bluray\",\n          \"resolution\": 576,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 4,\n          \"name\": \"HDTV-720p\",\n          \"source\":
+        \"tv\",\n          \"resolution\": 720,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 5,\n          \"name\": \"WEBDL-720p\",\n          \"source\":
+        \"webdl\",\n          \"resolution\": 720,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 14,\n          \"name\": \"WEBRip-720p\",\n          \"source\":
+        \"webrip\",\n          \"resolution\": 720,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 6,\n          \"name\": \"Bluray-720p\",\n          \"source\":
+        \"bluray\",\n          \"resolution\": 720,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 9,\n          \"name\": \"HDTV-1080p\",\n          \"source\":
+        \"tv\",\n          \"resolution\": 1080,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": true\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 3,\n          \"name\": \"WEBDL-1080p\",\n          \"source\":
+        \"webdl\",\n          \"resolution\": 1080,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": true\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 15,\n          \"name\": \"WEBRip-1080p\",\n          \"source\":
+        \"webrip\",\n          \"resolution\": 1080,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": true\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 7,\n          \"name\": \"Bluray-1080p\",\n          \"source\":
+        \"bluray\",\n          \"resolution\": 1080,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": true\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 30,\n          \"name\": \"Remux-1080p\",\n          \"source\":
+        \"bluray\",\n          \"resolution\": 1080,\n          \"modifier\": \"remux\"\n
+        \       },\n        \"allowed\": true\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 16,\n          \"name\": \"HDTV-2160p\",\n          \"source\":
+        \"tv\",\n          \"resolution\": 2160,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 18,\n          \"name\": \"WEBDL-2160p\",\n          \"source\":
+        \"webdl\",\n          \"resolution\": 2160,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 17,\n          \"name\": \"WEBRip-2160p\",\n          \"source\":
+        \"webrip\",\n          \"resolution\": 2160,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 19,\n          \"name\": \"Bluray-2160p\",\n          \"source\":
+        \"bluray\",\n          \"resolution\": 2160,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 31,\n          \"name\": \"Remux-2160p\",\n          \"source\":
+        \"bluray\",\n          \"resolution\": 2160,\n          \"modifier\": \"remux\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 22,\n          \"name\": \"BR-DISK\",\n          \"source\":
+        \"bluray\",\n          \"resolution\": 1080,\n          \"modifier\": \"brdisk\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 10,\n          \"name\": \"Raw-HD\",\n          \"source\":
+        \"tv\",\n          \"resolution\": 1080,\n          \"modifier\": \"rawhd\"\n
+        \       },\n        \"allowed\": false\n      }\n    ],\n    \"minFormatScore\":
+        0,\n    \"cutoffFormatScore\": 0,\n    \"formatItems\": [],\n    \"language\":
+        {\n      \"id\": 1,\n      \"name\": \"English\"\n    },\n    \"id\": 4\n
+        \ },\n  {\n    \"name\": \"Ultra-HD\",\n    \"cutoff\": {\n      \"id\": 31,\n
+        \     \"name\": \"Remux-2160p\",\n      \"source\": \"bluray\",\n      \"resolution\":
+        2160,\n      \"modifier\": \"remux\"\n    },\n    \"items\": [\n      {\n
+        \       \"quality\": {\n          \"id\": 0,\n          \"name\": \"Unknown\",\n
+        \         \"source\": \"unknown\",\n          \"resolution\": 0,\n          \"modifier\":
+        \"none\"\n        },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 24,\n          \"name\": \"WORKPRINT\",\n          \"source\":
+        \"workprint\",\n          \"resolution\": 0,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 25,\n          \"name\": \"CAM\",\n          \"source\":
+        \"cam\",\n          \"resolution\": 0,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 26,\n          \"name\": \"TELESYNC\",\n          \"source\":
+        \"telesync\",\n          \"resolution\": 0,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 27,\n          \"name\": \"TELECINE\",\n          \"source\":
+        \"telecine\",\n          \"resolution\": 0,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 29,\n          \"name\": \"REGIONAL\",\n          \"source\":
+        \"dvd\",\n          \"resolution\": 480,\n          \"modifier\": \"regional\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 28,\n          \"name\": \"DVDSCR\",\n          \"source\":
+        \"dvd\",\n          \"resolution\": 480,\n          \"modifier\": \"screener\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 1,\n          \"name\": \"SDTV\",\n          \"source\":
+        \"tv\",\n          \"resolution\": 480,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 2,\n          \"name\": \"DVD\",\n          \"source\":
+        \"dvd\",\n          \"resolution\": 480,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 23,\n          \"name\": \"DVD-R\",\n          \"source\":
+        \"dvd\",\n          \"resolution\": 480,\n          \"modifier\": \"remux\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 8,\n          \"name\": \"WEBDL-480p\",\n          \"source\":
+        \"webdl\",\n          \"resolution\": 480,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 12,\n          \"name\": \"WEBRip-480p\",\n          \"source\":
+        \"webrip\",\n          \"resolution\": 480,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 20,\n          \"name\": \"Bluray-480p\",\n          \"source\":
+        \"bluray\",\n          \"resolution\": 480,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 21,\n          \"name\": \"Bluray-576p\",\n          \"source\":
+        \"bluray\",\n          \"resolution\": 576,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 4,\n          \"name\": \"HDTV-720p\",\n          \"source\":
+        \"tv\",\n          \"resolution\": 720,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 5,\n          \"name\": \"WEBDL-720p\",\n          \"source\":
+        \"webdl\",\n          \"resolution\": 720,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 14,\n          \"name\": \"WEBRip-720p\",\n          \"source\":
+        \"webrip\",\n          \"resolution\": 720,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 6,\n          \"name\": \"Bluray-720p\",\n          \"source\":
+        \"bluray\",\n          \"resolution\": 720,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 9,\n          \"name\": \"HDTV-1080p\",\n          \"source\":
+        \"tv\",\n          \"resolution\": 1080,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 3,\n          \"name\": \"WEBDL-1080p\",\n          \"source\":
+        \"webdl\",\n          \"resolution\": 1080,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 15,\n          \"name\": \"WEBRip-1080p\",\n          \"source\":
+        \"webrip\",\n          \"resolution\": 1080,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 7,\n          \"name\": \"Bluray-1080p\",\n          \"source\":
+        \"bluray\",\n          \"resolution\": 1080,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 30,\n          \"name\": \"Remux-1080p\",\n          \"source\":
+        \"bluray\",\n          \"resolution\": 1080,\n          \"modifier\": \"remux\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 16,\n          \"name\": \"HDTV-2160p\",\n          \"source\":
+        \"tv\",\n          \"resolution\": 2160,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": true\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 18,\n          \"name\": \"WEBDL-2160p\",\n          \"source\":
+        \"webdl\",\n          \"resolution\": 2160,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": true\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 17,\n          \"name\": \"WEBRip-2160p\",\n          \"source\":
+        \"webrip\",\n          \"resolution\": 2160,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": true\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 19,\n          \"name\": \"Bluray-2160p\",\n          \"source\":
+        \"bluray\",\n          \"resolution\": 2160,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": true\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 31,\n          \"name\": \"Remux-2160p\",\n          \"source\":
+        \"bluray\",\n          \"resolution\": 2160,\n          \"modifier\": \"remux\"\n
+        \       },\n        \"allowed\": true\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 22,\n          \"name\": \"BR-DISK\",\n          \"source\":
+        \"bluray\",\n          \"resolution\": 1080,\n          \"modifier\": \"brdisk\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 10,\n          \"name\": \"Raw-HD\",\n          \"source\":
+        \"tv\",\n          \"resolution\": 1080,\n          \"modifier\": \"rawhd\"\n
+        \       },\n        \"allowed\": false\n      }\n    ],\n    \"minFormatScore\":
+        0,\n    \"cutoffFormatScore\": 0,\n    \"formatItems\": [],\n    \"language\":
+        {\n      \"id\": 1,\n      \"name\": \"English\"\n    },\n    \"id\": 5\n
+        \ },\n  {\n    \"name\": \"HD - 720p/1080p\",\n    \"cutoff\": {\n      \"id\":
+        6,\n      \"name\": \"Bluray-720p\",\n      \"source\": \"bluray\",\n      \"resolution\":
+        720,\n      \"modifier\": \"none\"\n    },\n    \"items\": [\n      {\n        \"quality\":
+        {\n          \"id\": 0,\n          \"name\": \"Unknown\",\n          \"source\":
+        \"unknown\",\n          \"resolution\": 0,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 24,\n          \"name\": \"WORKPRINT\",\n          \"source\":
+        \"workprint\",\n          \"resolution\": 0,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 25,\n          \"name\": \"CAM\",\n          \"source\":
+        \"cam\",\n          \"resolution\": 0,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 26,\n          \"name\": \"TELESYNC\",\n          \"source\":
+        \"telesync\",\n          \"resolution\": 0,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 27,\n          \"name\": \"TELECINE\",\n          \"source\":
+        \"telecine\",\n          \"resolution\": 0,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 29,\n          \"name\": \"REGIONAL\",\n          \"source\":
+        \"dvd\",\n          \"resolution\": 480,\n          \"modifier\": \"regional\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 28,\n          \"name\": \"DVDSCR\",\n          \"source\":
+        \"dvd\",\n          \"resolution\": 480,\n          \"modifier\": \"screener\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 1,\n          \"name\": \"SDTV\",\n          \"source\":
+        \"tv\",\n          \"resolution\": 480,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 2,\n          \"name\": \"DVD\",\n          \"source\":
+        \"dvd\",\n          \"resolution\": 480,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 23,\n          \"name\": \"DVD-R\",\n          \"source\":
+        \"dvd\",\n          \"resolution\": 480,\n          \"modifier\": \"remux\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 8,\n          \"name\": \"WEBDL-480p\",\n          \"source\":
+        \"webdl\",\n          \"resolution\": 480,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 12,\n          \"name\": \"WEBRip-480p\",\n          \"source\":
+        \"webrip\",\n          \"resolution\": 480,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 20,\n          \"name\": \"Bluray-480p\",\n          \"source\":
+        \"bluray\",\n          \"resolution\": 480,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 21,\n          \"name\": \"Bluray-576p\",\n          \"source\":
+        \"bluray\",\n          \"resolution\": 576,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 4,\n          \"name\": \"HDTV-720p\",\n          \"source\":
+        \"tv\",\n          \"resolution\": 720,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": true\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 5,\n          \"name\": \"WEBDL-720p\",\n          \"source\":
+        \"webdl\",\n          \"resolution\": 720,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": true\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 14,\n          \"name\": \"WEBRip-720p\",\n          \"source\":
+        \"webrip\",\n          \"resolution\": 720,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": true\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 6,\n          \"name\": \"Bluray-720p\",\n          \"source\":
+        \"bluray\",\n          \"resolution\": 720,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": true\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 9,\n          \"name\": \"HDTV-1080p\",\n          \"source\":
+        \"tv\",\n          \"resolution\": 1080,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": true\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 3,\n          \"name\": \"WEBDL-1080p\",\n          \"source\":
+        \"webdl\",\n          \"resolution\": 1080,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": true\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 15,\n          \"name\": \"WEBRip-1080p\",\n          \"source\":
+        \"webrip\",\n          \"resolution\": 1080,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": true\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 7,\n          \"name\": \"Bluray-1080p\",\n          \"source\":
+        \"bluray\",\n          \"resolution\": 1080,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": true\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 30,\n          \"name\": \"Remux-1080p\",\n          \"source\":
+        \"bluray\",\n          \"resolution\": 1080,\n          \"modifier\": \"remux\"\n
+        \       },\n        \"allowed\": true\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 16,\n          \"name\": \"HDTV-2160p\",\n          \"source\":
+        \"tv\",\n          \"resolution\": 2160,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 18,\n          \"name\": \"WEBDL-2160p\",\n          \"source\":
+        \"webdl\",\n          \"resolution\": 2160,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 17,\n          \"name\": \"WEBRip-2160p\",\n          \"source\":
+        \"webrip\",\n          \"resolution\": 2160,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 19,\n          \"name\": \"Bluray-2160p\",\n          \"source\":
+        \"bluray\",\n          \"resolution\": 2160,\n          \"modifier\": \"none\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 31,\n          \"name\": \"Remux-2160p\",\n          \"source\":
+        \"bluray\",\n          \"resolution\": 2160,\n          \"modifier\": \"remux\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 22,\n          \"name\": \"BR-DISK\",\n          \"source\":
+        \"bluray\",\n          \"resolution\": 1080,\n          \"modifier\": \"brdisk\"\n
+        \       },\n        \"allowed\": false\n      },\n      {\n        \"quality\":
+        {\n          \"id\": 10,\n          \"name\": \"Raw-HD\",\n          \"source\":
+        \"tv\",\n          \"resolution\": 1080,\n          \"modifier\": \"rawhd\"\n
+        \       },\n        \"allowed\": false\n      }\n    ],\n    \"minFormatScore\":
+        0,\n    \"cutoffFormatScore\": 0,\n    \"formatItems\": [],\n    \"language\":
+        {\n      \"id\": 1,\n      \"name\": \"English\"\n    },\n    \"id\": 6\n
+        \ }\n]"
+    headers:
+      Access-Control-Allow-Origin:
+      - '*'
+      Cache-Control:
+      - no-cache, no-store, must-revalidate, max-age=0
+      Content-Encoding:
+      - gzip
+      Content-Type:
+      - application/json; charset=utf-8
+      Date:
+      - Wed, 11 Nov 2020 04:11:18 GMT
+      Expires:
+      - '0'
+      Pragma:
+      - no-cache
+      Server:
+      - Kestrel
+      Vary:
+      - Accept
+      X-ApplicationVersion:
+      - 3.0.0.3989
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      User-Agent:
+      - python-requests/2.24.0
+      X-Api-Key:
+      - 65e246ce581a426781e1a8645f0a1f2c
+    method: GET
+    uri: http://127.0.0.1:7878/api/v3/movie
+  response:
+    body:
+      string: '[]'
+    headers:
+      Access-Control-Allow-Origin:
+      - '*'
+      Cache-Control:
+      - no-cache, no-store, must-revalidate, max-age=0
+      Content-Encoding:
+      - gzip
+      Content-Type:
+      - application/json; charset=utf-8
+      Date:
+      - Wed, 11 Nov 2020 04:11:18 GMT
+      Expires:
+      - '0'
+      Pragma:
+      - no-cache
+      Server:
+      - Kestrel
+      Vary:
+      - Accept
+      X-ApplicationVersion:
+      - 3.0.0.3989
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      User-Agent:
+      - python-requests/2.24.0
+      X-Api-Key:
+      - 65e246ce581a426781e1a8645f0a1f2c
+    method: GET
+    uri: http://127.0.0.1:7878/api/v3/movie/lookup/imdb?imdbId=tt1431045
+  response:
+    body:
+      string: "{\n  \"title\": \"Deadpool\",\n  \"alternativeTitles\": [\n    {\n
+        \     \"sourceType\": \"tmdb\",\n      \"movieId\": 0,\n      \"title\": \"X\u6218\u8B66\uFF1A\u6B7B\u4F8D\",\n
+        \     \"sourceId\": 0,\n      \"votes\": 0,\n      \"voteCount\": 0,\n      \"language\":
+        {\n        \"id\": 1,\n        \"name\": \"English\"\n      }\n    },\n    {\n
+        \     \"sourceType\": \"tmdb\",\n      \"movieId\": 0,\n      \"title\": \"Masacre\",\n
+        \     \"sourceId\": 0,\n      \"votes\": 0,\n      \"voteCount\": 0,\n      \"language\":
+        {\n        \"id\": 3,\n        \"name\": \"Spanish\"\n      }\n    },\n    {\n
+        \     \"sourceType\": \"tmdb\",\n      \"movieId\": 0,\n      \"title\": \"\u0E40\u0E14\u0E14\u0E1E\u0E39\u0E25\",\n
+        \     \"sourceId\": 0,\n      \"votes\": 0,\n      \"voteCount\": 0,\n      \"language\":
+        {\n        \"id\": 28,\n        \"name\": \"Thai\"\n      }\n    }\n  ],\n
+        \ \"secondaryYearSourceId\": 0,\n  \"sortTitle\": \"deadpool\",\n  \"sizeOnDisk\":
+        0,\n  \"status\": \"released\",\n  \"overview\": \"Deadpool tells the origin
+        story of former Special Forces operative turned mercenary Wade Wilson, who
+        after being subjected to a rogue experiment that leaves him with accelerated
+        healing powers, adopts the alter ego Deadpool. Armed with his new abilities
+        and a dark, twisted sense of humor, Deadpool hunts down the man who nearly
+        destroyed his life.\",\n  \"inCinemas\": \"2016-02-09T00:00:00Z\",\n  \"physicalRelease\":
+        \"2016-05-10T00:00:00Z\",\n  \"images\": [\n    {\n      \"coverType\": \"poster\",\n
+        \     \"url\": \"https://image.tmdb.org/t/p/original/yGSxMiF0cYuAiyuve5DA6bnWEOI.jpg\"\n
+        \   },\n    {\n      \"coverType\": \"fanart\",\n      \"url\": \"https://image.tmdb.org/t/p/original/en971MEXui9diirXlogOrPKmsEn.jpg\"\n
+        \   }\n  ],\n  \"website\": \"http://www.foxmovies.com/movies/deadpool\",\n
+        \ \"downloaded\": false,\n  \"year\": 2016,\n  \"hasFile\": false,\n  \"youTubeTrailerId\":
+        \"FyKWUTwSYAs\",\n  \"studio\": \"Marvel Entertainment\",\n  \"profileId\":
+        0,\n  \"monitored\": false,\n  \"minimumAvailability\": \"tba\",\n  \"isAvailable\":
+        true,\n  \"folderName\": \"\",\n  \"runtime\": 108,\n  \"cleanTitle\": \"deadpool\",\n
+        \ \"imdbId\": \"tt1431045\",\n  \"tmdbId\": 293660,\n  \"titleSlug\": \"293660\",\n
+        \ \"certification\": \"R\",\n  \"genres\": [\n    \"Action\",\n    \"Adventure\",\n
+        \   \"Comedy\"\n  ],\n  \"tags\": [],\n  \"added\": \"0001-01-01T00:00:00Z\",\n
+        \ \"ratings\": {\n    \"votes\": 23753,\n    \"value\": 7.6\n  },\n  \"qualityProfileId\":
+        0\n}"
+    headers:
+      Access-Control-Allow-Origin:
+      - '*'
+      Cache-Control:
+      - no-cache, no-store, must-revalidate, max-age=0
+      Content-Encoding:
+      - gzip
+      Content-Type:
+      - application/json; charset=utf-8
+      Date:
+      - Wed, 11 Nov 2020 04:11:19 GMT
+      Expires:
+      - '0'
+      Pragma:
+      - no-cache
+      Server:
+      - Kestrel
+      Vary:
+      - Accept
+      X-ApplicationVersion:
+      - 3.0.0.3989
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      User-Agent:
+      - python-requests/2.24.0
+      X-Api-Key:
+      - 65e246ce581a426781e1a8645f0a1f2c
+    method: GET
+    uri: http://127.0.0.1:7878/api/v3/rootfolder
+  response:
+    body:
+      string: "[\n  {\n    \"path\": \"/tmp\",\n    \"freeSpace\": 63035846656,\n
+        \   \"totalSpace\": 200461111296,\n    \"unmappedFolders\": [],\n    \"id\":
+        1\n  }\n]"
+    headers:
+      Access-Control-Allow-Origin:
+      - '*'
+      Cache-Control:
+      - no-cache, no-store, must-revalidate, max-age=0
+      Content-Encoding:
+      - gzip
+      Content-Type:
+      - application/json; charset=utf-8
+      Date:
+      - Wed, 11 Nov 2020 04:11:19 GMT
+      Expires:
+      - '0'
+      Pragma:
+      - no-cache
+      Server:
+      - Kestrel
+      Vary:
+      - Accept
+      X-ApplicationVersion:
+      - 3.0.0.3989
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      User-Agent:
+      - python-requests/2.24.0
+      X-Api-Key:
+      - 65e246ce581a426781e1a8645f0a1f2c
+    method: GET
+    uri: http://127.0.0.1:7878/api/v3/tag
+  response:
+    body:
+      string: "[\n  {\n    \"label\": \"movies\",\n    \"id\": 2\n  },\n  {\n    \"label\":
+        \"othertag\",\n    \"id\": 3\n  },\n  {\n    \"label\": \"tag_by_id\",\n    \"id\":
+        1\n  }\n]"
+    headers:
+      Access-Control-Allow-Origin:
+      - '*'
+      Cache-Control:
+      - no-cache, no-store, must-revalidate, max-age=0
+      Content-Encoding:
+      - gzip
+      Content-Type:
+      - application/json; charset=utf-8
+      Date:
+      - Wed, 11 Nov 2020 04:11:19 GMT
+      Expires:
+      - '0'
+      Pragma:
+      - no-cache
+      Server:
+      - Kestrel
+      Vary:
+      - Accept
+      X-ApplicationVersion:
+      - 3.0.0.3989
+    status:
+      code: 200
+      message: OK
+- request:
+    body: '{"title": "Deadpool", "year": 2016, "qualityProfileId": 1, "titleSlug":
+      "293660", "images": [{"coverType": "poster", "url": "https://image.tmdb.org/t/p/original/yGSxMiF0cYuAiyuve5DA6bnWEOI.jpg"},
+      {"coverType": "fanart", "url": "https://image.tmdb.org/t/p/original/en971MEXui9diirXlogOrPKmsEn.jpg"}],
+      "tmdbId": 293660, "rootFolderPath": "/tmp", "monitored": true, "tags": [2, 3,
+      1]}'
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '381'
+      User-Agent:
+      - python-requests/2.24.0
+      X-Api-Key:
+      - 65e246ce581a426781e1a8645f0a1f2c
+    method: POST
+    uri: http://127.0.0.1:7878/api/v3/movie
+  response:
+    body:
+      string: "{\n  \"title\": \"Deadpool\",\n  \"alternativeTitles\": [],\n  \"secondaryYearSourceId\":
+        0,\n  \"sortTitle\": \"deadpool\",\n  \"sizeOnDisk\": 0,\n  \"status\": \"released\",\n
+        \ \"overview\": \"Deadpool tells the origin story of former Special Forces
+        operative turned mercenary Wade Wilson, who after being subjected to a rogue
+        experiment that leaves him with accelerated healing powers, adopts the alter
+        ego Deadpool. Armed with his new abilities and a dark, twisted sense of humor,
+        Deadpool hunts down the man who nearly destroyed his life.\",\n  \"inCinemas\":
+        \"2016-02-09T00:00:00Z\",\n  \"physicalRelease\": \"2016-05-10T00:00:00Z\",\n
+        \ \"images\": [\n    {\n      \"coverType\": \"poster\",\n      \"url\": \"/MediaCover/16/poster.jpg\",\n
+        \     \"remoteUrl\": \"https://image.tmdb.org/t/p/original/yGSxMiF0cYuAiyuve5DA6bnWEOI.jpg\"\n
+        \   },\n    {\n      \"coverType\": \"fanart\",\n      \"url\": \"/MediaCover/16/fanart.jpg\",\n
+        \     \"remoteUrl\": \"https://image.tmdb.org/t/p/original/en971MEXui9diirXlogOrPKmsEn.jpg\"\n
+        \   }\n  ],\n  \"website\": \"http://www.foxmovies.com/movies/deadpool\",\n
+        \ \"downloaded\": false,\n  \"year\": 2016,\n  \"hasFile\": false,\n  \"youTubeTrailerId\":
+        \"FyKWUTwSYAs\",\n  \"studio\": \"Marvel Entertainment\",\n  \"path\": \"/tmp/Deadpool
+        (2016)\",\n  \"profileId\": 1,\n  \"monitored\": true,\n  \"minimumAvailability\":
+        \"tba\",\n  \"isAvailable\": true,\n  \"folderName\": \"/tmp/Deadpool (2016)\",\n
+        \ \"runtime\": 108,\n  \"cleanTitle\": \"deadpool\",\n  \"imdbId\": \"tt1431045\",\n
+        \ \"tmdbId\": 293660,\n  \"titleSlug\": \"293660\",\n  \"certification\":
+        \"R\",\n  \"genres\": [\n    \"Action\",\n    \"Adventure\",\n    \"Comedy\"\n
+        \ ],\n  \"tags\": [\n    2,\n    3,\n    1\n  ],\n  \"added\": \"2020-11-11T04:11:20.4127213Z\",\n
+        \ \"ratings\": {\n    \"votes\": 23753,\n    \"value\": 7.6\n  },\n  \"qualityProfileId\":
+        1,\n  \"id\": 16\n}"
+    headers:
+      Access-Control-Allow-Origin:
+      - '*'
+      Cache-Control:
+      - no-cache, no-store, must-revalidate, max-age=0
+      Content-Encoding:
+      - gzip
+      Content-Type:
+      - application/json; charset=utf-8
+      Date:
+      - Wed, 11 Nov 2020 04:11:19 GMT
+      Expires:
+      - '0'
+      Pragma:
+      - no-cache
+      Server:
+      - Kestrel
+      Vary:
+      - Accept
+      X-ApplicationVersion:
+      - 3.0.0.3989
+    status:
+      code: 201
+      message: Created
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      User-Agent:
+      - python-requests/2.24.0
+      X-Api-Key:
+      - 65e246ce581a426781e1a8645f0a1f2c
+    method: GET
+    uri: http://127.0.0.1:7878/api/v3/tag
+  response:
+    body:
+      string: "[\n  {\n    \"label\": \"movies\",\n    \"id\": 2\n  },\n  {\n    \"label\":
+        \"othertag\",\n    \"id\": 3\n  },\n  {\n    \"label\": \"tag_by_id\",\n    \"id\":
+        1\n  }\n]"
+    headers:
+      Access-Control-Allow-Origin:
+      - '*'
+      Cache-Control:
+      - no-cache, no-store, must-revalidate, max-age=0
+      Content-Encoding:
+      - gzip
+      Content-Type:
+      - application/json; charset=utf-8
+      Date:
+      - Wed, 11 Nov 2020 04:11:19 GMT
+      Expires:
+      - '0'
+      Pragma:
+      - no-cache
+      Server:
+      - Kestrel
+      Vary:
+      - Accept
+      X-ApplicationVersion:
+      - 3.0.0.3989
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      User-Agent:
+      - python-requests/2.24.0
+      X-Api-Key:
+      - 65e246ce581a426781e1a8645f0a1f2c
+    method: GET
+    uri: http://127.0.0.1:7878/api/v3/movie
+  response:
+    body:
+      string: "[\n  {\n    \"title\": \"Deadpool\",\n    \"alternativeTitles\": [],\n
+        \   \"secondaryYearSourceId\": 0,\n    \"sortTitle\": \"deadpool\",\n    \"sizeOnDisk\":
+        0,\n    \"status\": \"released\",\n    \"overview\": \"Deadpool tells the
+        origin story of former Special Forces operative turned mercenary Wade Wilson,
+        who after being subjected to a rogue experiment that leaves him with accelerated
+        healing powers, adopts the alter ego Deadpool. Armed with his new abilities
+        and a dark, twisted sense of humor, Deadpool hunts down the man who nearly
+        destroyed his life.\",\n    \"inCinemas\": \"2016-02-09T00:00:00Z\",\n    \"physicalRelease\":
+        \"2016-05-10T00:00:00Z\",\n    \"images\": [\n      {\n        \"coverType\":
+        \"poster\",\n        \"url\": \"/MediaCover/16/poster.jpg\",\n        \"remoteUrl\":
+        \"https://image.tmdb.org/t/p/original/yGSxMiF0cYuAiyuve5DA6bnWEOI.jpg\"\n
+        \     },\n      {\n        \"coverType\": \"fanart\",\n        \"url\": \"/MediaCover/16/fanart.jpg\",\n
+        \       \"remoteUrl\": \"https://image.tmdb.org/t/p/original/en971MEXui9diirXlogOrPKmsEn.jpg\"\n
+        \     }\n    ],\n    \"website\": \"http://www.foxmovies.com/movies/deadpool\",\n
+        \   \"downloaded\": false,\n    \"year\": 2016,\n    \"hasFile\": false,\n
+        \   \"youTubeTrailerId\": \"FyKWUTwSYAs\",\n    \"studio\": \"Marvel Entertainment\",\n
+        \   \"path\": \"/tmp/Deadpool (2016)\",\n    \"profileId\": 1,\n    \"monitored\":
+        true,\n    \"minimumAvailability\": \"tba\",\n    \"isAvailable\": true,\n
+        \   \"folderName\": \"/tmp/Deadpool (2016)\",\n    \"runtime\": 108,\n    \"cleanTitle\":
+        \"deadpool\",\n    \"imdbId\": \"tt1431045\",\n    \"tmdbId\": 293660,\n    \"titleSlug\":
+        \"293660\",\n    \"certification\": \"R\",\n    \"genres\": [\n      \"Action\",\n
+        \     \"Adventure\",\n      \"Comedy\"\n    ],\n    \"tags\": [\n      2,\n
+        \     3,\n      1\n    ],\n    \"added\": \"2020-11-11T04:11:20.4127213Z\",\n
+        \   \"ratings\": {\n      \"votes\": 23753,\n      \"value\": 7.6\n    },\n
+        \   \"qualityProfileId\": 1,\n    \"id\": 16\n  }\n]"
+    headers:
+      Access-Control-Allow-Origin:
+      - '*'
+      Cache-Control:
+      - no-cache, no-store, must-revalidate, max-age=0
+      Content-Encoding:
+      - gzip
+      Content-Type:
+      - application/json; charset=utf-8
+      Date:
+      - Wed, 11 Nov 2020 04:11:20 GMT
+      Expires:
+      - '0'
+      Pragma:
+      - no-cache
+      Server:
+      - Kestrel
+      Vary:
+      - Accept
+      X-ApplicationVersion:
+      - 3.0.0.3989
+    status:
+      code: 200
+      message: OK
+version: 1

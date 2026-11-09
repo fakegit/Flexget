@@ -6,31 +6,40 @@ from flexget import plugin
 from flexget.config_schema import one_or_more
 from flexget.entry import Entry
 from flexget.event import event
-from flexget.utils.template import RenderError, render_from_entry, render_from_task
+from flexget.utils.template import (
+    RenderError,
+    filter_shell_quote,
+    render_from_entry,
+    render_from_task,
+)
 from flexget.utils.tools import io_encoding
 
 logger = logger.bind(name='exec')
 
 
 class EscapingEntry(Entry):
-    """Helper class, same as a Entry, but returns all string value with quotes escaped."""
+    """Copy of an Entry whose string field values are pre-quoted for safe use in a shell command line.
 
-    def __init__(self, entry):
-        super().__init__(entry)
+    Used by the `auto_escape` option. The store is populated directly
+    (bypassing Entry's normal per-field __setitem__ coercion, e.g.
+    `location` -> `Path`) so the quoting survives untouched. Disposable,
+    one-shot rendering context only -- not a real Entry (no accept/reject/fail
+    state).
+    """
 
-    def __getitem__(self, key):
-        value = super().__getitem__(key)
-        # TODO: May need to be different depending on OS
-        if isinstance(value, str):
-            value = value.replace('"', '\\"')
-        return value
+    def __init__(self, entry: Entry) -> None:
+        super().__init__()
+        self.store = {
+            key: filter_shell_quote(value) if isinstance(value, str) else value
+            for key, value in entry.store.items()
+        }
+        self.task = entry.task
 
 
 class PluginExec:
-    """
-    Execute commands
+    """Execute commands.
 
-    Simple example, xecute command for entries that reach output::
+    Simple example, execute command for entries that reach output::
 
       exec: echo 'found {{title}} at {{url}}' > file
 
@@ -45,6 +54,44 @@ class PluginExec:
           for_accepted: echo 'accepted {{title}} - {{url}} > file
 
     You can use all (available) entry fields in the command.
+
+    Security
+    --------
+    Commands run in a real shell (``shell=True``). Entry fields (``title``,
+    ``url``, and anything else that came from a feed/site) are
+    attacker-controlled: a malicious feed can put shell metacharacters
+    (backticks, ``$()``, ``;``, ``|``, quotes, newlines, ...) in a field and
+    have them run as part of your command. This does not apply to the
+    ``phase`` key, which templates from the task rather than an entry.
+
+    To safely substitute untrusted entry fields, either:
+
+    - Set ``auto_escape: yes`` to shell-quote every substituted entry field
+      automatically::
+
+        exec:
+          auto_escape: yes
+          on_output:
+            for_accepted: echo 'accepted {{title}}' >> log.txt
+
+    - Or apply the ``shell_quote`` filter to individual fields (works
+      everywhere, including ``phase:``)::
+
+        exec:
+          on_output:
+            for_accepted: echo {{title|shell_quote}} >> log.txt
+
+    Important: do not wrap an escaped field in your own quotes
+    (``"{{title}}"`` or ``'{{title}}'``). That is not just redundant, it can
+    reopen the hole: a backtick is still expanded by the shell inside double
+    quotes, and an embedded quote from the escaping can break out of your own
+    single quotes. Leave the field bare (or adjacent to plain unquoted text,
+    e.g. ``/path/{{title|shell_quote}}``).
+
+    Neither option protects shell syntax *you* write literally: ``;``,
+    ``|``, ``>``, backticks etc. that you type yourself in the command are
+    still your responsibility. They only ensure a substituted value can't
+    break out of its own token to run something else.
     """
 
     NAME = 'exec'
@@ -56,11 +103,11 @@ class PluginExec:
             {
                 'type': 'object',
                 'properties': {
-                    'on_start': {'$ref': '#/definitions/phaseSettings'},
-                    'on_input': {'$ref': '#/definitions/phaseSettings'},
-                    'on_filter': {'$ref': '#/definitions/phaseSettings'},
-                    'on_output': {'$ref': '#/definitions/phaseSettings'},
-                    'on_exit': {'$ref': '#/definitions/phaseSettings'},
+                    'on_start': {'$ref': '#/$defs/phaseSettings'},
+                    'on_input': {'$ref': '#/$defs/phaseSettings'},
+                    'on_filter': {'$ref': '#/$defs/phaseSettings'},
+                    'on_output': {'$ref': '#/$defs/phaseSettings'},
+                    'on_exit': {'$ref': '#/$defs/phaseSettings'},
                     'fail_entries': {'type': 'boolean'},
                     'auto_escape': {'type': 'boolean'},
                     'encoding': {'type': 'string'},
@@ -69,7 +116,7 @@ class PluginExec:
                 'additionalProperties': False,
             },
         ],
-        'definitions': {
+        '$defs': {
             'phaseSettings': {
                 'type': 'object',
                 'properties': {
@@ -156,8 +203,9 @@ class PluginExec:
                         # fail the entry if configured to do so
                         if config.get('fail_entries'):
                             entry.fail(
-                                'Entry `%s` does not have required fields for string replacement.'
-                                % entry['title']
+                                'Entry `{}` does not have required fields for string replacement.'.format(
+                                    entry['title']
+                                )
                             )
                         continue
 
@@ -177,8 +225,9 @@ class PluginExec:
                             )
                             if config.get('fail_entries'):
                                 entry.fail(
-                                    'cmd `%s` could not be encoded to %s.'
-                                    % (cmd, config['encoding'])
+                                    'cmd `{}` could not be encoded to {}.'.format(
+                                        cmd, config['encoding']
+                                    )
                                 )
                             continue
                         # Run the command, fail entries with non-zero return code if configured to
@@ -202,7 +251,7 @@ class PluginExec:
                         self.execute_cmd(cmd, allow_background, config['encoding'])
 
     def __getattr__(self, item):
-        """Creates methods to handle task phases."""
+        """Create methods to handle task phases."""
         for phase in self.HANDLED_PHASES:
             if item == plugin.phase_methods[phase]:
                 # A phase method we handle has been requested

@@ -1,6 +1,7 @@
 from loguru import logger
 
-from flexget import entry, plugin
+from flexget import plugin
+from flexget.entry import register_lazy_lookup
 from flexget.event import event
 from flexget.utils.database import with_session
 
@@ -14,44 +15,46 @@ logger = logger.bind(name='thetvdb_lookup')
 
 
 class PluginThetvdbLookup:
-    """Retrieves TheTVDB information for entries. Uses series_name,
-    series_season, series_episode from series plugin.
+    """Retrieve TheTVDB information for entries.
 
-    Example:
+    Use series_name, series_season, series_episode from series plugin.
 
-    thetvdb_lookup: yes
+    Example::
+
+        thetvdb_lookup: yes
 
     Primarily used for passing thetvdb information to other plugins.
     Among these is the IMDB url for the series.
 
-    This information is provided (via entry):
-    series info:
-      tvdb_series_name
-      tvdb_rating
-      tvdb_status (Continuing or Ended)
-      tvdb_runtime (show runtime in minutes)
-      tvdb_first_air_date
-      tvdb_air_time
-      tvdb_content_rating
-      tvdb_genres
-      tvdb_network
-      tvdb_overview
-      tvdb_banner
-      tvdb_posters
-      tvdb_airs_day_of_week
-      tvdb_actors
-      tvdb_language (en, fr, etc.)
-      imdb_url (if available)
-      zap2it_id (if available)
-    episode info: (if episode is found)
-      tvdb_ep_name
-      tvdb_ep_overview
-      tvdb_ep_directors
-      tvdb_ep_writers
-      tvdb_ep_air_date
-      tvdb_ep_rating
-      tvdb_ep_guest_stars
-      tvdb_ep_image
+    This information is provided (via entry)::
+
+        series info:
+          tvdb_series_name
+          tvdb_rating
+          tvdb_status (Continuing or Ended)
+          tvdb_runtime (show runtime in minutes)
+          tvdb_first_air_date
+          tvdb_air_time
+          tvdb_content_rating
+          tvdb_genres
+          tvdb_network
+          tvdb_overview
+          tvdb_banner
+          tvdb_posters
+          tvdb_airs_day_of_week
+          tvdb_actors
+          tvdb_language (en, fr, etc.)
+          imdb_url (if available)
+          zap2it_id (if available)
+        episode info: (if episode is found)
+          tvdb_ep_name
+          tvdb_ep_overview
+          tvdb_ep_directors
+          tvdb_ep_writers
+          tvdb_ep_air_date
+          tvdb_ep_rating
+          tvdb_ep_guest_stars
+          tvdb_ep_image
     """
 
     # Series info
@@ -63,18 +66,19 @@ class PluginThetvdbLookup:
         'tvdb_first_air_date': 'first_aired',
         'tvdb_air_time': 'airs_time',
         'tvdb_content_rating': 'content_rating',
-        'tvdb_genres': lambda series: [g for g in series.genres],
+        'tvdb_genres': lambda series: list(series.genres),
         'tvdb_network': 'network',
         'tvdb_overview': 'overview',
         'tvdb_banner': 'banner',
         'tvdb_language': 'language',
         'tvdb_airs_day_of_week': 'airs_dayofweek',
-        'imdb_url': lambda series: series.imdb_id
-        and f'http://www.imdb.com/title/{series.imdb_id}',
+        'imdb_url': lambda series: (
+            series.imdb_id and f'http://www.imdb.com/title/{series.imdb_id}'
+        ),
         'imdb_id': 'imdb_id',
         'zap2it_id': 'zap2it_id',
         'tvdb_id': 'id',
-        'tvdb_url': lambda series: f'http://thetvdb.com/index.php?tab=series&id={str(series.id)}',
+        'tvdb_url': lambda series: f'http://thetvdb.com/index.php?tab=series&id={series.id!s}',
     }
 
     series_actor_map = {'tvdb_actors': 'actors'}
@@ -117,19 +121,19 @@ class PluginThetvdbLookup:
             )
         return entry
 
-    @entry.register_lazy_lookup('tvdb_series_lookup')
+    @register_lazy_lookup('tvdb_series_lookup')
     def lazy_series_lookup(self, entry, language):
         return self.series_lookup(entry, language, self.series_map)
 
-    @entry.register_lazy_lookup('tvdb_series_actor_lookup')
+    @register_lazy_lookup('tvdb_series_actor_lookup')
     def lazy_series_actor_lookup(self, entry, language):
         return self.series_lookup(entry, language, self.series_actor_map)
 
-    @entry.register_lazy_lookup('tvdb_series_poster_lookup')
+    @register_lazy_lookup('tvdb_series_poster_lookup')
     def lazy_series_poster_lookup(self, entry, language):
         return self.series_lookup(entry, language, self.series_poster_map)
 
-    @entry.register_lazy_lookup('tvdb_episode_lookup')
+    @register_lazy_lookup('tvdb_episode_lookup')
     def lazy_episode_lookup(self, entry, language):
         try:
             season_offset = entry.get('thetvdb_lookup_season_offset', 0)
@@ -142,8 +146,9 @@ class PluginThetvdbLookup:
                 episode_offset = 0
             if season_offset != 0 or episode_offset != 0:
                 logger.debug(
-                    f'Using offset for tvdb lookup: season: {season_offset}, '
-                    f'episode: {episode_offset}'
+                    'Using offset for tvdb lookup: season: {}, episode: {}',
+                    season_offset,
+                    episode_offset,
                 )
 
             lookupargs = {
@@ -208,7 +213,7 @@ class PluginThetvdbLookup:
 
     @property
     def series_identifier(self):
-        """Returns the plugin main identifier type"""
+        """Return the plugin main identifier type."""
         return 'tvdb_id'
 
 

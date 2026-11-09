@@ -11,10 +11,9 @@ logger = logger.bind(name='regex_extract')
 
 
 class RegexExtract:
-    r"""
-    Updates an entry with the values of regex matched named groups
+    r"""Updates an entry with the values of regex matched named groups.
 
-    Usage:
+    Usage::
 
       regex_extract:
         field: <string>
@@ -23,14 +22,13 @@ class RegexExtract:
         [prefix]: <string>
 
 
-    Example:
+    Example::
 
       regex_extract:
         prefix: f1_
         field: title
         regex:
           - Formula\.?1.(?P<location>*?)
-
     """
 
     schema = {
@@ -53,10 +51,9 @@ class RegexExtract:
             for _ in self.regex_list:
                 pass
         except re.error as e:
-            raise plugin.PluginError('Error compiling regex: %s' % str(e))
+            raise plugin.PluginError(f'Error compiling regex: {e!s}')
 
     def on_task_modify(self, task, config):
-
         prefix = config.get('prefix')
         modified = 0
 
@@ -67,7 +64,7 @@ class RegexExtract:
                 try:
                     match = rx.match(entry_field)
                 except re.error as e:
-                    raise plugin.PluginError('Error encountered processing regex: %s' % str(e))
+                    raise plugin.PluginError(f'Error encountered processing regex: {e!s}')
                 if match:
                     logger.debug('Successfully matched {}', entry_field)
                     data = match.groupdict()

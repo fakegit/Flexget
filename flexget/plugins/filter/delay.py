@@ -2,7 +2,8 @@ import pickle
 from datetime import datetime
 
 from loguru import logger
-from sqlalchemy import Column, DateTime, Index, Integer, String, Unicode, select
+from sqlalchemy import Index, Unicode, select
+from sqlalchemy.orm import Mapped, mapped_column
 
 from flexget import db_schema, plugin
 from flexget.entry import Entry
@@ -19,15 +20,15 @@ Base = db_schema.versioned_base('delay', 3)
 class DelayedEntry(Base):
     __tablename__ = 'delay'
 
-    id = Column(Integer, primary_key=True)
-    task = Column('feed', String)
-    title = Column(Unicode)
-    expire = Column(DateTime)
-    _json = Column('json', Unicode)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    task: Mapped[str | None] = mapped_column('feed')
+    title: Mapped[str | None]
+    expire: Mapped[datetime | None]
+    _json: Mapped[str | None] = mapped_column('json')
     entry = entry_synonym('_json')
 
     def __repr__(self):
-        return '<DelayedEntry(title=%s)>' % self.title
+        return f'<DelayedEntry(title={self.title})>'
 
 
 Index('delay_feed_title', DelayedEntry.task, DelayedEntry.title)
@@ -47,11 +48,12 @@ def upgrade(ver, session):
         # Make sure we get the new schema with the added column
         table = table_schema('delay', session)
         failures = 0
-        for row in session.execute(select([table.c.id, table.c.entry])):
+        for row in session.execute(select(table.c.id, table.c.entry)):
             try:
                 p = pickle.loads(row['entry'])
                 session.execute(
-                    table.update()
+                    table
+                    .update()
                     .where(table.c.id == row['id'])
                     .values(json=json.dumps(p, encode_datetime=True))
                 )
@@ -65,7 +67,7 @@ def upgrade(ver, session):
         ver = 2
     if ver == 2:
         table = table_schema('delay', session)
-        for row in session.execute(select([table.c.id, table.c.json])):
+        for row in session.execute(select(table.c.id, table.c.json)):
             if not row['json']:
                 # Seems there could be invalid data somehow. See #2590
                 continue
@@ -82,8 +84,7 @@ def upgrade(ver, session):
 
 
 class FilterDelay:
-    """
-    Add delay to a task. This is useful for de-prioritizing expensive / bad-quality tasks.
+    """Add delay to a task. This is useful for de-prioritizing expensive / bad-quality tasks.
 
     Format: n [minutes|hours|days|weeks]
 
@@ -103,7 +104,7 @@ class FilterDelay:
 
     @plugin.priority(-1)
     def on_task_input(self, task, config):
-        """Captures the current input then replaces it with entries that have passed the delay."""
+        """Capture the current input then replaces it with entries that have passed the delay."""
         if task.entries:
             logger.verbose('Delaying {} new entries for {}', len(task.entries), config)
             # Let details plugin know that it is ok if this task doesn't produce any entries
@@ -114,7 +115,8 @@ class FilterDelay:
             logger.debug('Delaying {}', entry['title'])
             # check if already in queue
             if (
-                not task.session.query(DelayedEntry)
+                not task.session
+                .query(DelayedEntry)
                 .filter(DelayedEntry.title == entry['title'])
                 .filter(DelayedEntry.task == task.name)
                 .first()
@@ -131,7 +133,8 @@ class FilterDelay:
 
         # Generate the list of entries whose delay has passed
         passed_delay = (
-            task.session.query(DelayedEntry)
+            task.session
+            .query(DelayedEntry)
             .filter(datetime.now() > DelayedEntry.expire)
             .filter(DelayedEntry.task == task.name)
         )

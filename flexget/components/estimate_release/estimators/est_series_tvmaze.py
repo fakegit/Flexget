@@ -11,7 +11,7 @@ class EstimatesSeriesTVMaze:
     @plugin.priority(2)
     def estimate(self, entry):
         if not all(field in entry for field in ['series_name', 'series_season']):
-            return
+            return None
         series_name = entry['series_name']
         season = entry['series_season']
         episode_number = entry.get('series_episode')
@@ -50,15 +50,36 @@ class EstimatesSeriesTVMaze:
             if v:
                 logger.debug('{}: {}', k, v)
 
+        entity_data = {'data_exists': True, 'entity_date': None}
+        entity = {}
         try:
             entity = lookup(**kwargs)
         except LookupError as e:
             logger.debug(str(e))
-            return
+            entity_data['data_exists'] = False
         if entity and entity.airdate:
             logger.debug('received air-date: {}', entity.airdate)
-            return entity.airdate
-        return
+            entity_data['entity_date'] = entity.airdate
+
+        if not entity_data['data_exists']:
+            # Make Lookup to series to see if failed because of no episode or no data
+            lookup = api_tvmaze.series_lookup
+            series = {}
+            try:
+                series = lookup(**kwargs)
+            except LookupError:
+                entity_data['data_exists'] = False
+
+            if not series:
+                logger.debug('No data in tvmaze for series: {}', series_name)
+                entity_data['data_exists'] = False
+            else:
+                logger.debug(
+                    'No information to episode, but series {} exists in tvmaze', series_name
+                )
+                entity_data['data_exists'] = True
+
+        return entity_data
 
 
 @event('plugin.register')

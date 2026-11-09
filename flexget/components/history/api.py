@@ -43,13 +43,13 @@ history_parser.add_argument('task', help='Filter by task name')
 
 
 @history_api.route('/')
-@api.doc(parser=history_parser)
+@api.doc(expect=[history_parser])
 class HistoryAPI(APIResource):
     @etag
     @api.response(NotFoundError)
     @api.response(200, model=history_list_schema)
     def get(self, session=None):
-        """ List of previously accepted entries """
+        """List of previously accepted entries."""
         args = history_parser.parse_args()
 
         # Pagination and sorting params
@@ -59,8 +59,7 @@ class HistoryAPI(APIResource):
         sort_order = args['order']
 
         # Hard limit results per page to 100
-        if per_page > 100:
-            per_page = 100
+        per_page = min(per_page, 100)
 
         # Filter param
         task = args['task']
@@ -78,10 +77,10 @@ class HistoryAPI(APIResource):
             rsp.headers.extend(pagination)
             return rsp
 
-        total_pages = int(ceil(total_items / float(per_page)))
+        total_pages = ceil(total_items / float(per_page))
 
         if page > total_pages:
-            raise NotFoundError('page %s does not exist' % page)
+            raise NotFoundError(f'page {page} does not exist')
 
         start = (page - 1) * per_page
         finish = start + per_page

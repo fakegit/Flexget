@@ -1,6 +1,7 @@
 import os
 import shutil
 import time
+from pathlib import Path
 
 from loguru import logger
 
@@ -12,12 +13,12 @@ from flexget.utils.template import RenderError
 
 
 def get_directory_size(directory):
-    """
+    """Return size in bytes (recursively).
+
     :param directory: Path
-    :return: Size in bytes (recursively)
     """
     dir_size = 0
-    for (path, _, files) in os.walk(directory):
+    for path, _, files in os.walk(directory):
         for file in files:
             filename = os.path.join(path, file)
             dir_size += os.path.getsize(filename)
@@ -62,8 +63,8 @@ class BaseFileOps:
     def prepare_config(self, config):
         if config is True:
             return {}
-        elif config is False:
-            return
+        if config is False:
+            return None
 
         if 'along' not in config:
             return config
@@ -88,25 +89,26 @@ class BaseFileOps:
                     'Cannot handle {} because it does not have the field location.', entry['title']
                 )
                 continue
-            src = entry['location']
-            src_isdir = os.path.isdir(src)
+            src = Path(entry['location'])
+            src_isdir = src.is_dir()
             try:
                 # check location
-                if not os.path.exists(src):
+                if not src.exists():
                     self.logger.warning('location `{}` does not exists (anymore).', src)
                     continue
                 if src_isdir:
                     if not config.get('allow_dir'):
                         self.logger.warning('location `{}` is a directory.', src)
                         continue
-                elif not os.path.isfile(src):
+                elif not src.is_file():
                     self.logger.warning('location `{}` is not a file.', src)
                     continue
                 # search for namesakes
                 siblings = {}  # dict of (path=ext) pairs
                 if not src_isdir and 'along' in config:
-                    parent = os.path.dirname(src)
-                    filename_no_ext, filename_ext = os.path.splitext(os.path.basename(src))
+                    parent = src.parent
+                    filename_no_ext = src.stem
+                    filename_ext = src.suffix
                     for ext in config['along']['extensions']:
                         siblings.update(get_siblings(ext, filename_no_ext, filename_ext, parent))
 
@@ -134,10 +136,10 @@ class BaseFileOps:
         min_size = entry.get('clean_source', config.get('clean_source', -1))
         if min_size < 0:
             return
-        base_path = os.path.split(entry.get('old_location', entry['location']))[0]
+        base_path = Path(entry.get('old_location', entry['location'])).parent
         # everything here happens after a successful execution of the main action: the entry has been moved in a
         # different location, or it does not exists anymore. so from here we can just log warnings and move on.
-        if not os.path.isdir(base_path):
+        if not base_path.is_dir():
             self.logger.warning(
                 'Cannot delete path `{}` because it does not exists (anymore).', base_path
             )
@@ -162,7 +164,7 @@ class BaseFileOps:
             self.logger.warning('Unable to delete path `{}`: {}', base_path, err)
 
     def handle_entry(self, task, config, entry, siblings):
-        raise NotImplementedError()
+        raise NotImplementedError
 
 
 class DeleteFiles(BaseFileOps):
@@ -186,14 +188,14 @@ class DeleteFiles(BaseFileOps):
     logger = logger.bind(name='delete')
 
     def handle_entry(self, task, config, entry, siblings):
-        src = entry['location']
-        src_isdir = os.path.isdir(src)
+        src = Path(entry['location'])
+        src_isdir = src.is_dir()
         if task.options.test:
             if src_isdir:
                 self.logger.info('Would delete `{}` and all its content.', src)
             else:
                 self.logger.info('Would delete `{}`', src)
-                for s, _ in siblings.items():
+                for s in siblings:
                     self.logger.info('Would also delete `{}`', s)
             return
         # IO errors will have the entry mark failed in the base class
@@ -201,10 +203,10 @@ class DeleteFiles(BaseFileOps):
             shutil.rmtree(src)
             self.logger.info('`{}` and all its content has been deleted.', src)
         else:
-            os.remove(src)
+            src.unlink()
             self.logger.info('`{}` has been deleted.', src)
         # further errors will not have any effect (the entry does not exists anymore)
-        for s, _ in siblings.items():
+        for s in siblings:
             try:
                 os.remove(s)
                 self.logger.info('`{}` has been deleted as well.', s)
@@ -219,13 +221,28 @@ class TransformingOps(BaseFileOps):
     move = None
     destination_field = None
 
+    def copy_permissive(self, src, dst, follow_symlinks=True):
+        # this function is like shutil.copy but in case copy mode fails we ignore the error
+        if os.path.isdir(dst):
+            dst = os.path.join(dst, os.path.basename(src))
+        shutil.copyfile(src, dst, follow_symlinks=follow_symlinks)
+
+        try:
+            shutil.copymode(src, dst, follow_symlinks=follow_symlinks)
+        except OSError as err:
+            if err.errno == 1:
+                self.logger.warning(str(err))
+            else:
+                raise
+
     def handle_entry(self, task, config, entry, siblings):
-        src = entry['location']
-        src_isdir = os.path.isdir(src)
-        src_path, src_name = os.path.split(src)
+        src = Path(entry['location'])
+        src_isdir = src.is_dir()
+        src_path = src.parent
+        src_name = src.name
 
         # get the proper path and name in order of: entry, config, above split
-        dst_path = entry.get(self.destination_field, config.get('to', src_path))
+        dst_path = entry.get(self.destination_field, config.get('to', str(src_path)))
         if config.get('rename'):
             dst_name = config['rename']
         elif entry.get('filename') and entry['filename'] != src_name:
@@ -236,7 +253,7 @@ class TransformingOps(BaseFileOps):
             dst_name = src_name
 
         try:
-            dst_path = entry.render(dst_path)
+            dst_path = Path(entry.render(dst_path))
         except RenderError as err:
             entry.fail(f'Path value replacement `{dst_path}` failed: {err.args[0]}')
             return
@@ -247,22 +264,22 @@ class TransformingOps(BaseFileOps):
             return
 
         # Clean invalid characters with pathscrub plugin
-        dst_path = pathscrub(os.path.expanduser(dst_path))
+        dst_path = dst_path.expanduser()
         dst_name = pathscrub(dst_name, filename=True)
 
         # Join path and filename
-        dst = os.path.join(dst_path, dst_name)
-        if dst == entry['location']:
+        dst = dst_path / dst_name
+        if dst == Path(entry['location']):
             raise plugin.PluginWarning('source and destination are the same.')
 
-        if not os.path.exists(dst_path):
+        if not dst_path.exists():
             if task.options.test:
                 self.logger.info('Would create `{}`', dst_path)
             else:
                 self.logger.info('Creating destination directory `{}`', dst_path)
-                os.makedirs(dst_path)
-        if not os.path.isdir(dst_path) and not task.options.test:
-            raise plugin.PluginWarning('destination `%s` is not a directory.' % dst_path)
+                dst_path.mkdir(parents=True)
+        if not dst_path.is_dir() and not task.options.test:
+            raise plugin.PluginWarning(f'destination `{dst_path}` is not a directory.')
 
         # unpack_safety
         if config.get('unpack_safety', entry.get('unpack_safety', True)):
@@ -272,9 +289,9 @@ class TransformingOps(BaseFileOps):
                     raise plugin.PluginWarning(
                         'The task has been waiting unpacking for 30 minutes'
                     )
-                size = os.path.getsize(src)
+                size = src.stat().st_size
                 time.sleep(1)
-                new_size = os.path.getsize(src)
+                new_size = src.stat().st_size
                 if size != new_size:
                     if not count % 10:
                         self.logger.verbose(
@@ -284,15 +301,18 @@ class TransformingOps(BaseFileOps):
                     break
                 count += 1
 
-        src_file, src_ext = os.path.splitext(src)
+        src_ext = src.suffix
         dst_file, dst_ext = os.path.splitext(dst)
 
         # Check dst contains src_ext
-        if config.get('keep_extension', entry.get('keep_extension', True)):
-            if not src_isdir and dst_ext != src_ext:
-                self.logger.verbose('Adding extension `{}` to dst `{}`', src_ext, dst)
-                dst += src_ext
-                dst_file += dst_ext  # this is used for sibling files. dst_ext turns out not to be an extension!
+        if (
+            config.get('keep_extension', entry.get('keep_extension', True))
+            and not src_isdir
+            and dst_ext != src_ext
+        ):
+            self.logger.verbose('Adding extension `{}` to dst `{}`', src_ext, dst)
+            dst = Path(f'{dst}{src_ext}')
+            dst_file += dst_ext  # this is used for sibling files. dst_ext turns out not to be an extension!
 
         funct_name = 'move' if self.move else 'copy'
         funct_done = 'moved' if self.move else 'copied'
@@ -308,9 +328,9 @@ class TransformingOps(BaseFileOps):
             if self.move:
                 shutil.move(src, dst)
             elif src_isdir:
-                shutil.copytree(src, dst)
+                shutil.copytree(src, dst, copy_function=self.copy_permissive)
             else:
-                shutil.copy(src, dst)
+                self.copy_permissive(src, dst)
             self.logger.info('`{}` has been {} to `{}`', src, funct_done, dst)
             # further errors will not have any effect (the entry has been successfully moved or copied out)
             for s, ext in siblings.items():

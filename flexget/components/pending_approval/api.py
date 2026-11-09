@@ -58,7 +58,7 @@ pending_parser = api.pagination_parser(parser=filter_parser, sort_choices=sort_c
 just_task_parser = filter_parser.copy()
 just_task_parser.remove_argument('approved')
 
-description = 'Either \'approve\' or \'reject\''
+description = "Either 'approve' or 'reject'"
 
 
 @pending_api.route('/')
@@ -66,9 +66,9 @@ class PendingEntriesAPI(APIResource):
     @etag
     @api.response(NotFoundError)
     @api.response(200, model=pending_entry_list_schema)
-    @api.doc(parser=pending_parser)
+    @api.doc(expect=[pending_parser])
     def get(self, session=None):
-        """List all pending entries"""
+        """List all pending entries."""
         args = pending_parser.parse_args()
 
         # Filter params
@@ -82,14 +82,12 @@ class PendingEntriesAPI(APIResource):
         sort_order = args['order']
 
         # Handle max size limit
-        if per_page > 100:
-            per_page = 100
+        per_page = min(per_page, 100)
 
         descending = sort_order == 'desc'
 
         # Handle max size limit
-        if per_page > 100:
-            per_page = 100
+        per_page = min(per_page, 100)
 
         start = per_page * (page - 1)
         stop = start + per_page
@@ -111,10 +109,10 @@ class PendingEntriesAPI(APIResource):
 
         pending_entries = [pending.to_dict() for pending in db.list_pending_entries(**kwargs)]
 
-        total_pages = int(ceil(total_items / float(per_page)))
+        total_pages = ceil(total_items / float(per_page))
 
         if page > total_pages:
-            raise NotFoundError('page %s does not exist' % page)
+            raise NotFoundError(f'page {page} does not exist')
 
         # Actual results in page
         actual_size = min(per_page, len(pending_entries))
@@ -133,9 +131,9 @@ class PendingEntriesAPI(APIResource):
     @api.validate(operation_schema, description=description)
     @api.response(201, model=pending_entry_list_schema)
     @api.response(204, 'No entries modified')
-    @api.doc(parser=just_task_parser)
+    @api.doc(expect=[just_task_parser])
     def put(self, session=None):
-        """Approve/Reject the status of pending entries"""
+        """Approve/Reject the status of pending entries."""
         args = filter_parser.parse_args()
 
         data = request.json
@@ -153,9 +151,9 @@ class PendingEntriesAPI(APIResource):
         return rsp
 
     @api.response(200, model=base_message_schema)
-    @api.doc(parser=filter_parser)
+    @api.doc(expect=[filter_parser])
     def delete(self, session=None):
-        """Delete pending entries"""
+        """Delete pending entries."""
         args = filter_parser.parse_args()
 
         # Filter params
@@ -169,7 +167,7 @@ class PendingEntriesAPI(APIResource):
             deleted = deleted.filter(db.PendingEntry.approved == approved)
         deleted = deleted.delete()
 
-        return success_response('deleted %s pending entries'.format(deleted))
+        return success_response(f'deleted {deleted} pending entries')
 
 
 @pending_api.route('/<int:entry_id>/')
@@ -179,28 +177,28 @@ class PendingEntryAPI(APIResource):
     @etag
     @api.response(200, model=pending_entry_schema)
     def get(self, entry_id, session=None):
-        """Get a pending entry by ID"""
+        """Get a pending entry by ID."""
         try:
             entry = db.get_entry_by_id(session, entry_id)
         except NoResultFound:
-            raise NotFoundError('No pending entry with ID %s' % entry_id)
+            raise NotFoundError(f'No pending entry with ID {entry_id}')
         return jsonify(entry.to_dict())
 
     @api.response(201, model=pending_entry_schema)
     @api.response(BadRequest)
     @api.validate(operation_schema, description=description)
     def put(self, entry_id, session=None):
-        """Approve/Reject the status of a pending entry"""
+        """Approve/Reject the status of a pending entry."""
         try:
             entry = db.get_entry_by_id(session, entry_id)
         except NoResultFound:
-            raise NotFoundError('No pending entry with ID %s' % entry_id)
+            raise NotFoundError(f'No pending entry with ID {entry_id}')
 
         data = request.json
         approved = data['operation'] == 'approve'
         operation_text = 'approved' if approved else 'pending'
         if entry.approved is approved:
-            raise BadRequest('Entry with id {} is already {}'.format(entry_id, operation_text))
+            raise BadRequest(f'Entry with id {entry_id} is already {operation_text}')
 
         entry.approved = approved
         session.commit()
@@ -210,10 +208,10 @@ class PendingEntryAPI(APIResource):
 
     @api.response(200, model=base_message_schema)
     def delete(self, entry_id, session=None):
-        """Delete a pending entry"""
+        """Delete a pending entry."""
         try:
             entry = db.get_entry_by_id(session, entry_id)
         except NoResultFound:
-            raise NotFoundError('No pending entry with ID %s' % entry_id)
+            raise NotFoundError(f'No pending entry with ID {entry_id}')
         session.delete(entry)
-        return success_response('successfully deleted entry with ID %s' % entry_id)
+        return success_response(f'successfully deleted entry with ID {entry_id}')

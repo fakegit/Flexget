@@ -7,24 +7,22 @@ logger = logger.bind(name='extension')
 
 
 class ModifyExtension:
-    """
-    Allows specifying file extension explicitly when all other built-in detection mechanisms fail.
+    """Allows specifying file extension explicitly when all other built-in detection mechanisms fail.
 
     Example:
-
     extension: nzb
+
     """
 
     schema = {'type': ['string', 'number']}
 
     def on_task_modify(self, task, config):
         ext = str(config)
-        if ext.startswith('.'):
-            ext = ext[1:]
+        ext = ext.removeprefix('.')
 
         for entry in task.entries:
             logger.debug('`{}` filename is `{}`', entry['title'], entry.get('filename', 'N/A'))
-            entry['filename'] = '%s.%s' % (entry.get('filename', entry['title']), ext)
+            entry['filename'] = '{}.{}'.format(entry.get('filename', entry['title']), ext)
             logger.debug('filename is now `{}`', entry['filename'])
 
 

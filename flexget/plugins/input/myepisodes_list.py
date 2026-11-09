@@ -61,13 +61,13 @@ class MyEpisodesList:
                         logger,
                     )
             except RequestException as e:
-                raise plugin.PluginError("Error logging in to myepisodes: %s" % e)
+                raise plugin.PluginError(f'Error logging in to myepisodes: {e}')
 
-        page = task.requests.get(URL + "myshows/manage/").content
+        page = task.requests.get(URL + 'myshows/manage/').content
         try:
             soup = get_soup(page)
         except Exception as e:
-            raise plugin.PluginError("Unable to parse myepisodes.com page: %s" % (e,))
+            raise plugin.PluginError(f'Unable to parse myepisodes.com page: {e}')
 
         entries = []
 
@@ -83,7 +83,7 @@ class MyEpisodesList:
                 # Remove year from end of name if present
                 name = re.sub(r'\s+\(\d{4}\)$', '', name)
             showid = option.get('value')
-            url = '%sviews.php?type=epsbyshow&showid=%s' % (URL, showid)
+            url = f'{URL}views.php?type=epsbyshow&showid={showid}'
 
             entry = Entry()
             entry['title'] = name
@@ -98,7 +98,7 @@ class MyEpisodesList:
 
         if not entries:
             logger.warning(
-                "No shows found on myepisodes.com list. Maybe you need to add some first?"
+                'No shows found on myepisodes.com list. Maybe you need to add some first?'
             )
 
         return entries

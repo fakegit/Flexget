@@ -1,4 +1,4 @@
-import datetime
+from datetime import datetime
 
 from loguru import logger
 
@@ -10,14 +10,13 @@ logger = logger.bind(name='interval')
 
 
 class PluginInterval:
-    """
-    Allows specifying minimum interval for task execution.
+    """Allows specifying minimum interval for task execution.
 
     Format: [n] [minutes|hours|days|weeks]
 
     Example:
-
     interval: 7 days
+
     """
 
     schema = {'type': 'string', 'format': 'interval'}
@@ -37,14 +36,14 @@ class PluginInterval:
             logger.debug('interval: {}', config)
             next_time = last_time + parse_interval(config)
             logger.debug('next_time: {!r}', next_time)
-            if datetime.datetime.now() < next_time:
+            if datetime.now() < next_time:
                 logger.verbose(
                     'Interval {} not met on task {}. Use --now to override.', config, task.name
                 )
                 task.abort('Interval not met', silent=True)
                 return
         logger.debug('interval passed')
-        task.simple_persistence['last_time'] = datetime.datetime.now()
+        task.simple_persistence['last_time'] = datetime.now()
 
 
 @event('plugin.register')

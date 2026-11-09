@@ -11,38 +11,39 @@ logger = logger.bind(name='sickbeard')
 
 
 class Sickbeard:
-    """
-    This plugin returns ALL of the shows monitored by Sickbeard.
-    This includes both ongoing and ended.
-    Syntax:
+    """Return ALL of the shows monitored by Sickbeard.
 
-    sickbeard:
-      base_url=<value>
-      port=<value>
-      api_key=<value>
+    This includes both ongoing and ended.
+    Syntax::
+
+        sickbeard:
+          base_url=<value>
+          port=<value>
+          api_key=<value>
 
     Options base_url and api_key are required.
 
     Use with input plugin like discover and/or configure_series.
-    Example:
 
-    download-tv-task:
-      configure_series:
-        settings:
-          quality:
-            - 720p
-        from:
-          sickbeard:
-            base_url: http://localhost
-            port: 8531
-            api_key: MYAPIKEY1123
-      discover:
-        what:
-          - next_series_episodes: yes
-        from:
-          torrentz: any
-      download:
-        /download/tv
+    Example::
+
+        download-tv-task:
+          configure_series:
+            settings:
+              quality:
+                - 720p
+            from:
+              sickbeard:
+                base_url: http://localhost
+                port: 8531
+                api_key: MYAPIKEY1123
+          discover:
+            what:
+              - next_series_episodes: yes
+            from:
+              torrentz: any
+          download:
+            /download/tv
 
     Note that when using the configure_series plugin with Sickbeard
     you are basically synced to it, so removing a show in Sickbeard will
@@ -65,9 +66,7 @@ class Sickbeard:
     }
 
     def quality_requirement_builder(self, quality_list):
-        """
-        Translates sickbeards' qualities into format used by Flexget
-        """
+        """Translate sickbeards' qualities into format used by Flexget."""
         sb_to_fg = {
             'sdtv': 'sdtv',
             'sddvd': 'dvdrip',
@@ -85,7 +84,7 @@ class Sickbeard:
 
     def on_task_input(self, task, config):
         parsedurl = urlparse(config.get('base_url'))
-        url = '%s://%s:%s%s/api/%s/?cmd=shows' % (
+        url = '{}://{}:{}{}/api/{}/?cmd=shows'.format(
             parsedurl.scheme,
             parsedurl.netloc,
             config.get('port'),
@@ -96,19 +95,20 @@ class Sickbeard:
             json = task.requests.get(url).json()
         except RequestException as e:
             raise plugin.PluginError(
-                'Unable to connect to Sickbeard at %s://%s:%s%s. Error: %s'
-                % (parsedurl.scheme, parsedurl.netloc, config.get('port'), parsedurl.path, e)
+                'Unable to connect to Sickbeard at {}://{}:{}{}. Error: {}'.format(
+                    parsedurl.scheme, parsedurl.netloc, config.get('port'), parsedurl.path, e
+                )
             )
         entries = []
         for _, show in list(json['data'].items()):
-            logger.debug('processing show: {}'.format(show))
+            logger.debug('processing show: {}', show)
             fg_qualities = ''  # Initializes the quality parameter
             if show['paused'] and config.get('only_monitored'):
                 continue
             if show['status'] == 'Ended' and not config.get('include_ended'):
                 continue
             if config.get('include_data'):
-                show_url = '%s:%s/api/%s/?cmd=show&tvdbid=%s' % (
+                show_url = '{}:{}/api/{}/?cmd=show&tvdbid={}'.format(
                     config['base_url'],
                     config['port'],
                     config['api_key'],
@@ -142,7 +142,7 @@ class Sickbeard:
                 continue
             # Test mode logging
             if task.options.test:
-                logger.info("Test mode. Entry includes:")
+                logger.info('Test mode. Entry includes:')
                 for key, value in list(entry.items()):
                     logger.info('     {}: {}', key.capitalize(), value)
 

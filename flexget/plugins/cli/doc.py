@@ -25,8 +25,7 @@ def trim(docstring):
     # Remove indentation (first line is special):
     trimmed = [lines[0].strip()]
     if indent < sys.maxsize:
-        for line in lines[1:]:
-            trimmed.append(line[indent:].rstrip())
+        trimmed.extend([line[indent:].rstrip() for line in lines[1:]])
     # Strip off trailing and leading blank lines:
     while trimmed and not trimmed[-1]:
         trimmed.pop()
@@ -41,13 +40,13 @@ def print_doc(manager, options):
     plugin = plugins.get(plugin_name, None)
     if plugin:
         if not plugin.instance.__doc__:
-            console('Plugin %s does not have documentation' % plugin_name)
+            console(f'Plugin {plugin_name} does not have documentation')
         else:
             console('')
             console(trim(plugin.instance.__doc__))
             console('')
     else:
-        console('Could not find plugin %s' % plugin_name)
+        console(f'Could not find plugin {plugin_name}')
 
 
 @event('options.register')

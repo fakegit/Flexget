@@ -1,4 +1,4 @@
-import datetime
+from datetime import datetime
 
 from loguru import logger
 from requests.exceptions import RequestException
@@ -20,24 +20,25 @@ requests.add_domain_limiter(TimedLimiter('pushover.net', '5 seconds'))
 
 
 class PushoverNotifier:
-    """
+    """Send a Pushover notification.
+
     Example::
 
-      notify:
-        entries:
-          via:
-            - pushover:
-                user_key: <USER_KEY> (can also be a list of userkeys)
-                token: <TOKEN>
-                [device: <DEVICE_STRING>]
-                [priority: <PRIORITY>]
-                [url: <URL>]
-                [url_title: <URL_TITLE>]
-                [sound: <SOUND>]
-                [retry]: <RETRY>]
-                [expire]: <EXPIRE>]
-                [callback]: <CALLBACK>]
-                [html]: <HTML>]
+        notify:
+          entries:
+            via:
+              - pushover:
+                  user_key: <USER_KEY> (can also be a list of userkeys)
+                  token: <TOKEN>
+                  [device: <DEVICE_STRING>]
+                  [priority: <PRIORITY>]
+                  [url: <URL>]
+                  [url_title: <URL_TITLE>]
+                  [sound: <SOUND>]
+                  [retry]: <RETRY>]
+                  [expire]: <EXPIRE>]
+                  [callback]: <CALLBACK>]
+                  [html]: <HTML>]
     """
 
     schema = {
@@ -62,8 +63,7 @@ class PushoverNotifier:
     }
 
     def notify(self, title, message, config):
-        """
-        Sends a Pushover notification
+        """Send a Pushover notification.
 
         :param str title: the message's title
         :param str message: the message to send
@@ -113,7 +113,7 @@ class PushoverNotifier:
                     if e.response.status_code == 429:
                         app_reset = e.response.headers.get('X-Limit-App-Reset')
                         if app_reset:
-                            reset_time = datetime.datetime.fromtimestamp(int(app_reset)).strftime(
+                            reset_time = datetime.fromtimestamp(int(app_reset)).strftime(
                                 '%Y-%m-%d %H:%M:%S'
                             )
                             error_message = (
@@ -126,7 +126,7 @@ class PushoverNotifier:
                     error_message = str(e)
                 raise PluginWarning(error_message)
 
-            reset_time = datetime.datetime.fromtimestamp(
+            reset_time = datetime.fromtimestamp(
                 int(response.headers['X-Limit-App-Reset'])
             ).strftime('%Y-%m-%d %H:%M:%S')
             remaining = response.headers['X-Limit-App-Remaining']

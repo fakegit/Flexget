@@ -1,12 +1,12 @@
+from __future__ import annotations
+
 import re
 from datetime import datetime, timedelta
 from functools import total_ordering
-from typing import TYPE_CHECKING, Iterable, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING
 
 from loguru import logger
 from sqlalchemy import (
-    Boolean,
-    Column,
     DateTime,
     ForeignKey,
     Index,
@@ -18,11 +18,12 @@ from sqlalchemy import (
     desc,
     func,
     select,
+    text,
     update,
 )
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.ext.hybrid import Comparator, hybrid_property
-from sqlalchemy.orm import backref, relation
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from flexget import db_schema, plugin
 from flexget.components.series.utils import normalize_series_name
@@ -39,7 +40,14 @@ from flexget.utils.sqlalchemy_utils import (
 )
 from flexget.utils.tools import parse_episode_identifier
 
+try:
+    from warnings import deprecated
+except ImportError:
+    from typing_extensions import deprecated  # for python<=3.12
+
 if TYPE_CHECKING:
+    from collections.abc import Iterable
+
     from flexget.components.parsing.parsers.parser_common import SeriesParseResult
     from flexget.utils.qualities import Quality
 
@@ -50,53 +58,52 @@ Base = db_schema.versioned_base('series', SCHEMA_VER)
 
 
 class NormalizedComparator(Comparator):
-    def operate(self, op, other):
-        if isinstance(other, list):
-            other = [normalize_series_name(o) for o in other]
-        else:
-            other = normalize_series_name(other)
-
-        return op(self.__clause_element__(), other)
+    def operate(self, op, *other, **kwargs):
+        # Unary operators such as desc() pass no operand.
+        other = [
+            [normalize_series_name(o) for o in arg]
+            if isinstance(arg, list)
+            else normalize_series_name(arg)
+            for arg in other
+        ]
+        return op(self.__clause_element__(), *other, **kwargs)
 
 
 class Series(Base):
-    """Name is handled case insensitively transparently"""
+    """Name is handled case insensitively transparently."""
 
     __tablename__ = 'series'
 
-    id = Column(Integer, primary_key=True)
-    _name = Column('name', Unicode)
-    _name_normalized = Column('name_lower', Unicode, index=True, unique=True)
-    identified_by = Column(String)
-    begin_episode_id = Column(
-        Integer, ForeignKey('series_episodes.id', name='begin_episode_id', use_alter=True)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    _name: Mapped[str | None] = mapped_column('name')
+    _name_normalized: Mapped[str | None] = mapped_column('name_lower', index=True, unique=True)
+    identified_by: Mapped[str | None]
+    begin_episode_id: Mapped[str | None] = mapped_column(
+        ForeignKey('series_episodes.id', name='begin_episode_id', use_alter=True)
     )
-    begin = relation(
-        'Episode',
-        uselist=False,
-        primaryjoin="Series.begin_episode_id == Episode.id",
+    begin: Mapped[Episode | None] = relationship(
         foreign_keys=[begin_episode_id],
         post_update=True,
-        backref='begins_series',
+        back_populates='begins_series',
     )
-    episodes = relation(
-        'Episode',
-        backref='series',
-        cascade='all, delete, delete-orphan',
+    episodes: Mapped[list[Episode]] = relationship(
+        back_populates='series',
+        cascade='all, delete-orphan',
         primaryjoin='Series.id == Episode.series_id',
     )
-    in_tasks = relation(
-        'SeriesTask',
-        backref=backref('series', uselist=False),
-        cascade='all, delete, delete-orphan',
+    in_tasks: Mapped[list[SeriesTask]] = relationship(
+        back_populates='series',
+        cascade='all, delete-orphan',
     )
-    alternate_names = relation(
-        'AlternateNames', backref='series', cascade='all, delete, delete-orphan'
+    alternate_names: Mapped[list[AlternateNames]] = relationship(
+        back_populates='series', cascade='all, delete-orphan'
     )
 
-    seasons = relation('Season', backref='series', cascade='all, delete, delete-orphan')
+    seasons: Mapped[list[Season]] = relationship(
+        back_populates='series', cascade='all, delete-orphan'
+    )
 
-    # Make a special property that does indexed case insensitive lookups on name, but stores/returns specified case
+    # Make a special property that indexes case-insensitive lookups on name, but stores/returns specified case
     @hybrid_property
     def name(self):
         return self._name
@@ -107,27 +114,25 @@ class Series(Base):
         self._name_normalized = normalize_series_name(value)
 
     @name.comparator
-    def name(self):
-        return NormalizedComparator(self._name_normalized)
+    def name(cls):
+        return NormalizedComparator(cls._name_normalized)
 
     @property
     def name_normalized(self):
         return self._name_normalized
 
     def __str__(self):
-        return '<Series(id=%s,name=%s)>' % (self.id, self.name)
+        return f'<Series(id={self.id},name={self.name},identified_by={self.identified_by})>'
 
     def __repr__(self):
         return str(self).encode('ascii', 'replace')
 
     def episodes_for_season(self, season_num):
-        return len(
-            [
-                episode
-                for episode in self.episodes
-                if episode.season == season_num and episode.downloaded_releases
-            ]
-        )
+        return len([
+            episode
+            for episode in self.episodes
+            if episode.season == season_num and episode.downloaded_releases
+        ])
 
     @property
     def completed_seasons(self):
@@ -137,22 +142,23 @@ class Series(Base):
 class Season(Base):
     __tablename__ = 'series_seasons'
 
-    id = Column(Integer, primary_key=True)
-    identifier = Column(String)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    identifier: Mapped[str | None]
 
-    identified_by = Column(String)
-    season = Column(Integer)
-    series_id = Column(Integer, ForeignKey('series.id'), nullable=False)
+    identified_by: Mapped[str | None]
+    season: Mapped[int | None]
+    series_id: Mapped[int] = mapped_column(ForeignKey('series.id'))
+    series: Mapped[Series] = relationship(back_populates='seasons')
 
-    releases = relation('SeasonRelease', backref='season', cascade='all, delete, delete-orphan')
+    releases: Mapped[list[SeasonRelease]] = relationship(
+        back_populates='season', cascade='all, delete-orphan'
+    )
 
     is_season = True
 
     @property
     def completed(self):
-        """
-        Return True if the season has any released marked as downloaded
-        """
+        """Return True if the season has any released marked as downloaded."""
         if not self.releases:
             return False
         return any(release.downloaded for release in self.releases)
@@ -168,9 +174,10 @@ class Season(Base):
         return min(release.first_seen for release in self.releases)
 
     @first_seen.expression
+    @classmethod
     def first_seen(cls):
         return (
-            select([func.min(SeasonRelease.first_seen)])
+            select(func.min(SeasonRelease.first_seen))
             .where(SeasonRelease.season_id == cls.id)
             .correlate(Season.__table__)
             .label('first_seen')
@@ -178,8 +185,9 @@ class Season(Base):
 
     @property
     def age(self):
-        """
-        :return: Pretty string representing age of episode. eg "23d 12h" or "No releases seen"
+        """Return Pretty string representing age of episode.
+
+        Example: "23d 12h" or "No releases seen"
         """
         if not self.first_seen:
             return 'No releases seen'
@@ -188,15 +196,13 @@ class Season(Base):
         age_hours = diff.seconds // 60 // 60
         age = ''
         if age_days:
-            age += '%sd ' % age_days
-        age += '%sh' % age_hours
+            age += f'{age_days}d '
+        age += f'{age_hours}h'
         return age
 
     @property
     def age_timedelta(self):
-        """
-        :return: Timedelta or None if seasons is never seen
-        """
+        """:return: Timedelta or None if seasons is never seen"""
         if not self.first_seen:
             return None
         return datetime.now() - self.first_seen
@@ -206,12 +212,7 @@ class Season(Base):
         return False
 
     def __str__(self):
-        return '<Season(id=%s,identifier=%s,season=%s,completed=%s)>' % (
-            self.id,
-            self.identifier,
-            self.season,
-            self.completed,
-        )
+        return f'<Season(id={self.id},identifier={self.identifier},season={self.season},completed={self.completed})>'
 
     def __repr__(self):
         return str(self).encode('ascii', 'replace')
@@ -224,7 +225,7 @@ class Season(Base):
             logger.error('Cannot compare Season to {}', other)
             return NotImplemented
         if self.identified_by != 'ep':
-            logger.error('Can only compare with an \'ep\' style identifier')
+            logger.error("Can only compare with an 'ep' style identifier")
             return NotImplemented
         logger.trace('checking if {} is smaller than {}', self.season, other.season)
         return self.season < other.season
@@ -245,33 +246,35 @@ class Season(Base):
 
     @property
     def latest_release(self):
-        """
-        :return: Latest downloaded Release or None
-        """
+        """:return: Latest downloaded Release or None"""
         if not self.releases:
             return None
-        return sorted(
-            self.downloaded_releases,
-            key=lambda rel: rel.first_seen if rel.downloaded else None,
-            reverse=True,
-        )[0]
+        return max(
+            self.downloaded_releases, key=lambda rel: rel.first_seen if rel.downloaded else None
+        )
 
 
 @total_ordering
 class Episode(Base):
     __tablename__ = 'series_episodes'
 
-    id = Column(Integer, primary_key=True)
-    identifier = Column(String)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    identifier: Mapped[str | None]
 
-    season = Column(Integer)
-    number = Column(Integer)
+    season: Mapped[int | None]
+    number: Mapped[int | None]
 
-    identified_by = Column(String)
-    series_id = Column(Integer, ForeignKey('series.id'), nullable=False)
-    releases = relation('EpisodeRelease', backref='episode', cascade='all, delete, delete-orphan')
+    identified_by: Mapped[str | None]
+    series_id: Mapped[int] = mapped_column(ForeignKey('series.id'))
+    series: Mapped[Series] = relationship(back_populates='episodes', foreign_keys=series_id)
+    releases: Mapped[list[EpisodeRelease]] = relationship(
+        back_populates='episode', cascade='all, delete-orphan'
+    )
 
     is_season = False
+    begins_series: Mapped[list[Series]] = relationship(
+        back_populates='begin', foreign_keys=Series.begin_episode_id, post_update=True
+    )
 
     @hybrid_property
     def first_seen(self):
@@ -280,9 +283,10 @@ class Episode(Base):
         return min(release.first_seen for release in self.releases)
 
     @first_seen.expression
+    @classmethod
     def first_seen(cls):
         return (
-            select([func.min(EpisodeRelease.first_seen)])
+            select(func.min(EpisodeRelease.first_seen))
             .where(EpisodeRelease.episode_id == cls.id)
             .correlate(Episode.__table__)
             .label('first_seen')
@@ -290,8 +294,9 @@ class Episode(Base):
 
     @property
     def age(self):
-        """
-        :return: Pretty string representing age of episode. eg "23d 12h" or "No releases seen"
+        """Return Pretty string representing age of episode.
+
+        Example: "23d 12h" or "No releases seen"
         """
         if not self.first_seen:
             return 'No releases seen'
@@ -300,15 +305,13 @@ class Episode(Base):
         age_hours = diff.seconds // 60 // 60
         age = ''
         if age_days:
-            age += '%sd ' % age_days
-        age += '%sh' % age_hours
+            age += f'{age_days}d '
+        age += f'{age_hours}h'
         return age
 
     @property
     def age_timedelta(self):
-        """
-        :return: Timedelta or None if episode is never seen
-        """
+        """:return: Timedelta or None if episode is never seen"""
         if not self.first_seen:
             return None
         return datetime.now() - self.first_seen
@@ -317,7 +320,7 @@ class Episode(Base):
     def is_premiere(self):
         if self.season == 1 and self.number in (0, 1):
             return 'Series Premiere'
-        elif self.number in (0, 1):
+        if self.number in (0, 1):
             return 'Season Premiere'
         return False
 
@@ -327,24 +330,15 @@ class Episode(Base):
 
     @property
     def latest_release(self):
-        """
-        :return: Latest downloaded Release or None
-        """
+        """:return: Latest downloaded Release or None"""
         if not self.releases:
             return None
-        return sorted(
-            self.downloaded_releases,
-            key=lambda rel: rel.first_seen if rel.downloaded else None,
-            reverse=True,
-        )[0]
+        return max(
+            self.downloaded_releases, key=lambda rel: rel.first_seen if rel.downloaded else None
+        )
 
     def __str__(self):
-        return '<Episode(id=%s,identifier=%s,season=%s,number=%s)>' % (
-            self.id,
-            self.identifier,
-            self.season,
-            self.number,
-        )
+        return f'<Episode(id={self.id},identifier={self.identifier},season={self.season},number={self.number},identified_by={self.identified_by})>'
 
     def __repr__(self):
         return str(self).encode('ascii', 'replace')
@@ -356,7 +350,7 @@ class Episode(Base):
         if isinstance(other, Season):
             logger.trace('comparing {} to Season', self)
             return False
-        elif not isinstance(other, Episode):
+        if not isinstance(other, Episode):
             logger.error('Cannot compare Episode with {}', other)
             return NotImplemented
         if self.identified_by != other.identified_by:
@@ -371,7 +365,7 @@ class Episode(Base):
         if other is None:
             logger.trace('comparing {} to None', self)
             return False
-        elif isinstance(other, Episode):
+        if isinstance(other, Episode):
             if self.identified_by is None or other.identified_by is None:
                 bad_ep = other if other.identified_by is None else self
                 logger.error('cannot compare episode without an identifier type: {}', bad_ep)
@@ -387,21 +381,19 @@ class Episode(Base):
                 return self.season < other.season or (
                     self.season == other.season and self.number < other.number
                 )
-            elif self.identified_by == 'date':
+            if self.identified_by == 'date':
                 logger.trace('comparing {} and {}', self.identifier, other.identifier)
                 return self.identifier < other.identifier
-            else:
-                logger.error('cannot compare when identifier is {}', self.identified_by)
-                return NotImplemented
-        elif isinstance(other, Season):
+            logger.error('cannot compare when identifier is {}', self.identified_by)
+            return NotImplemented
+        if isinstance(other, Season):
             if self.identified_by != 'ep':
-                logger.error('cannot compare season when identifier is not \'ep\'')
+                logger.error("cannot compare season when identifier is not 'ep'")
                 return NotImplemented
             logger.trace('comparing {} with {}', self.season, other.season)
             return self.season < other.season
-        else:
-            logger.error('can only compare with Episode or Season, not {}', other)
-            return NotImplemented
+        logger.error('can only compare with Episode or Season, not {}', other)
+        return NotImplemented
 
     def __hash__(self):
         return self.id
@@ -423,35 +415,32 @@ class Episode(Base):
 class EpisodeRelease(Base):
     __tablename__ = 'episode_releases'
 
-    id = Column(Integer, primary_key=True)
-    episode_id = Column(Integer, ForeignKey('series_episodes.id'), nullable=False, index=True)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    episode_id: Mapped[int] = mapped_column(ForeignKey('series_episodes.id'), index=True)
+    episode: Mapped[Episode] = relationship(back_populates='releases')
 
-    _quality = Column('quality', String)
+    _quality: Mapped[str | None] = mapped_column('quality')
     quality = quality_property('_quality')
-    downloaded = Column(Boolean, default=False)
-    proper_count = Column(Integer, default=0)
-    title = Column(Unicode)
-    first_seen = Column(DateTime)
-
-    def __init__(self):
-        self.first_seen = datetime.now()
+    downloaded: Mapped[bool | None] = mapped_column(default=False)
+    proper_count: Mapped[int | None] = mapped_column(default=0)
+    title: Mapped[str | None]
+    first_seen: Mapped[datetime | None] = mapped_column(default=datetime.now)
 
     @property
+    @deprecated('accessing deprecated release.proper, use release.proper_count instead')
     def proper(self):
-        # TODO: TEMP
-        import warnings
+        """Number of PROPER/REPACK revisions for the release.
 
-        warnings.warn("accessing deprecated release.proper, use release.proper_count instead")
+        A value of 0 indicates the original release.
+        Higher values indicate newer corrected releases (e.g. PROPER2).
+
+        .. deprecated:: 2.19.2
+           Use :attr:`proper_count` instead.
+        """
         return self.proper_count > 0
 
     def __str__(self):
-        return '<Release(id=%s,quality=%s,downloaded=%s,proper_count=%s,title=%s)>' % (
-            self.id,
-            self.quality,
-            self.downloaded,
-            self.proper_count,
-            self.title,
-        )
+        return f'<Release(id={self.id},quality={self.quality},downloaded={self.downloaded},proper_count={self.proper_count},title={self.title})>'
 
     def __repr__(self):
         return str(self).encode('ascii', 'replace')
@@ -471,35 +460,32 @@ class EpisodeRelease(Base):
 class SeasonRelease(Base):
     __tablename__ = 'season_releases'
 
-    id = Column(Integer, primary_key=True)
-    season_id = Column(Integer, ForeignKey('series_seasons.id'), nullable=False, index=True)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    season_id: Mapped[int] = mapped_column(ForeignKey('series_seasons.id'), index=True)
+    season: Mapped[Season] = relationship(back_populates='releases')
 
-    _quality = Column('quality', String)
+    _quality: Mapped[str | None] = mapped_column('quality')
     quality = quality_property('_quality')
-    downloaded = Column(Boolean, default=False)
-    proper_count = Column(Integer, default=0)
-    title = Column(Unicode)
-    first_seen = Column(DateTime)
-
-    def __init__(self):
-        self.first_seen = datetime.now()
+    downloaded: Mapped[bool | None] = mapped_column(default=False)
+    proper_count: Mapped[int | None] = mapped_column(default=0)
+    title: Mapped[str | None]
+    first_seen: Mapped[datetime | None] = mapped_column(default=datetime.now)
 
     @property
+    @deprecated('accessing deprecated release.proper, use release.proper_count instead')
     def proper(self):
-        # TODO: TEMP
-        import warnings
+        """Number of PROPER/REPACK revisions for the release.
 
-        warnings.warn("accessing deprecated release.proper, use release.proper_count instead")
+        A value of 0 indicates the original release.
+        Higher values indicate newer corrected releases (e.g. PROPER2).
+
+        .. deprecated:: 2.19.2
+           Use :attr:`proper_count` instead.
+        """
         return self.proper_count > 0
 
     def __str__(self):
-        return '<Release(id=%s,quality=%s,downloaded=%s,proper_count=%s,title=%s)>' % (
-            self.id,
-            self.quality,
-            self.downloaded,
-            self.proper_count,
-            self.title,
-        )
+        return f'<Release(id={self.id},quality={self.quality},downloaded={self.downloaded},proper_count={self.proper_count},title={self.title})>'
 
     def __repr__(self):
         return str(self).encode('ascii', 'replace')
@@ -520,10 +506,13 @@ class AlternateNames(Base):
     """Similar to Series. Name is handled case insensitively transparently."""
 
     __tablename__ = 'series_alternate_names'
-    id = Column(Integer, primary_key=True)
-    _alt_name = Column('alt_name', Unicode)
-    _alt_name_normalized = Column('alt_name_normalized', Unicode, index=True, unique=True)
-    series_id = Column(Integer, ForeignKey('series.id'), nullable=False)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    _alt_name: Mapped[str | None] = mapped_column('alt_name')
+    _alt_name_normalized: Mapped[str | None] = mapped_column(
+        'alt_name_normalized', index=True, unique=True
+    )
+    series_id: Mapped[int] = mapped_column(ForeignKey('series.id'))
+    series: Mapped[Series] = relationship(back_populates='alternate_names')
 
     @hybrid_property
     def alt_name(self):
@@ -535,8 +524,8 @@ class AlternateNames(Base):
         self._alt_name_normalized = normalize_series_name(value)
 
     @alt_name.comparator
-    def alt_name(self):
-        return NormalizedComparator(self._alt_name_normalized)
+    def alt_name(cls):
+        return NormalizedComparator(cls._alt_name_normalized)
 
     @property
     def name_normalized(self):
@@ -546,7 +535,7 @@ class AlternateNames(Base):
         self.alt_name = name
 
     def __str__(self):
-        return '<SeriesAlternateName(series_id=%s, alt_name=%s)>' % (self.series_id, self.alt_name)
+        return f'<SeriesAlternateName(series_id={self.series_id}, alt_name={self.alt_name})>'
 
     def __repr__(self):
         return str(self).encode('ascii', 'replace')
@@ -555,9 +544,10 @@ class AlternateNames(Base):
 class SeriesTask(Base):
     __tablename__ = 'series_tasks'
 
-    id = Column(Integer, primary_key=True)
-    series_id = Column(Integer, ForeignKey('series.id'), nullable=False)
-    name = Column(Unicode, index=True)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    series_id: Mapped[int] = mapped_column(ForeignKey('series.id'))
+    series: Mapped[Series] = relationship(back_populates='in_tasks')
+    name: Mapped[str | None] = mapped_column(index=True)
 
     def __init__(self, name):
         self.name = name
@@ -567,7 +557,7 @@ Index('episode_series_identifier', Episode.series_id, Episode.identifier)
 
 
 @db_schema.upgrade('series')
-def upgrade(ver: Optional[int], session: Session) -> int:
+def upgrade(ver: int | None, session: Session) -> int:
     if ver is None:
         if table_exists('episode_qualities', session):
             logger.info(
@@ -583,7 +573,7 @@ def upgrade(ver: Optional[int], session: Session) -> int:
             logger.info('Upgrading episode_releases table to have proper_count column')
             table_add_column('episode_releases', 'proper_count', Integer, session)
             release_table = table_schema('episode_releases', session)
-            for row in session.execute(select([release_table.c.id, release_table.c.title])):
+            for row in session.execute(select(release_table.c.id, release_table.c.title)):
                 # Recalculate the proper_count from title for old episodes
                 proper_count = (
                     plugin.get('parsing', 'series.db').parse_series(row['title']).proper_count
@@ -603,7 +593,7 @@ def upgrade(ver: Optional[int], session: Session) -> int:
         # Seed the first_seen value for all the past releases with the first_seen of their episode.
         episode_table = table_schema('series_episodes', session)
         release_table = table_schema('episode_releases', session)
-        for row in session.execute(select([episode_table.c.id, episode_table.c.first_seen])):
+        for row in session.execute(select(episode_table.c.id, episode_table.c.first_seen)):
             session.execute(
                 update(
                     release_table,
@@ -623,7 +613,7 @@ def upgrade(ver: Optional[int], session: Session) -> int:
     if ver == 3:
         # Remove index on Series.name
         try:
-            session.execute("DROP INDEX ix_series_name")
+            session.execute(text('DROP INDEX ix_series_name'))
             # This way doesn't work on sqlalchemy 1.4 for some reason
             # Index('ix_series_name').drop(bind=session.bind)
         except OperationalError:
@@ -635,7 +625,9 @@ def upgrade(ver: Optional[int], session: Session) -> int:
         create_index('series', session, 'name_lower')
         # Fill in lower case name column
         session.execute(
-            update(series_table, values={'name_lower': func.lower(series_table.c.name)})
+            update(series_table).values({
+                series_table.c.name_lower: func.lower(series_table.c.name)
+            })
         )
         ver = 4
     if ver == 4:
@@ -644,12 +636,14 @@ def upgrade(ver: Optional[int], session: Session) -> int:
         series_table = table_schema('series', session)
         # Clear out identified_by id series so that they can be auto detected again
         session.execute(
-            update(series_table, series_table.c.identified_by != 'ep', {'identified_by': None})
+            update(series_table)
+            .where(series_table.c.identified_by != 'ep')
+            .values({series_table.c.identified_by: None})
         )
         # Warn users about a possible config change needed.
         logger.warning(
             'If you are using `identified_by: id` for the series plugin for a date-identified '
-            'or abolute-numbered series, you will need to update your config. Two new identified_by modes have '
+            'or absolute-numbered series, you will need to update your config. Two new identified_by modes have '
             'been added: `date` and `sequence`. In addition, if you are using `identified_by: auto`, it will'
             'be relearned based on upcoming episodes.'
         )
@@ -659,24 +653,28 @@ def upgrade(ver: Optional[int], session: Session) -> int:
         # This action retroactively marks 'ep' mode for all episodes where the series is already in 'ep' mode.
         series_table = table_schema('series', session)
         ep_table = table_schema('series_episodes', session)
-        ep_mode_series = select([series_table.c.id], series_table.c.identified_by == 'ep')
+        ep_mode_series = select(series_table.c.id).where(series_table.c.identified_by == 'ep')
         where_clause = and_(
             ep_table.c.series_id.in_(ep_mode_series),
-            ep_table.c.season != None,
-            ep_table.c.number != None,
-            ep_table.c.identified_by == None,
+            ep_table.c.season.is_not(None),
+            ep_table.c.number.is_not(None),
+            ep_table.c.identified_by.is_(None),
         )
-        session.execute(update(ep_table, where_clause, {'identified_by': 'ep'}))
+        session.execute(
+            update(ep_table).where(where_clause).values({ep_table.c.identified_by: 'ep'})
+        )
         ver = 6
     if ver == 6:
         # Translate old qualities into new quality requirements
         release_table = table_schema('episode_releases', session)
-        for row in session.execute(select([release_table.c.id, release_table.c.quality])):
+        for row in session.execute(select(release_table.c.id, release_table.c.quality)):
             # Webdl quality no longer has dash
             new_qual = row['quality'].replace('web-dl', 'webdl')
             if row['quality'] != new_qual:
                 session.execute(
-                    update(release_table, release_table.c.id == row['id'], {'quality': new_qual})
+                    update(release_table)
+                    .where(release_table.c.id == row['id'])
+                    .values({release_table.c.quality: new_qual})
                 )
         ver = 7
     # Normalization rules changed for 7 and 8, but only run this once
@@ -684,7 +682,7 @@ def upgrade(ver: Optional[int], session: Session) -> int:
         # Merge series that qualify as duplicates with new normalization scheme
         series_table = table_schema('series', session)
         ep_table = table_schema('series_episodes', session)
-        all_series = session.execute(select([series_table.c.name, series_table.c.id]))
+        all_series = session.execute(select(series_table.c.name, series_table.c.id))
         unique_series = {}
         for row in all_series:
             unique_series.setdefault(normalize_series_name(row['name']), []).append(row['id'])
@@ -705,7 +703,7 @@ def upgrade(ver: Optional[int], session: Session) -> int:
         series_table = table_schema('series', session)
         logger.verbose('Repairing series_tasks table data')
         session.execute(
-            delete(series_tasks, ~series_tasks.c.series_id.in_(select([series_table.c.id])))
+            delete(series_tasks).where(~series_tasks.c.series_id.in_(select(series_table.c.id)))
         )
         ver = 11
     if ver == 11:
@@ -718,7 +716,9 @@ def upgrade(ver: Optional[int], session: Session) -> int:
         # Force identified_by value None to 'auto'
         series_table = table_schema('series', session)
         session.execute(
-            update(series_table, series_table.c.identified_by == None, {'identified_by': 'auto'})
+            update(series_table)
+            .where(series_table.c.identified_by.is_(None))
+            .values({series_table.c.identified_by: 'auto'})
         )
         ver = 13
     if ver == 13:
@@ -732,8 +732,9 @@ def upgrade(ver: Optional[int], session: Session) -> int:
 def db_cleanup(manager, session: Session) -> None:
     # Clean up old undownloaded releases
     result = (
-        session.query(EpisodeRelease)
-        .filter(EpisodeRelease.downloaded == False)
+        session
+        .query(EpisodeRelease)
+        .filter(~EpisodeRelease.downloaded)
         .filter(EpisodeRelease.first_seen < datetime.now() - timedelta(days=120))
         .delete(False)
     )
@@ -741,7 +742,8 @@ def db_cleanup(manager, session: Session) -> None:
         logger.verbose('Removed {} undownloaded episode releases.', result)
     # Clean up episodes without releases
     result = (
-        session.query(Episode)
+        session
+        .query(Episode)
         .filter(~Episode.releases.any())
         .filter(~Episode.begins_series.any())
         .delete(False)
@@ -750,7 +752,8 @@ def db_cleanup(manager, session: Session) -> None:
         logger.verbose('Removed {} episodes without releases.', result)
     # Clean up series without episodes that aren't in any tasks
     result = (
-        session.query(Series)
+        session
+        .query(Series)
         .filter(~Series.episodes.any())
         .filter(~Series.in_tasks.any())
         .delete(False)
@@ -768,16 +771,15 @@ def set_alt_names(alt_names: Iterable[str], db_series: Series, session: Session)
         if db_series_alt:
             if not db_series_alt.series_id == db_series.id:
                 raise plugin.PluginError(
-                    'Error adding alternate name for `%s`: `%s` is already associated with `%s`. '
-                    'Check your settings.' % (db_series.name, alt_name, db_series_alt.series.name)
+                    f'Error adding alternate name for `{db_series.name}`: `{alt_name}` is already associated with `{db_series_alt.series.name}`. '
+                    'Check your settings.'
                 )
-            else:
-                logger.debug(
-                    'alternate name `{}` already associated with series `{}`, no change needed',
-                    alt_name,
-                    db_series.name,
-                )
-                db_alt_names.append(db_series_alt)
+            logger.debug(
+                'alternate name `{}` already associated with series `{}`, no change needed',
+                alt_name,
+                db_series.name,
+            )
+            db_alt_names.append(db_series_alt)
         else:
             db_alt_names.append(AlternateNames(alt_name))
             logger.debug('adding alternate name `{}` to series `{}`', alt_name, db_series.name)
@@ -786,105 +788,109 @@ def set_alt_names(alt_names: Iterable[str], db_series: Series, session: Session)
 
 def show_seasons(
     series: Series,
-    start: int = None,
-    stop: int = None,
+    start: int | None = None,
+    stop: int | None = None,
     count: bool = False,
     descending: bool = False,
     session: Session = None,
-) -> Union[int, List[Season]]:
-    """Return all seasons of a given series"""
+) -> int | list[Season]:
+    """Return all seasons of a given series."""
     seasons = session.query(Season).filter(Season.series_id == series.id)
     if count:
         return seasons.count()
     seasons = (
         seasons.order_by(Season.season.desc()) if descending else seasons.order_by(Season.season)
     )
-    return seasons.slice(start, stop).from_self().all()
+    return seasons.slice(start, stop).all()
 
 
 def get_all_entities(
     series: Series, session: Session, sort_by: str = 'age', reverse: bool = False
-) -> List[Union[Episode, Season]]:
+) -> list[Episode | Season]:
     episodes = show_episodes(series, session=session)
     seasons = show_seasons(series, session=session)
     if sort_by == 'identifier':
-        key = lambda e: e.identifier
+
+        def key(e):
+            return e.identifier
+
     else:
-        key = lambda e: (e.first_seen or datetime.min, e.identifier)
+
+        def key(e):
+            return e.first_seen or datetime.min, e.identifier
+
     return sorted(episodes + seasons, key=key, reverse=reverse)
 
 
 def get_episode_releases(
     episode: Episode,
-    downloaded: bool = None,
-    start: int = None,
-    stop: int = None,
+    downloaded: bool | None = None,
+    start: int | None = None,
+    stop: int | None = None,
     count: bool = False,
     descending: bool = False,
-    sort_by: str = None,
+    sort_by: str | None = None,
     session: Session = None,
-) -> List[EpisodeRelease]:
-    """Return all releases for a given episode"""
+) -> list[EpisodeRelease]:
+    """Return all releases for a given episode."""
     releases = session.query(EpisodeRelease).filter(EpisodeRelease.episode_id == episode.id)
     if downloaded is not None:
         releases = releases.filter(EpisodeRelease.downloaded == downloaded)
     if count:
         return releases.count()
-    releases = releases.slice(start, stop).from_self()
     if descending:
         releases = releases.order_by(getattr(EpisodeRelease, sort_by).desc())
     else:
         releases = releases.order_by(getattr(EpisodeRelease, sort_by))
-    return releases.all()
+    return releases.slice(start, stop).all()
 
 
 def get_season_releases(
     season: Season,
-    downloaded: bool = None,
-    start: int = None,
-    stop: int = None,
+    downloaded: bool | None = None,
+    start: int | None = None,
+    stop: int | None = None,
     count: bool = False,
     descending: bool = False,
-    sort_by: str = None,
+    sort_by: str | None = None,
     session: Session = None,
-) -> Union[int, List[SeasonRelease]]:
-    """Return all releases for a given season"""
+) -> int | list[SeasonRelease]:
+    """Return all releases for a given season."""
     releases = session.query(SeasonRelease).filter(SeasonRelease.season_id == season.id)
     if downloaded is not None:
         releases = releases.filter(SeasonRelease.downloaded == downloaded)
     if count:
         return releases.count()
-    releases = releases.slice(start, stop).from_self()
     if descending:
         releases = releases.order_by(getattr(SeasonRelease, sort_by).desc())
     else:
         releases = releases.order_by(getattr(SeasonRelease, sort_by))
-    return releases.all()
+    return releases.slice(start, stop).all()
 
 
 def episode_in_show(series_id: int, episode_id: int) -> bool:
-    """Return True if `episode_id` is part of show with `series_id`, else return False"""
+    """Return True if `episode_id` is part of show with `series_id`, else return False."""
     with Session() as session:
         episode = session.query(Episode).filter(Episode.id == episode_id).one()
         return episode.series_id == series_id
 
 
 def season_in_show(series_id: int, season_id: int) -> bool:
-    """Return True if `episode_id` is part of show with `series_id`, else return False"""
+    """Return True if `episode_id` is part of show with `series_id`, else return False."""
     with Session() as session:
         season = session.query(Season).filter(Season.id == season_id).one()
         return season.series_id == series_id
 
 
 def release_in_episode(episode_id: int, release_id: int) -> bool:
-    """Return True if `release_id` is part of episode with `episode_id`, else return False"""
+    """Return True if `release_id` is part of episode with `episode_id`, else return False."""
     with Session() as session:
         release = session.query(EpisodeRelease).filter(EpisodeRelease.id == release_id).one()
         return release.episode_id == episode_id
 
 
 def release_in_season(season_id: int, release_id: int) -> bool:
-    """Return True if `release_id` is part of episode with `episode_id`, else return False"""
+    """Return True if `release_id` is part of episode with `episode_id`, else return False."""
     with Session() as session:
         release = session.query(SeasonRelease).filter(SeasonRelease.id == release_id).one()
         return release.season_id == season_id
@@ -895,13 +901,13 @@ def _add_alt_name(alt: str, db_series: Series, series_name: str, session: Sessio
     db_series_alt = session.query(AlternateNames).filter(AlternateNames.alt_name == alt).first()
     if db_series_alt and db_series_alt.series_id == db_series.id:
         # Already exists, no need to create it then
-        # TODO is checking the list for duplicates faster/better than querying the DB?
+        # TODO: is checking the list for duplicates faster/better than querying the DB?
         db_series_alt.alt_name = alt
     elif db_series_alt:
         if not db_series_alt.series:
             # Not sure how this can happen
             logger.debug(
-                'Found an alternate name not attached to series. Re-attatching `{}` to `{}`.',
+                'Found an alternate name not attached to series. Re-attaching `{}` to `{}`.',
                 alt,
                 series_name,
             )
@@ -909,8 +915,8 @@ def _add_alt_name(alt: str, db_series: Series, series_name: str, session: Sessio
         else:
             # Alternate name already exists for another series. Not good.
             raise plugin.PluginError(
-                'Error adding alternate name for `%s`: `%s` is already associated with `%s`. '
-                'Check your settings.' % (series_name, alt, db_series_alt.series.name)
+                f'Error adding alternate name for `{series_name}`: `{alt}` is already associated with `{db_series_alt.series.name}`. '
+                'Check your settings.'
             )
     else:
         logger.debug('adding alternate name `{}` for `{}` into db', alt, series_name)
@@ -921,18 +927,17 @@ def _add_alt_name(alt: str, db_series: Series, series_name: str, session: Sessio
 
 @with_session
 def get_series_summary(
-    configured: str = None,
-    premieres: bool = None,
-    start: int = None,
-    stop: int = None,
+    configured: str | None = None,
+    premieres: bool | None = None,
+    start: int | None = None,
+    stop: int | None = None,
     count: bool = False,
     sort_by: str = 'show_name',
-    descending: bool = None,
+    descending: bool | None = None,
     session: Session = None,
-    name: str = None,
-) -> Union[int, Iterable[Series]]:
-    """
-    Return a query with results for all series.
+    name: str | None = None,
+) -> int | Iterable[Series]:
+    """Return a query with results for all series.
 
     :param configured: 'configured' for shows in config, 'unconfigured' for shows not in config, 'all' for both.
         Default is 'all'
@@ -949,7 +954,8 @@ def get_series_summary(
         )
     query = session.query(Series)
     query = (
-        query.outerjoin(Series.episodes)
+        query
+        .outerjoin(Series.episodes)
         .outerjoin(Episode.releases)
         .outerjoin(Series.in_tasks)
         .group_by(Series.id)
@@ -963,29 +969,25 @@ def get_series_summary(
     if premieres:
         query = (
             query.having(func.max(Episode.season) <= 1).having(func.max(Episode.number) <= 2)
-        ).filter(EpisodeRelease.downloaded == True)
+        ).filter(EpisodeRelease.downloaded)
     if count:
         return query.group_by(Series).count()
-    if sort_by == 'show_name':
-        order_by = Series.name
-    else:
-        order_by = func.max(EpisodeRelease.first_seen)
+    order_by = Series.name if sort_by == 'show_name' else func.max(EpisodeRelease.first_seen)
     query = query.order_by(desc(order_by)) if descending else query.order_by(order_by)
 
-    return query.slice(start, stop).from_self()
+    return query.slice(start, stop)
 
 
 def auto_identified_by(series: Series) -> str:
-    """
-    Determine if series `name` should be considered identified by episode or id format
+    """Determine if series `name` should be considered identified by episode or id format.
 
     Returns 'ep', 'sequence', 'date' or 'id' if enough history is present to identify the series' id type.
     Returns 'auto' if there is not enough history to determine the format yet
     """
-
     session = Session.object_session(series)
     type_totals = dict(
-        session.query(Episode.identified_by, func.count(Episode.identified_by))
+        session
+        .query(Episode.identified_by, func.count(Episode.identified_by))
         .join(Episode.series)
         .filter(Series.id == series.id)
         .group_by(Episode.identified_by)
@@ -1023,23 +1025,26 @@ def auto_identified_by(series: Series) -> str:
 
 
 def get_latest_season_pack_release(
-    series: Series, downloaded: bool = True, season: int = None
-) -> Optional[Season]:
-    """
-    Return the latest season pack release for a series
+    series: Series, downloaded: bool = True, season: int | None = None
+) -> Season | None:
+    """Return the latest season pack release for a series.
 
-    :param Series series: Series object
-    :param bool downloaded: Flag to return only downloaded season packs
+    :param series: Series object
+    :param downloaded: Flag to return only downloaded season packs
     :param season: Filter by season number
     :return: Latest release of a season object
     """
     session = Session.object_session(series)
     releases = (
-        session.query(Season).join(Season.releases, Season.series).filter(Series.id == series.id)
+        session
+        .query(Season)
+        .join(Season.releases)
+        .join(Season.series)
+        .filter(Series.id == series.id)
     )
 
     if downloaded:
-        releases = releases.filter(SeasonRelease.downloaded == True)
+        releases = releases.filter(SeasonRelease.downloaded)
 
     if season is not None:
         releases = releases.filter(Season.season == season)
@@ -1052,7 +1057,7 @@ def get_latest_season_pack_release(
             season,
             downloaded,
         )
-        return
+        return None
     logger.debug(
         'latest season pack for series {}, with downloaded set to {} and season set to {}',
         series,
@@ -1063,23 +1068,25 @@ def get_latest_season_pack_release(
 
 
 def get_latest_episode_release(
-    series: Series, downloaded: bool = True, season: int = None
-) -> Optional[Episode]:
-    """
-    :param series series: SQLAlchemy session
+    series: Series, downloaded: bool = True, season: int | None = None
+) -> Episode | None:
+    """Return instance of Episode or None if not found.
+
+    :param series: SQLAlchemy session
     :param downloaded: find only downloaded releases
     :param season: season to find newest release for
-    :return: Instance of Episode or None if not found.
     """
     session = Session.object_session(series)
     releases = (
-        session.query(Episode)
-        .join(Episode.releases, Episode.series)
+        session
+        .query(Episode)
+        .join(Episode.releases)
+        .join(Episode.series)
         .filter(Series.id == series.id)
     )
 
     if downloaded:
-        releases = releases.filter(EpisodeRelease.downloaded == True)
+        releases = releases.filter(EpisodeRelease.downloaded)
 
     if season is not None:
         releases = releases.filter(Episode.season == season)
@@ -1106,7 +1113,7 @@ def get_latest_episode_release(
             season,
             downloaded,
         )
-        return
+        return None
     logger.debug(
         'latest episode for series {}, with downloaded set to {} and season set to {}',
         series,
@@ -1117,10 +1124,9 @@ def get_latest_episode_release(
 
 
 def get_latest_release(
-    series: Series, downloaded: bool = True, season: int = None
-) -> Union[EpisodeRelease, SeasonRelease, None]:
-    """
-    Return the latest downloaded entity of a series, either season pack or episode
+    series: Series, downloaded: bool = True, season: int | None = None
+) -> EpisodeRelease | SeasonRelease | None:
+    """Return the latest downloaded entity of a series, either season pack or episode.
 
     :param Series series: Series object
     :param bool downloaded: Downloaded flag
@@ -1135,10 +1141,10 @@ def get_latest_release(
     return max(latest_season, latest_ep)
 
 
-def new_eps_after(series: Series, since_ep: Episode, session: Session) -> Tuple[int, str]:
-    """
+def new_eps_after(series: Series, since_ep: Episode, session: Session) -> tuple[int, str]:
+    """Return number of episodes since then.
+
     :param since_ep: Episode instance
-    :return: Number of episodes since then
     """
     series_eps = session.query(Episode).join(Episode.series).filter(Series.id == series.id)
     if series.identified_by == 'ep':
@@ -1165,24 +1171,20 @@ def new_eps_after(series: Series, since_ep: Episode, session: Session) -> Tuple[
     return count, 'eps'
 
 
-def new_seasons_after(series: Series, since_season: Season, session: Session) -> Tuple[int, str]:
+def new_seasons_after(series: Series, since_season: Season, session: Session) -> tuple[int, str]:
     series_seasons = session.query(Season).join(Season.series).filter(Season.id == series.id)
     return series_seasons.filter(Season.first_seen > since_season.first_seen).count(), 'seasons'
 
 
-def new_entities_after(since_entity: Union[Season, Episode]) -> Tuple[int, str]:
+def new_entities_after(since_entity: Season | Episode) -> tuple[int, str]:
     session = Session.object_session(since_entity)
     series = since_entity.series
-    if since_entity.is_season:
-        func = new_seasons_after
-    else:
-        func = new_eps_after
+    func = new_seasons_after if since_entity.is_season else new_eps_after
     return func(series, since_entity, session)
 
 
-def set_series_begin(series: Series, ep_id: Union[str, int]) -> Tuple[str, str]:
-    """
-    Set beginning for series
+def set_series_begin(series: Series, ep_id: str | int) -> tuple[str, str]:
+    """Set beginning for series.
 
     :param Series series: Series instance
     :param ep_id: Integer for sequence mode, SxxEyy for episodic and yyyy-mm-dd for date.
@@ -1197,15 +1199,14 @@ def set_series_begin(series: Series, ep_id: Union[str, int]) -> Tuple[str, str]:
         ep_id = ep_id.upper()
         if entity_type == 'season':
             ep_id += 'E01'
-    if series.identified_by not in ['auto', '', None]:
-        if identified_by != series.identified_by:
-            raise ValueError(
-                '`begin` value `%s` does not match identifier type for identified_by `%s`'
-                % (ep_id, series.identified_by)
-            )
+    if series.identified_by not in ['auto', '', None] and identified_by != series.identified_by:
+        raise ValueError(
+            f'Series `{series.name}` `begin` value `{ep_id}` does not match identifier type for identified_by `{series.identified_by}`'
+        )
     series.identified_by = identified_by
     episode = (
-        session.query(Episode)
+        session
+        .query(Episode)
         .filter(Episode.series_id == series.id)
         .filter(Episode.identified_by == series.identified_by)
         .filter(Episode.identifier == str(ep_id))
@@ -1222,7 +1223,7 @@ def set_series_begin(series: Series, ep_id: Union[str, int]) -> Tuple[str, str]:
             episode.number = int(match.group(2))
         elif identified_by == 'sequence':
             episode.season = 0
-            episode.number = ep_id
+            episode.number = int(ep_id)
         series.episodes.append(episode)
         # Need to flush to get an id on new Episode before assigning it as series begin
         session.flush()
@@ -1231,8 +1232,7 @@ def set_series_begin(series: Series, ep_id: Union[str, int]) -> Tuple[str, str]:
 
 
 def remove_series(name: str, forget: bool = False) -> None:
-    """
-    Remove a whole series `name` from database.
+    """Remove a whole series `name` from database.
 
     :param name: Name of series to be removed
     :param forget: Indication whether or not to fire a 'forget' event
@@ -1243,21 +1243,22 @@ def remove_series(name: str, forget: bool = False) -> None:
         if series:
             for s in series:
                 if forget:
-                    for entity in s.episodes + s.seasons:
-                        for release in entity.downloaded_releases:
-                            downloaded_releases.append(release.title)
+                    downloaded_releases.extend([
+                        release.title
+                        for entity in s.episodes + s.seasons
+                        for release in entity.downloaded_releases
+                    ])
                 session.delete(s)
             session.commit()
             logger.debug('Removed series `{}` from database.', name)
         else:
-            raise ValueError('Unknown series `%s`' % name)
+            raise ValueError(f'Unknown series `{name}`')
     for downloaded_release in downloaded_releases:
         fire_event('forget', downloaded_release)
 
 
 def remove_series_entity(name: str, identifier: str, forget: bool = False) -> None:
-    """
-    Remove all entities by `identifier` from series `name` from database.
+    """Remove all entities by `identifier` from series `name` from database.
 
     :param name: Name of series to be removed
     :param identifier: Series identifier to be deleted,
@@ -1267,7 +1268,7 @@ def remove_series_entity(name: str, identifier: str, forget: bool = False) -> No
     with Session() as session:
         series = session.query(Series).filter(Series.name == name).first()
         if not series:
-            raise ValueError('Unknown series `%s`' % name)
+            raise ValueError(f'Unknown series `{name}`')
 
         def remove_entity(entity):
             if not series.begin:
@@ -1278,17 +1279,16 @@ def remove_series_entity(name: str, identifier: str, forget: bool = False) -> No
             logger.debug('Entity `{}` from series `{}` removed from database.', identifier, name)
             return [release.title for release in entity.downloaded_releases]
 
-        name_to_parse = '{} {}'.format(series.name, identifier)
+        name_to_parse = f'{series.name} {identifier}'
         parsed = plugin.get('parsing', 'series.db').parse_series(name_to_parse, name=series.name)
         if not parsed.valid:
-            raise ValueError(
-                'Invalid identifier for series `{}`: `{}`'.format(series.name, identifier)
-            )
+            raise ValueError(f'Invalid identifier for series `{series.name}`: `{identifier}`')
 
         removed = False
         if parsed.season_pack:
             season = (
-                session.query(Season)
+                session
+                .query(Season)
                 .filter(Season.season == parsed.season)
                 .filter(Season.series_id == series.id)
                 .first()
@@ -1309,9 +1309,7 @@ def remove_series_entity(name: str, identifier: str, forget: bool = False) -> No
                 removed = True
                 downloaded_releases = remove_entity(episode)
         if not removed:
-            raise ValueError(
-                'Unknown identifier `%s` for series `%s`' % (identifier, name.capitalize())
-            )
+            raise ValueError(f'Unknown identifier `{identifier}` for series `{name.capitalize()}`')
 
     if forget:
         for downloaded_release in downloaded_releases:
@@ -1326,7 +1324,7 @@ def delete_episode_release_by_id(release_id: int) -> None:
             session.commit()
             logger.debug('Deleted release ID `{}`', release_id)
         else:
-            raise ValueError('Unknown identifier `%s` for release' % release_id)
+            raise ValueError(f'Unknown identifier `{release_id}` for release')
 
 
 def delete_season_release_by_id(release_id: int) -> None:
@@ -1337,23 +1335,25 @@ def delete_season_release_by_id(release_id: int) -> None:
             session.commit()
             logger.debug('Deleted release ID `{}`', release_id)
         else:
-            raise ValueError('Unknown identifier `%s` for release' % release_id)
+            raise ValueError(f'Unknown identifier `{release_id}` for release')
 
 
-def shows_by_name(normalized_name: str, session: Session = None) -> List[Series]:
-    """Returns all series matching `normalized_name`"""
+def shows_by_name(normalized_name: str, session: Session = None) -> list[Series]:
+    """Return all series matching `normalized_name`."""
     return (
-        session.query(Series)
+        session
+        .query(Series)
         .filter(Series._name_normalized.contains(normalized_name))
         .order_by(func.char_length(Series.name))
         .all()
     )
 
 
-def shows_by_exact_name(normalized_name: str, session: Session = None) -> List[Series]:
-    """Returns all series matching `normalized_name`"""
+def shows_by_exact_name(normalized_name: str, session: Session = None) -> list[Series]:
+    """Return all series matching `normalized_name`."""
     return (
-        session.query(Series)
+        session
+        .query(Series)
         .filter(Series._name_normalized == normalized_name)
         .order_by(func.char_length(Series.name))
         .all()
@@ -1361,39 +1361,39 @@ def shows_by_exact_name(normalized_name: str, session: Session = None) -> List[S
 
 
 def show_by_id(show_id: int, session: Session = None) -> Series:
-    """Return an instance of a show by querying its ID"""
+    """Return an instance of a show by querying its ID."""
     return session.query(Series).filter(Series.id == show_id).one()
 
 
 def season_by_id(season_id: int, session: Session = None) -> Season:
-    """Return an instance of an season by querying its ID"""
+    """Return an instance of an season by querying its ID."""
     return session.query(Season).filter(Season.id == season_id).one()
 
 
 def episode_by_id(episode_id: int, session: Session = None) -> Episode:
-    """Return an instance of an episode by querying its ID"""
+    """Return an instance of an episode by querying its ID."""
     return session.query(Episode).filter(Episode.id == episode_id).one()
 
 
 def episode_release_by_id(release_id: int, session: Session = None) -> EpisodeRelease:
-    """Return an instance of an episode release by querying its ID"""
+    """Return an instance of an episode release by querying its ID."""
     return session.query(EpisodeRelease).filter(EpisodeRelease.id == release_id).one()
 
 
 def season_release_by_id(release_id: int, session: Session = None) -> SeasonRelease:
-    """Return an instance of an episode release by querying its ID"""
+    """Return an instance of an episode release by querying its ID."""
     return session.query(SeasonRelease).filter(SeasonRelease.id == release_id).one()
 
 
 def show_episodes(
     series: Series,
-    start: int = None,
-    stop: int = None,
+    start: int | None = None,
+    stop: int | None = None,
     count: bool = False,
     descending: bool = False,
     session: Session = None,
-) -> Union[int, List[Episode]]:
-    """Return all episodes of a given series"""
+) -> int | list[Episode]:
+    """Return all episodes of a given series."""
     episodes = session.query(Episode).filter(Episode.series_id == series.id)
     if count:
         return episodes.count()
@@ -1416,14 +1416,13 @@ def show_episodes(
             if descending
             else episodes.order_by(Episode.identifier)
         )
-    return episodes.slice(start, stop).from_self().all()
+    return episodes.slice(start, stop).all()
 
 
 def store_parser(
-    session: Session, parser: 'SeriesParseResult', series: Series = None, quality: 'Quality' = None
-) -> List[Union[SeasonRelease, EpisodeRelease]]:
-    """
-    Push series information into database. Returns added/existing release.
+    session: Session, parser: SeriesParseResult, series: Series = None, quality: Quality = None
+) -> list[SeasonRelease | EpisodeRelease]:
+    """Push series information into database. Returns added/existing release.
 
     :param session: Database session to use
     :param parser: parser for release that should be added to database
@@ -1436,9 +1435,10 @@ def store_parser(
     if not series:
         # if series does not exist in database, add new
         series = (
-            session.query(Series)
+            session
+            .query(Series)
             .filter(Series.name == parser.name)
-            .filter(Series.id != None)
+            .filter(Series.id.is_not(None))
             .first()
         )
         if not series:
@@ -1453,7 +1453,8 @@ def store_parser(
         if parser.season_pack:
             # Checks if season object exist
             season = (
-                session.query(Season)
+                session
+                .query(Season)
                 .filter(Season.season == parser.season)
                 .filter(Season.series_id == series.id)
                 .filter(Season.identifier == identifier)
@@ -1478,10 +1479,11 @@ def store_parser(
         else:
             # if episode does not exist in series, add new
             episode = (
-                session.query(Episode)
+                session
+                .query(Episode)
                 .filter(Episode.series_id == series.id)
                 .filter(Episode.identifier == identifier)
-                .filter(Episode.series_id != None)
+                .filter(Episode.series_id.is_not(None))
                 .first()
             )
             if not episode:
@@ -1496,7 +1498,7 @@ def store_parser(
                 elif parser.id_type == 'sequence':
                     episode.season = 0
                     episode.number = parser.id + ix
-                series.episodes.append(episode)  # pylint:disable=E1103
+                series.episodes.append(episode)
                 logger.debug('-> added `{}`', episode)
             session.flush()
 
@@ -1514,12 +1516,13 @@ def store_parser(
         # to database but doesn't have episode_id, this causes all kinds of havoc with the plugin.
         # perhaps a bug in sqlalchemy?
         release = (
-            session.query(table)
+            session
+            .query(table)
             .filter(filter_by == filter_id)
             .filter(table.title == parser.data)
             .filter(table.quality == quality)
             .filter(table.proper_count == parser.proper_count)
-            .filter(filter_by != None)
+            .filter(filter_by.is_not(None))
             .first()
         )
         if not release:
@@ -1528,7 +1531,7 @@ def store_parser(
             release.quality = quality
             release.proper_count = parser.proper_count
             release.title = parser.data
-            entity.releases.append(release)  # pylint:disable=E1103
+            entity.releases.append(release)
             logger.debug('-> added `{}`', release)
         releases.append(release)
     session.flush()  # Make sure autonumber ids are populated
@@ -1536,30 +1539,24 @@ def store_parser(
 
 
 def add_series_entity(
-    session: Session, series: Series, identifier: str, quality: 'Quality' = None
+    session: Session, series: Series, identifier: str, quality: Quality = None
 ) -> None:
-    """
-    Adds entity identified by `identifier` to series `name` in database.
+    """Add entity identified by `identifier` to series `name` in database.
 
     :param series: Series in database to add entity to.
     :param identifier: Series identifier to be added.
     :param quality: If supplied, this will override the quality from the series parser.
     """
-    name_to_parse = '{} {}'.format(series.name, identifier)
+    name_to_parse = f'{series.name} {identifier}'
     if quality:
-        name_to_parse += ' {}'.format(quality)
+        name_to_parse += f' {quality}'
     parsed = plugin.get('parsing', 'series.db').parse_series(name_to_parse, name=series.name)
     if not parsed.valid:
-        raise ValueError(
-            'Invalid identifier for series `{}`: `{}`.'.format(series.name, identifier)
-        )
+        raise ValueError(f'Invalid identifier for series `{series.name}`: `{identifier}`.')
 
     added = store_parser(session, parsed, series=series)
     if not added:
-        raise ValueError(
-            'Unable to add `%s` to series `%s`.' % (identifier, series.name.capitalize())
-        )
-    else:
-        for release in added:
-            release.downloaded = True
-        logger.debug('Entity `{}` from series `{}` added to database.', identifier, series.name)
+        raise ValueError(f'Unable to add `{identifier}` to series `{series.name.capitalize()}`.')
+    for release in added:
+        release.downloaded = True
+    logger.debug('Entity `{}` from series `{}` added to database.', identifier, series.name)

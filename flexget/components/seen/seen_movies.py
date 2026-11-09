@@ -11,9 +11,9 @@ logger = logger.bind(name='seen_movies')
 
 
 class FilterSeenMovies(plugin_seen.FilterSeen):
-    """
-    Prevents movies being downloaded twice.
-    Works only on entries which have imdb url available.
+    """Prevent movies being downloaded twice.
+
+    Work only on entries which have imdb url available.
 
     How duplicate movie detection works:
     1) Remember all imdb urls from downloaded entries.
@@ -41,7 +41,7 @@ class FilterSeenMovies(plugin_seen.FilterSeen):
 
     # We run last to make sure we don't reject duplicates before all the other plugins get a chance to reject.
     @plugin.priority(plugin.PRIORITY_LAST)
-    def on_task_filter(self, task, config):  # pylint: disable=W0221
+    def on_task_filter(self, task, config):
         if not isinstance(config, dict):
             config = {'matching': config}
         # Reject all entries without
@@ -61,10 +61,9 @@ class FilterSeenMovies(plugin_seen.FilterSeen):
             for field in self.fields:
                 if field in entry:
                     if entry[field] in accepted_ids[field]:
-                        entry.reject('already accepted %s %s once in task' % (field, entry[field]))
+                        entry.reject(f'already accepted {field} {entry[field]} once in task')
                         break
-                    else:
-                        accepted_ids[field].add(entry[field])
+                    accepted_ids[field].add(entry[field])
 
     def on_task_learn(self, task, config):
         if not isinstance(config, dict):

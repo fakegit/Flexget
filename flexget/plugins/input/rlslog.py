@@ -22,19 +22,16 @@ logger = logger.bind(name='rlslog')
 
 
 class RlsLog:
-    """
-    Adds support for rlslog.net as a feed.
-    """
+    """Adds support for rlslog.net as a feed."""
 
     schema = {'type': 'string', 'format': 'url'}
 
     def parse_rlslog(self, rlslog_url, task):
-        """
+        """Return list of release dictionaries.
+
         :param rlslog_url: Url to parse from
         :param task: Task instance
-        :return: List of release dictionaries
         """
-
         # BeautifulSoup doesn't seem to work if data is already decoded to unicode :/
         soup = get_soup(task.requests.get(rlslog_url, timeout=25).content)
 
@@ -66,7 +63,9 @@ class RlsLog:
                 releases.append(release)
             else:
                 log_once(
-                    '%s skipped due to missing or unsupported download link' % (release['title']),
+                    '{} skipped due to missing or unsupported download link'.format(
+                        release['title']
+                    ),
                     logger,
                 )
 
@@ -90,13 +89,12 @@ class RlsLog:
             except RequestException as e:
                 if number == 1:
                     raise
-                else:
-                    logger.verbose(
-                        'Error receiving content, retrying in 5s. Try [{} of 2]. Error: {}',
-                        number + 1,
-                        e,
-                    )
-                    time.sleep(5)
+                logger.verbose(
+                    'Error receiving content, retrying in 5s. Try [{} of 2]. Error: {}',
+                    number + 1,
+                    e,
+                )
+                time.sleep(5)
 
         # Construct entry from release
         for release in releases:

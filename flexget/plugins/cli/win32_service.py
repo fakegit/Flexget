@@ -29,14 +29,14 @@ try:
             socket.setdefaulttimeout(60)
             self.manager = None
 
-        def SvcStop(self):
+        def SvcStop(self):  # noqa: N802
             self.ReportServiceStatus(win32service.SERVICE_STOP_PENDING)
             from flexget.manager import manager
 
             manager.shutdown(finish_queue=False)
             self.ReportServiceStatus(win32service.SERVICE_STOPPED)
 
-        def SvcDoRun(self):
+        def SvcDoRun(self):  # noqa: N802
             servicemanager.LogMsg(
                 servicemanager.EVENTLOG_INFORMATION_TYPE,
                 servicemanager.PYS_SERVICE_STARTED,
@@ -44,7 +44,6 @@ try:
             )
 
             flexget.main(['daemon', 'start'])
-
 
 except ImportError:
     pass
@@ -54,14 +53,13 @@ def do_cli(manager, options):
     import win32file
     import win32serviceutil
 
-    if hasattr(sys, 'real_prefix'):
-        # We are in a virtualenv, there is some special setup
-        if not os.path.exists(os.path.join(sys.prefix, 'python.exe')):
-            console('Creating a hard link to virtualenv python.exe in root of virtualenv')
-            win32file.CreateHardLink(
-                os.path.join(sys.prefix, 'python.exe'),
-                os.path.join(sys.prefix, 'Scripts', 'python.exe'),
-            )
+    # We are in a virtualenv, there is some special setup
+    if hasattr(sys, 'real_prefix') and not os.path.exists(os.path.join(sys.prefix, 'python.exe')):
+        console('Creating a hard link to virtualenv python.exe in root of virtualenv')
+        win32file.CreateHardLink(
+            os.path.join(sys.prefix, 'python.exe'),
+            os.path.join(sys.prefix, 'Scripts', 'python.exe'),
+        )
 
     argv = options.args
     if options.help:
@@ -69,7 +67,7 @@ def do_cli(manager, options):
 
     # Hack sys.argv a bit so that we get a better usage message
     sys.argv[0] = 'flexget service'
-    win32serviceutil.HandleCommandLine(AppServerSvc, argv=['flexget service'] + argv)
+    win32serviceutil.HandleCommandLine(AppServerSvc, argv=['flexget service', *argv])
 
 
 @event('options.register')

@@ -13,9 +13,7 @@ logger = logger.bind(name='next_trakt_episodes')
 
 
 class NextTraktEpisodes:
-    """
-    Creates an entry for the latest or the next item in your watched or collected
-    episodes in your trakt account.
+    """Create an entry for the latest or the next item in your watched or collected episodes in your trakt account.
 
     Syntax:
 
@@ -64,10 +62,10 @@ class NextTraktEpisodes:
         try:
             data = session.get(db.get_api_url(args)).json()
         except RequestException as e:
-            raise plugin.PluginError('Unable to get trakt list `%s`: %s' % (config['list'], e))
+            raise plugin.PluginError('Unable to get trakt list `{}`: {}'.format(config['list'], e))
         if not data:
             logger.warning('The list "{}" is empty.', config['list'])
-            return
+            return None
         for item in data:
             if item.get('show'):
                 if not item['show']['title']:
@@ -77,7 +75,7 @@ class NextTraktEpisodes:
                 ids = item['show']['ids']
                 trakt_id = ids['trakt']
                 listed_series[trakt_id] = {
-                    'series_name': '%s (%s)' % (item['show']['title'], item['show']['year']),
+                    'series_name': '{} ({})'.format(item['show']['title'], item['show']['year']),
                     'trakt_id': trakt_id,
                     'trakt_series_name': item['show']['title'],
                     'trakt_series_year': item['show']['year'],
@@ -103,7 +101,7 @@ class NextTraktEpisodes:
                 data = response.json()
             except RequestException as e:
                 raise plugin.PluginError(
-                    'An error has occurred looking up: Trakt_id: %s Error: %s' % (trakt_id, e)
+                    f'An error has occurred looking up: Trakt_id: {trakt_id} Error: {e}'
                 )
             if context == 'aired':
                 season_number = data['season']
@@ -152,9 +150,9 @@ class NextTraktEpisodes:
         entry['series_season'] = season
         entry['series_episode'] = episode
         entry['series_id_type'] = 'ep'
-        entry['series_id'] = 'S%02dE%02d' % (season, episode)
+        entry['series_id'] = f'S{season:02d}E{episode:02d}'
         entry['title'] = entry['series_name'] + ' ' + entry['series_id']
-        entry['url'] = 'https://trakt.tv/shows/%s/seasons/%s/episodes/%s' % (
+        entry['url'] = 'https://trakt.tv/shows/{}/seasons/{}/episodes/{}'.format(
             fields['trakt_id'],
             season,
             episode,

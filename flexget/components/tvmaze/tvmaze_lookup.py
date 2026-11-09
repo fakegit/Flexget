@@ -1,6 +1,7 @@
 from loguru import logger
 
-from flexget import entry, plugin
+from flexget import plugin
+from flexget.entry import register_lazy_lookup
 from flexget.event import event
 from flexget.manager import Session
 
@@ -8,11 +9,11 @@ logger = logger.bind(name='tvmaze_lookup')
 
 
 class PluginTVMazeLookup:
-    """Retrieves tvmaze information for entries. Uses series_name,
-    series_season, series_episode from series plugin.
+    """Retrieve tvmaze information for entries.
+
+    Use series_name, series_season, series_episode from series plugin.
 
     Example:
-
     tvmaze_lookup: yes
 
     Primarily used for passing tvmaze information to other plugins.
@@ -121,9 +122,9 @@ class PluginTVMazeLookup:
 
     schema = {'type': 'boolean'}
 
-    @entry.register_lazy_lookup('tvmaze_series_lookup')
+    @register_lazy_lookup('tvmaze_series_lookup')
     def lazy_series_lookup(self, entry):
-        """Does the lookup for this entry and populates the entry fields."""
+        """Do the lookup for this entry and populate the entry fields."""
         series_lookup = plugin.get('api_tvmaze', self).series_lookup
         with Session() as session:
             lookupargs = {
@@ -142,7 +143,7 @@ class PluginTVMazeLookup:
                 entry.update_using_map(self.series_map, series)
         return entry
 
-    @entry.register_lazy_lookup('tvmaze_season_lookup')
+    @register_lazy_lookup('tvmaze_season_lookup')
     def lazy_season_lookup(self, entry):
         season_lookup = plugin.get('api_tvmaze', self).season_lookup
         with Session(expire_on_commit=False) as session:
@@ -163,7 +164,7 @@ class PluginTVMazeLookup:
                 entry.update_using_map(self.season_map, season)
         return entry
 
-    @entry.register_lazy_lookup('tvmaze_episode_lookup')
+    @register_lazy_lookup('tvmaze_episode_lookup')
     def lazy_episode_lookup(self, entry):
         episode_lookup = plugin.get('api_tvmaze', self).episode_lookup
         with Session(expire_on_commit=False) as session:
@@ -210,7 +211,7 @@ class PluginTVMazeLookup:
 
     @property
     def series_identifier(self):
-        """Returns the plugin main identifier type"""
+        """Return the plugin main identifier type."""
         return 'tvmaze_id'
 
 

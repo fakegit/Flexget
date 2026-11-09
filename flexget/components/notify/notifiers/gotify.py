@@ -13,17 +13,19 @@ plugin_name = 'gotify'
 requests = RequestSession(max_retries=3)
 
 
-class GotifyNotifier(object):
-    """
+class GotifyNotifier:
+    """Send a Gotify notification.
+
     Example::
 
-    notify:
-      entries:
-        via:
-          - gotify:
-              url: <GOTIFY_SERVER_URL>
-              token: <GOTIFY_TOKEN>
-              priority: <PRIORITY>
+        notify:
+          entries:
+            via:
+              - gotify:
+                  url: <GOTIFY_SERVER_URL>
+                  token: <GOTIFY_TOKEN>
+                  priority: <PRIORITY>
+
     Configuration parameters are also supported from entries (eg. through set).
     """
 
@@ -33,26 +35,35 @@ class GotifyNotifier(object):
             'url': {'format': 'url'},
             'token': {'type': 'string'},
             'priority': {'type': 'integer', 'default': 4},
+            'content_type': {
+                'type': 'string',
+                'enum': ['text/plain', 'text/markdown'],
+                'default': 'text/plain',
+            },
         },
         'required': ['token', 'url'],
         'additionalProperties': False,
     }
 
     def notify(self, title, message, config):
-        """
-        Send a Gotify notification
-        """
+        """Send a Gotify notification."""
         base_url = config['url']
         api_endpoint = '/message'
         url = urljoin(base_url, api_endpoint)
         params = {'token': config['token']}
 
         priority = config['priority']
+        content_type = config['content_type']
 
-        notification = {'title': title, 'message': message, 'priority': priority}
+        notification = {
+            'title': title,
+            'message': message,
+            'priority': priority,
+            'extras': {'client::display': {'contentType': content_type}},
+        }
         # Make the request
         try:
-            response = requests.post(url, params=params, json=notification)
+            requests.post(url, params=params, json=notification)
         except RequestException as e:
             if e.response is not None:
                 if e.response.status_code in (HTTPStatus.UNAUTHORIZED, HTTPStatus.FORBIDDEN):

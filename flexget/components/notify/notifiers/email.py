@@ -18,8 +18,7 @@ logger = logger.bind(name=plugin_name)
 
 
 class EmailNotifier:
-    """
-    Send an e-mail with the list of all succeeded (downloaded) entries.
+    """Send an e-mail with the list of all succeeded (downloaded) entries.
 
     Configuration options
 
@@ -115,7 +114,7 @@ class EmailNotifier:
                 self.mail_server.ehlo()
                 self.mail_server.starttls()
                 self.mail_server.ehlo()
-        except (socket.error, OSError) as e:
+        except OSError as e:
             raise PluginWarning(str(e))
 
         try:
@@ -145,7 +144,7 @@ class EmailNotifier:
             'html': {'type': 'boolean', 'default': False},
         },
         'required': ['to'],
-        'dependencies': {
+        'dependentRequired': {
             'smtp_username': ['smtp_password'],
             'smtp_password': ['smtp_username'],
             'smtp_ssl': ['smtp_tls'],
@@ -154,14 +153,12 @@ class EmailNotifier:
     }
 
     def notify(self, title, message, config):
-        """
-        Send an email notification
+        """Send an email notification.
 
         :param str message: message body
         :param str title: message subject
         :param dict config: email plugin config
         """
-
         if not isinstance(config['to'], list):
             config['to'] = [config['to']]
 
@@ -192,7 +189,7 @@ class EmailNotifier:
                     self.connect_to_smtp_server(config)
                     connection_error = e
                 else:
-                    raise PluginWarning('Could not connect to SMTP server: %s' % str(e))
+                    raise PluginWarning(f'Could not connect to SMTP server: {e!s}')
 
 
 @event('plugin.register')

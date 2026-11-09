@@ -1,13 +1,14 @@
+from __future__ import annotations
+
 import base64
 from contextlib import suppress
-from typing import Optional
+from typing import TYPE_CHECKING
 
-from flask import request, Request, Response
+from flask import request
 from flask import session as flask_session
 from flask_login import LoginManager
 from flask_login.utils import current_app, current_user, login_user
 from flask_restx import inputs
-from sqlalchemy.orm import Session
 from werkzeug.security import check_password_hash
 
 from flexget.api import api_app
@@ -15,13 +16,17 @@ from flexget.api.app import APIResource, Unauthorized, api, base_message_schema,
 from flexget.utils.database import with_session
 from flexget.webserver import User
 
+if TYPE_CHECKING:
+    from flask import Request, Response
+    from sqlalchemy.orm import Session
+
 login_manager = LoginManager()
 login_manager.init_app(api_app)
 
 
 @login_manager.request_loader
 @with_session
-def load_user_from_request(request: Request, session: Session = None) -> Optional[User]:
+def load_user_from_request(request: Request, session: Session = None) -> User | None:
     auth_value = request.headers.get('Authorization')
 
     if not auth_value:
@@ -46,12 +51,12 @@ def load_user_from_request(request: Request, session: Session = None) -> Optiona
 
 @login_manager.user_loader
 @with_session
-def load_user(username: str, session: Session = None) -> Optional[User]:
+def load_user(username: str, session: Session = None) -> User | None:
     return session.query(User).filter(User.name == username).first()
 
 
 @api_app.before_request
-def check_valid_login() -> Optional[Response]:
+def check_valid_login() -> Response | None:
     # Allow access to root, login and swagger documentation without authentication
     if (
         request.path == '/'
@@ -95,9 +100,9 @@ class LoginAPI(APIResource):
     @api.validate(login_api_schema, description='Username and Password')
     @api.response(Unauthorized)
     @api.response(200, 'Login successful', model=base_message_schema)
-    @api.doc(parser=login_parser)
+    @api.doc(expect=[login_parser])
     def post(self, session: Session = None) -> Response:
-        """ Login with username and password """
+        """Login with username and password."""
         data = request.json
         user_name = data.get('username')
         password = data.get('password')
@@ -123,7 +128,7 @@ class LoginAPI(APIResource):
 class LogoutAPI(APIResource):
     @api.response(200, 'Logout successful', model=base_message_schema)
     def post(self, session: Session = None) -> Response:
-        """ Logout and clear session cookies """
+        """Logout and clear session cookies."""
         flask_session.clear()
         resp = success_response('User logged out')
         resp.set_cookie('flexget.token', '', expires=0)

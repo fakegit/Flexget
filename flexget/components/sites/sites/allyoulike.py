@@ -18,12 +18,12 @@ except ImportError:
     )
 
 
-logger = logger.bind(name='rlsbb')
+logger = logger.bind(name='allyoulike')
 
 
 class UrlRewriteAllyoulike:
-    r"""
-    allyoulike.com urlrewriter
+    r"""allyoulike.com urlrewriter.
+
     Version 0.1
 
     Rewrites urls for allyoulike.com
@@ -42,19 +42,20 @@ class UrlRewriteAllyoulike:
     Therefore, it is recommended, that you configure your output to use the
     'urls' field instead of the 'url' field.
 
-    For example, to use jdownloader 2 as output, you would use the exec plugin:
-    exec:
-      - echo "text={{urls}}" >> "/path/to/jd2/folderwatch/{{title}}.crawljob"
+    For example, to use jdownloader 2 as output, you would use the exec plugin::
+
+        exec:
+          - echo "text={{urls}}" >> "/path/to/jd2/folderwatch/{{title}}.crawljob"
 
     The plugin is intended to be used in conjunction with the html plugin.
 
-    Example configuration for the html plugin:
+    Example configuration for the html plugin::
 
-    html:
-      url: "http://www.allyoulike.com/category/movies/"
-      title_from: link
-      links_re:
-        - allyoulike.com/\d*/(?!renew-or-purchase|for-vip-members-only)[^/]*/$
+        html:
+          url: "http://www.allyoulike.com/category/movies/"
+          title_from: link
+          links_re:
+            - allyoulike.com/\d*/(?!renew-or-purchase|for-vip-members-only)[^/]*/$
     """
 
     # urlrewriter API
@@ -81,7 +82,7 @@ class UrlRewriteAllyoulike:
         link_re = re.compile(r'rarefile\.net.*\.rar$')
 
         # grab links from the main entry:
-        blog_entry = soup.find('div', class_="entry")
+        blog_entry = soup.find('div', class_='entry-content')
         num_links = 0
         link_list = None
         for paragraph in blog_entry.find_all('p'):
@@ -89,15 +90,12 @@ class UrlRewriteAllyoulike:
             if len(links) > num_links:
                 link_list = links
                 num_links = len(links)
-        if 'urls' in entry:
-            urls = list(entry['urls'])
-        else:
-            urls = []
+        urls = list(entry['urls']) if 'urls' in entry else []
         if link_list is not None:
             for link in link_list:
                 urls.append(normalize_unicode(link['href']))
         else:
-            raise UrlRewritingError('No useable links found at %s' % entry['url'])
+            raise UrlRewritingError('No usable links found at {}'.format(entry['url']))
 
         num_links = len(urls)
         logger.verbose('Found {} links at {}.', num_links, entry['url'])
@@ -105,7 +103,7 @@ class UrlRewriteAllyoulike:
             entry['urls'] = urls
             entry['url'] = urls[0]
         else:
-            raise UrlRewritingError('No useable links found at %s' % entry['url'])
+            raise UrlRewritingError('No usable links found at {}'.format(entry['url']))
 
 
 @event('plugin.register')

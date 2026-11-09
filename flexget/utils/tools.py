@@ -1,15 +1,18 @@
-"""Contains miscellaneous helpers"""
+"""Contains miscellaneous helpers."""
+
+from __future__ import annotations
+
 import ast
+import contextlib
 import copy
 import hashlib
 import locale
 import operator
-import os
 import queue
 import re
 import sys
 import weakref
-from collections import OrderedDict, defaultdict
+from collections import defaultdict
 from collections.abc import MutableMapping
 from datetime import datetime, timedelta
 from html.entities import name2codepoint
@@ -17,16 +20,7 @@ from pprint import pformat
 from typing import (
     TYPE_CHECKING,
     Any,
-    Dict,
-    Iterable,
-    Iterator,
-    List,
     NamedTuple,
-    Optional,
-    Pattern,
-    Sequence,
-    Tuple,
-    Union,
 )
 
 import psutil
@@ -36,6 +30,9 @@ from loguru import logger
 import flexget
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable, Iterator, Sequence
+    from re import Pattern
+
     from flexget.entry import Entry
     from flexget.task import Task
 
@@ -46,29 +43,11 @@ def str_to_boolean(string: str) -> bool:
     return string.lower() in ['true', '1', 't', 'y', 'yes']
 
 
-def str_to_int(string: str) -> Optional[int]:
+def str_to_int(string: str) -> int | None:
     try:
         return int(string.replace(',', ''))
     except ValueError:
         return None
-
-
-def convert_bytes(bytes_num: Union[int, float]) -> str:
-    """Returns given bytes as prettified string."""
-
-    bytes_num = float(bytes_num)
-    units_prefixes = OrderedDict(
-        {
-            'T': 1099511627776,  # 1024 ** 4
-            'G': 1073741824,  # 1024 ** 3
-            'M': 1048576,  # 1024 ** 2
-            'K': 1024,
-        }
-    )
-    for unit, threshold in units_prefixes.items():
-        if bytes_num > threshold:
-            return f'{bytes_num/threshold:.2f}{unit}'
-    return f'{bytes_num:.2f}b'
 
 
 class MergeException(Exception):
@@ -80,7 +59,7 @@ class MergeException(Exception):
 
 
 def strip_html(text: str) -> str:
-    """Tries to strip all HTML tags from *text*. If unsuccessful returns original text."""
+    """Try to strip all HTML tags from *text*. If unsuccessful returns original text."""
     from bs4 import BeautifulSoup
 
     try:
@@ -103,51 +82,47 @@ def _htmldecode(text: str) -> str:
     else:
 
         def uchr(value):
-            value > 127 and chr(value) or chr(value)
+            (value > 127 and chr(value)) or chr(value)
 
     def entitydecode(match, uchr=uchr):
         entity = match.group(1)
         if entity.startswith('#x'):
-            return uchr(int(entity[2:], 16))
-        elif entity.startswith('#'):
+            return uchr(int(entity[2:], 16))  # noqa: FURB166
+        if entity.startswith('#'):
             return uchr(int(entity[1:]))
-        elif entity in name2codepoint:
+        if entity in name2codepoint:
             return uchr(name2codepoint[entity])
-        else:
-            return match.group(0)
+        return match.group(0)
 
     return charrefpat.sub(entitydecode, text)
 
 
 def decode_html(value: str) -> str:
-    """
+    """Return Html decoded string.
+
     :param string value: String to be html-decoded
-    :returns: Html decoded string
     """
     return _htmldecode(value)
 
 
 def encode_html(unicode_data: str, encoding: str = 'ascii') -> bytes:
-    """
-    Encode unicode_data for use as XML or HTML, with characters outside
-    of the encoding converted to XML numeric character references.
-    """
+    """Encode unicode_data for use as XML or HTML, with characters outside of the encoding converted to XML numeric character references."""
     return unicode_data.encode(encoding, 'xmlcharrefreplace')
 
 
 def merge_dict_from_to(d1: dict, d2: dict) -> None:
-    """Merges dictionary d1 into dictionary d2. d1 will remain in original form."""
+    """Merge dictionary d1 into dictionary d2. d1 will remain in original form."""
     for k, v in d1.items():
         if k in d2:
             if isinstance(v, type(d2[k])):
                 if isinstance(v, dict):
-                    merge_dict_from_to(d1[k], d2[k])
+                    merge_dict_from_to(v, d2[k])
                 elif isinstance(v, list):
                     d2[k].extend(copy.deepcopy(v))
                 elif isinstance(v, (str, bool, int, float, type(None))):
                     pass
                 else:
-                    raise Exception(f'Unknown type: {type(v)} value: {repr(v)} in dictionary')
+                    raise TypeError(f'Unknown type: {type(v)} value: {v!r} in dictionary')
             elif isinstance(v, (str, bool, int, float, list, type(None))) and isinstance(
                 d2[k], (str, bool, int, float, list, type(None))
             ):
@@ -155,16 +130,14 @@ def merge_dict_from_to(d1: dict, d2: dict) -> None:
                 pass
             else:
                 raise MergeException(
-                    'Merging key %s failed, conflicting datatypes %r vs. %r.'
-                    % (k, type(v).__name__, type(d2[k]).__name__)
+                    f'Merging key {k} failed, conflicting datatypes {type(v).__name__!r} vs. {type(d2[k]).__name__!r}.'
                 )
         else:
             d2[k] = copy.deepcopy(v)
 
 
 class ReList(list):
-    """
-    A list that stores regexps.
+    """A list that stores regexps.
 
     You can add compiled or uncompiled regexps to the list.
     It will always return the compiled version.
@@ -175,12 +148,12 @@ class ReList(list):
     flags = re.IGNORECASE
 
     def __init__(self, *args, **kwargs) -> None:
-        """Optional :flags: keyword argument with regexp flags to compile with"""
+        """Compile with optional :flags: keyword argument with regexp flags."""
         if 'flags' in kwargs:
             self.flags = kwargs.pop('flags')
         list.__init__(self, *args, **kwargs)
 
-    def __getitem__(self, k) -> Pattern:  # type: ignore
+    def __getitem__(self, k) -> Pattern:
         # Doesn't support slices. Do we care?
         item = list.__getitem__(self, k)
         if isinstance(item, str):
@@ -198,10 +171,8 @@ io_encoding = ''
 if hasattr(sys.stdout, 'encoding'):
     io_encoding = sys.stdout.encoding
 if not io_encoding:
-    try:
+    with contextlib.suppress(Exception):
         io_encoding = locale.getpreferredencoding()
-    except Exception:
-        pass
 if not io_encoding:
     # Default to utf8 if nothing can be determined
     io_encoding = 'utf8'
@@ -214,7 +185,7 @@ else:
         io_encoding = 'ascii'
 
 
-def parse_timedelta(value: Union[timedelta, str, None]) -> timedelta:
+def parse_timedelta(value: timedelta | str | None) -> timedelta:
     """Parse a string like '5 days' into a timedelta object. Also allows timedeltas to pass through."""
     if isinstance(value, timedelta):
         # Allow timedelta objects to pass through
@@ -228,13 +199,13 @@ def parse_timedelta(value: Union[timedelta, str, None]) -> timedelta:
         unit += 's'
     params = {unit: float(amount)}
     try:
-        return timedelta(**params)  # type: ignore
+        return timedelta(**params)
     except TypeError:
         raise ValueError(f"Invalid time format '{value}'")
 
 
-def multiply_timedelta(interval: timedelta, number: Union[int, float]) -> timedelta:
-    """`timedelta`s can not normally be multiplied by floating points. This does that."""
+def multiply_timedelta(interval: timedelta, number: float) -> timedelta:
+    """`timedelta` cannot normally be multiplied by floating points. This does that."""
     return timedelta(seconds=interval.total_seconds() * number)
 
 
@@ -245,7 +216,7 @@ def pid_exists(pid: int):
         return False
 
 
-_binOps = {
+_bin_ops = {
     ast.Add: operator.add,
     ast.Sub: operator.sub,
     ast.Mult: operator.mul,
@@ -257,9 +228,9 @@ _binOps = {
 class TimedDict(MutableMapping):
     """Acts like a normal dict, but keys will only remain in the dictionary for a specified time span."""
 
-    _instances: Dict[int, 'TimedDict'] = weakref.WeakValueDictionary()
+    _instances: dict[int, TimedDict] = weakref.WeakValueDictionary()
 
-    def __init__(self, cache_time: Union[timedelta, str] = '5 minutes'):
+    def __init__(self, cache_time: timedelta | str = '5 minutes'):
         self.cache_time = parse_timedelta(cache_time)
         self._store: dict = {}
         self._last_prune = datetime.now()
@@ -297,15 +268,12 @@ class TimedDict(MutableMapping):
         return len(list(self.__iter__()))
 
     def __repr__(self):
-        return '%s(%r)' % (
-            self.__class__.__name__,
-            dict(list(zip(self._store, (v[1] for v in list(self._store.values()))))),
-        )
+        return f'{self.__class__.__name__}({dict(list(zip(self._store, (v[1] for v in list(self._store.values())), strict=False)))!r})'
 
     @classmethod
     def clear_all(cls):
-        """
-        Clears all instantiated TimedDicts.
+        """Clear all instantiated TimedDicts.
+
         Used by tests to make sure artifacts don't leak between tests.
         """
         for store in cls._instances.values():
@@ -324,11 +292,11 @@ class BufferQueue(queue.Queue):
 
 class TitleYear(NamedTuple):
     title: str
-    year: Optional[int]
+    year: int | None
 
 
 def split_title_year(title: str) -> TitleYear:
-    """Splits title containing a year into a title, year pair."""
+    """Split title containing a year into a title, year pair."""
     if not title:
         return TitleYear('', None)
     if not re.search(r'\d{4}', title):
@@ -352,10 +320,8 @@ def split_title_year(title: str) -> TitleYear:
     return TitleYear(title, year)
 
 
-def get_latest_flexget_version_number() -> Optional[str]:
-    """
-    Return latest Flexget version from https://pypi.python.org/pypi/FlexGet/json
-    """
+def get_latest_flexget_version_number() -> str | None:
+    """Return latest Flexget version from https://pypi.python.org/pypi/FlexGet/json."""
     try:
         data = requests.get('https://pypi.python.org/pypi/FlexGet/json').json()
         return data.get('info', {}).get('version')
@@ -367,54 +333,93 @@ def get_current_flexget_version() -> str:
     return flexget.__version__
 
 
-def parse_filesize(text_size: str, si: bool = True) -> float:
-    """
-    Parses a data size and returns its value in mebibytes
+def parse_filesize(
+    text_size: str, si: bool = True, match_re: str | Pattern[str] | None = None
+) -> int:
+    """Parse a data size and returns its value in bytes.
 
     :param string text_size: string containing the data size to parse i.e. "5 GB"
     :param bool si: If True, possibly ambiguous units like KB, MB, GB will be assumed to be base 10 units,
-    rather than the default base 2. i.e. if si then 50 GB = 47684 else 50GB = 51200
+      rather than base 2. i.e. if si then 1 KB = 1000 B else 1 KB = 1024 B
+    :param match_re: A custom regex can be defined to match the size. The first capture group should match
+      the number, and the second should match the unit.
 
-    :returns: an float with the data size in mebibytes
+    :returns: an int with the data size in bytes
     """
     prefix_order = {'': 0, 'k': 1, 'm': 2, 'g': 3, 't': 4, 'p': 5}
 
-    parsed_size = re.match(
-        r'(\d+(?:[.,\s]\d+)*)(?:\s*)((?:[ptgmk]i?)?b)', text_size.strip().lower(), flags=re.UNICODE
-    )
+    match_re = match_re or r'\b(\d+(?:[.,\s]\d+)*)\s*((?:[ptgmk]i?)?b)\b'
+    parsed_size = re.search(match_re, text_size.lower())
     if not parsed_size:
-        raise ValueError('%s does not look like a file size' % text_size)
+        raise ValueError(f'{text_size} does not look like a file size')
     amount_str = parsed_size.group(1)
     unit = parsed_size.group(2)
     if not unit.endswith('b'):
-        raise ValueError('%s does not look like a file size' % text_size)
+        raise ValueError(f'{text_size} does not look like a file size')
     unit = unit.rstrip('b')
     if unit.endswith('i'):
         si = False
         unit = unit.rstrip('i')
     if unit not in prefix_order:
-        raise ValueError('%s does not look like a file size' % text_size)
+        raise ValueError(f'{text_size} does not look like a file size')
     order = prefix_order[unit]
     amount = float(amount_str.replace(',', '').replace(' ', ''))
     base = 1000 if si else 1024
-    return (amount * (base ** order)) / 1024 ** 2
+    return int(amount * (base**order))
+
+
+def format_filesize(num_bytes: float, si: bool = False, unit: str | None = None) -> str:
+    """Return given bytes as prettified string.
+
+    :param bool si: If true, decimal based units will be used rather than binary.
+    :param str unit: If a specific unit is specified it will be used. Otherwise,
+        an appropriate unit will be picked automatically based on size.
+    """
+    if unit:
+        all_units = [f'{p}b' for p in 'kmgtp'] + [f'{p}ib' for p in 'kmgtp'] + ['b']
+        if unit.lower() not in all_units:
+            raise ValueError(f'{unit} is not a recognized filesize unit')
+        si = 'i' not in unit.lower()
+    base = 1000 if si else 1024
+    amount = float(num_bytes)
+    unit_prefixes = [
+        # For some reason the convention is to use lowercase k for si kilobytes
+        'k' if si else 'K',
+        'M',
+        'G',
+        'T',
+        'P',
+    ]
+
+    out_unit = 'B'
+    round_digits = 2
+    for p in unit_prefixes:
+        if not unit and amount < base:
+            break
+        if unit and out_unit.lower() == unit.lower():
+            break
+        amount /= base
+        out_unit = f'{p}{"" if si else "i"}B'
+        # If user specified a unit that's too big, allow a few more fractional digits
+        if amount < 1:
+            round_digits += 1
+    return f'{round(amount, round_digits)} {out_unit}'
 
 
 def get_config_hash(config: Any) -> str:
-    """
+    """Return MD5 hash for *config*.
+
     :param dict config: Configuration
-    :return: MD5 hash for *config*
     """
-    if isinstance(config, dict) or isinstance(config, list):
+    if isinstance(config, (dict, list)):
         # this does in fact support nested dicts, they're sorted too!
         return hashlib.md5(pformat(config).encode('utf-8')).hexdigest()
-    else:
-        return hashlib.md5(str(config).encode('utf-8')).hexdigest()
+    return hashlib.md5(str(config).encode('utf-8')).hexdigest()
 
 
 def get_config_as_array(config: dict, key: str) -> list:
-    """
-    Return configuration key as array, even if given as a single string
+    """Return configuration key as array, even if given as a single string.
+
     :param dict config: Configuration
     :param string key: Configuration
     :return: Array
@@ -425,11 +430,8 @@ def get_config_as_array(config: dict, key: str) -> list:
     return v
 
 
-def parse_episode_identifier(
-    ep_id: Union[str, int], identify_season: bool = False
-) -> Tuple[str, str]:
-    """
-    Parses series episode identifier, raises ValueError if it fails
+def parse_episode_identifier(ep_id: str | int, identify_season: bool = False) -> tuple[str, str]:
+    """Parse series episode identifier, raise ValueError if it fails.
 
     :param ep_id: Value to parse
     :return: Return identifier type: `sequence`, `ep` or `date`
@@ -463,7 +465,7 @@ def parse_episode_identifier(
     return identified_by, entity_type
 
 
-def group_entries(entries: Iterable['Entry'], identifier: str) -> Dict[str, List['Entry']]:
+def group_entries(entries: Iterable[Entry], identifier: str) -> dict[str, list[Entry]]:
     from flexget.utils.template import RenderError
 
     grouped_entries = defaultdict(list)
@@ -481,7 +483,7 @@ def group_entries(entries: Iterable['Entry'], identifier: str) -> Dict[str, List
     return grouped_entries
 
 
-def aggregate_inputs(task: 'Task', inputs: List[dict]) -> List['Entry']:
+def aggregate_inputs(task: Task, inputs: list[dict]) -> list[Entry]:
     from flexget import plugin
 
     entries = []
@@ -499,7 +501,11 @@ def aggregate_inputs(task: 'Task', inputs: List[dict]) -> List['Entry']:
                 continue
 
             if not result:
-                logger.warning('Input {} did not return anything', input_name)
+                msg = f'Input {input_name} did not return anything'
+                if getattr(task, 'no_entries_ok', False):
+                    logger.verbose(msg)
+                else:
+                    logger.warning(msg)
                 continue
 
             for entry in result:
@@ -533,6 +539,6 @@ def aggregate_inputs(task: 'Task', inputs: List[dict]) -> List['Entry']:
 # Mainly used due to Too Many Variables error if we use too many variables at a time in the in_ clause.
 # SQLite supports up to 999 by default. Ubuntu, Arch and macOS set this limit to 250,000 though, so it's a rare issue.
 def chunked(seq: Sequence, limit: int = 900) -> Iterator[Sequence]:
-    """Helper to divide our expired lists into sizes sqlite can handle in a query. (<1000)"""
+    """Divide our expired lists into sizes sqlite can handle in a query. (<1000)."""
     for i in range(0, len(seq), limit):
         yield seq[i : i + limit]

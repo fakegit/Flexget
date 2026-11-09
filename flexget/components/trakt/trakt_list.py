@@ -19,9 +19,8 @@ IMMUTABLE_LISTS = ['trending', 'popular']
 def generate_show_title(item):
     show_info = item['show']
     if show_info['year'] and not item['strip_dates']:
-        return '%s (%s)' % (show_info['title'], show_info['year'])
-    else:
-        return show_info['title']
+        return '{} ({})'.format(show_info['title'], show_info['year'])
+    return show_info['title']
 
 
 def generate_episode_title(item):
@@ -29,8 +28,7 @@ def generate_episode_title(item):
     episode_info = item['episode']
     if show_info['year'] and not item['strip_dates']:
         return (
-            '%s (%s) S%02dE%02d %s'
-            % (
+            '{} ({}) S{:02d}E{:02d} {}'.format(
                 show_info['title'],
                 show_info['year'],
                 episode_info['season'],
@@ -38,23 +36,23 @@ def generate_episode_title(item):
                 episode_info['title'] or '',
             )
         ).strip()
-    else:
-        return (
-            '%s S%02dE%02d %s'
-            % (
-                show_info['title'],
-                episode_info['season'],
-                episode_info['number'],
-                episode_info['title'] or '',
-            )
-        ).strip()
+    return (
+        '{} S{:02d}E{:02d} {}'.format(
+            show_info['title'],
+            episode_info['season'],
+            episode_info['number'],
+            episode_info['title'] or '',
+        )
+    ).strip()
 
 
 field_maps = {
     'movie': {
-        'title': lambda i: '%s (%s)' % (i['movie']['title'], i['movie']['year'])
-        if i['movie']['year'] and not i['strip_dates']
-        else '%s' % i['movie']['title'],
+        'title': lambda i: (
+            '{} ({})'.format(i['movie']['title'], i['movie']['year'])
+            if i['movie']['year'] and not i['strip_dates']
+            else '{}'.format(i['movie']['title'])
+        ),
         'movie_name': 'movie.title',
         'movie_year': 'movie.year',
         'trakt_movie_name': 'movie.title',
@@ -83,7 +81,9 @@ field_maps = {
         'trakt_series_year': 'show.year',
         'series_season': 'episode.season',
         'series_episode': 'episode.number',
-        'series_id': lambda i: 'S%02dE%02d' % (i['episode']['season'], i['episode']['number']),
+        'series_id': lambda i: 'S{:02d}E{:02d}'.format(
+            i['episode']['season'], i['episode']['number']
+        ),
         'imdb_id': 'show.ids.imdb',
         'tvdb_id': 'show.ids.tvdb',
         'tvrage_id': 'show.ids.tvrage',
@@ -99,7 +99,8 @@ class TraktSet(MutableSet):
     @property
     def immutable(self):
         if self.config['list'] in IMMUTABLE_LISTS:
-            return '%s list is not modifiable' % self.config['list']
+            return '{} list is not modifiable'.format(self.config['list'])
+        return None
 
     schema = {
         'type': 'object',
@@ -165,6 +166,7 @@ class TraktSet(MutableSet):
                 return item
             if self.config['type'] in ['movies', 'auto'] and self.movie_match(entry, item):
                 return item
+        return None
 
     def __contains__(self, entry):
         return self._find_entry(entry) is not None
@@ -181,12 +183,14 @@ class TraktSet(MutableSet):
     # -- Public interface ends here -- #
 
     def get_items(self):
-        """Iterator over etrieved itesms from the trakt api."""
+        """Iterate over etrieved itesms from the trakt api."""
         if (
             self.config['list'] in ['collection', 'watched', 'trending', 'popular']
             and self.config['type'] == 'auto'
         ):
-            raise plugin.PluginError('`type` cannot be `auto` for %s list.' % self.config['list'])
+            raise plugin.PluginError(
+                '`type` cannot be `auto` for {} list.'.format(self.config['list'])
+            )
 
         limit_per_page = 1000
 
@@ -253,13 +257,13 @@ class TraktSet(MutableSet):
                         continue
                     entry = Entry()
                     if list_type == 'episode':
-                        entry['url'] = 'https://trakt.tv/shows/%s/seasons/%s/episodes/%s' % (
+                        entry['url'] = 'https://trakt.tv/shows/{}/seasons/{}/episodes/{}'.format(
                             item['show']['ids']['slug'],
                             item['episode']['season'],
                             item['episode']['number'],
                         )
                     else:
-                        entry['url'] = 'https://trakt.tv/%ss/%s' % (
+                        entry['url'] = 'https://trakt.tv/{}s/{}'.format(
                             list_type,
                             item[list_type]['ids'].get('slug'),
                         )
@@ -278,14 +282,13 @@ class TraktSet(MutableSet):
                                 translation = result.json()
                             except ValueError:
                                 raise plugin.PluginError(
-                                    'Error decoding movie translation from trakt: %s.'
-                                    % result.text
+                                    f'Error decoding movie translation from trakt: {result.text}.'
                                 )
                         except RequestException as e:
                             raise plugin.PluginError(
-                                'Could not retrieve movie translation from trakt: %s' % str(e)
+                                f'Could not retrieve movie translation from trakt: {e!s}'
                             )
-                        if not translation:
+                        if not translation or not translation[0]['title']:
                             logger.warning(
                                 'No translation data returned from trakt for movie {}.',
                                 entry['title'],
@@ -308,7 +311,7 @@ class TraktSet(MutableSet):
                         logger.debug('Invalid entry created? {}', entry)
 
         except RequestException as e:
-            raise plugin.PluginError('Could not retrieve list from trakt (%s)' % e)
+            raise plugin.PluginError(f'Could not retrieve list from trakt ({e})')
 
     @property
     def items(self):
@@ -330,10 +333,9 @@ class TraktSet(MutableSet):
                 raise plugin.PluginError('`type` cannot be `episodes` for collection list.')
             if self.config.get('account'):
                 return ('sync', 'history', 'episodes')
-            else:
-                raise plugin.PluginError(
-                    'A trakt `account` needs to be configured to get the episode history.'
-                )
+            raise plugin.PluginError(
+                'A trakt `account` needs to be configured to get the episode history.'
+            )
 
         if self.config['list'] in ['collection', 'watchlist', 'watched', 'ratings']:
             if self.config.get('account'):
@@ -343,6 +345,9 @@ class TraktSet(MutableSet):
                 )
                 if not submit:
                     endpoint += (self.config['type'],)
+                    # Watched shows has a different endpoint for submitting and getting
+                    if self.config['list'] == 'watched' and self.config['type'] == 'shows':
+                        endpoint = ('sync', 'watched', 'shows')
             else:
                 endpoint = (
                     'users',
@@ -398,15 +403,14 @@ class TraktSet(MutableSet):
             for id in ['trakt_movie_id', 'imdb_id', 'tmdb_id']
         ):
             return True
-        if entry1.get('movie_name') and (
-            (entry1.get('movie_name'), entry1.get('movie_year'))
+        return bool(
+            entry1.get('movie_name')
+            and (entry1.get('movie_name'), entry1.get('movie_year'))
             == (entry2.get('movie_name'), entry2.get('movie_year'))
-        ):
-            return True
-        return False
+        )
 
     def submit(self, entries, remove=False):
-        """Submits movies or episodes to trakt api."""
+        """Submit movies or episodes to trakt api."""
         found = {}
         for entry in entries:
             if self.config['type'] in ['auto', 'shows', 'seasons', 'episodes'] and entry.get(
@@ -489,8 +493,10 @@ class TraktSet(MutableSet):
 
     @property
     def online(self):
-        """Set the online status of the plugin, online plugin should be treated differently in certain situations,
-        like test mode"""
+        """Set the online status of the plugin.
+
+        Online plugin should be treated differently in certain situations, like test mode
+        """
         return True
 
 

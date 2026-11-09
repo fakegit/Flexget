@@ -12,20 +12,20 @@ class ObjectsContainer:
     actor_object = {
         'type': 'object',
         'properties': {
-            "last_update": {'type': 'string', 'format': 'date-time'},
-            "medium_image": {'type': 'string'},
-            "name": {'type': 'string'},
-            "original_image": {'type': 'string'},
-            "tvmaze_id": {'type': 'integer'},
-            "url": {'type': 'string'},
+            'last_update': {'type': 'string', 'format': 'date-time'},
+            'medium_image': {'type': 'string'},
+            'name': {'type': 'string'},
+            'original_image': {'type': 'string'},
+            'tvmaze_id': {'type': 'integer'},
+            'url': {'type': 'string'},
         },
     }
 
     schedule_object = {
         'type': 'object',
         'properties': {
-            "days": {'type': 'array', 'items': {'type': 'string'}},
-            "time": {'type': 'string'},
+            'days': {'type': 'array', 'items': {'type': 'string'}},
+            'time': {'type': 'string'},
         },
     }
 
@@ -133,7 +133,7 @@ class TVDBSeriesSearchApi(APIResource):
     @api.response(200, 'Successfully found show', model=tvmaze_series_schema)
     @api.response(NotFoundError)
     def get(self, title, session=None):
-        """TVMaze series lookup"""
+        """TVMaze series lookup."""
         try:
             tvmaze_id = int(title)
         except ValueError:
@@ -158,14 +158,14 @@ episode_parser.add_argument(
 
 @tvmaze_api.route('/episode/<int:tvmaze_id>/')
 @api.doc(params={'tvmaze_id': 'TVMaze ID of show'})
-@api.doc(parser=episode_parser)
+@api.doc(expect=[episode_parser])
 class TVDBEpisodeSearchAPI(APIResource):
     @etag(cache_age=3600)
     @api.response(200, 'Successfully found episode', tvmaze_episode_schema)
     @api.response(NotFoundError)
     @api.response(BadRequest)
     def get(self, tvmaze_id, session=None):
-        """TVMaze episode lookup"""
+        """TVMaze episode lookup."""
         args = episode_parser.parse_args()
         air_date = args.get('air_date')
         season_num = args.get('season_num')

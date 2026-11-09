@@ -17,7 +17,7 @@ def before_config_load(manager):
 
 
 def pre_check_config(config_path):
-    """Checks configuration file for common mistakes that are easily detectable"""
+    """Check configuration file for common mistakes that are easily detectable."""
     with codecs.open(config_path, 'r', 'utf-8') as config_file:
         try:
             config = config_file.read()
@@ -71,15 +71,14 @@ def pre_check_config(config_path):
                 list_open = False
                 # print 'closed list at line %s' % line
             continue
-        else:
-            list_open = line.strip().endswith(': [') or line.strip().endswith(':[')
-            if list_open:
-                # print 'list open at line %s' % line
-                continue
+        list_open = line.strip().endswith(': [') or line.strip().endswith(':[')
+        if list_open:
+            # print 'list open at line %s' % line
+            continue
 
-                # print '#%i: %s' % (line_num, line)
-                # print 'indentation: %s, prev_ind: %s, prev_mapping: %s, prev_list: %s, cur_list: %s' % \
-                #        (indentation, prev_indentation, prev_mapping, prev_list, cur_list)
+            # print '#%i: %s' % (line_num, line)
+            # print 'indentation: %s, prev_ind: %s, prev_mapping: %s, prev_list: %s, cur_list: %s' % \
+            #        (indentation, prev_indentation, prev_mapping, prev_list, cur_list)
 
         if ':\t' in line:
             logger.critical(
@@ -113,7 +112,7 @@ def pre_check_config(config_path):
             )
 
         # notify if user is trying to set same key multiple times in a task (a common mistake)
-        for level in duplicates.keys():
+        for level in duplicates:
             # when indentation goes down, delete everything indented more than that
             if indentation < level:
                 duplicates[level] = {}

@@ -1,14 +1,18 @@
+from __future__ import annotations
+
 import locale
 import os
-import os.path
 import re
+import shlex
 from contextlib import suppress
 from copy import copy
 from datetime import date, datetime, time
-from typing import TYPE_CHECKING, Any, List, Mapping, Optional, Union, AnyStr, Type, cast
+from pathlib import Path, PurePosixPath, PureWindowsPath
+from typing import TYPE_CHECKING, Any, AnyStr, cast
+from unicodedata import normalize
 
 import jinja2.filters
-from dateutil import parser as dateutil_parse
+import pendulum
 from jinja2 import (
     ChoiceLoader,
     Environment,
@@ -21,13 +25,17 @@ from jinja2 import (
 )
 from jinja2.nativetypes import NativeTemplate
 from loguru import logger
+from pendulum import DateTime
+from pendulum import Interval as _Interval
 
 from flexget.event import event
 from flexget.utils.lazy_dict import LazyDict
 from flexget.utils.pathscrub import pathscrub
-from flexget.utils.tools import split_title_year
+from flexget.utils.tools import format_filesize, parse_filesize, split_title_year
 
 if TYPE_CHECKING:
+    from collections.abc import Mapping
+
     from flexget.entry import Entry
     from flexget.manager import Manager
     from flexget.task import Task
@@ -35,36 +43,177 @@ if TYPE_CHECKING:
 logger = logger.bind(name='utils.template')
 
 # The environment will be created after the manager has started
-environment: Optional['FlexGetEnvironment'] = None
+environment: FlexGetEnvironment | None = None
+
+
+def extra_vars() -> dict:
+    return {
+        'timedelta': pendulum.duration,
+        'duration': pendulum.duration,
+        'utcnow': CoercingDateTime.utcnow(),
+        'now': CoercingDateTime.now(),
+    }
 
 
 class RenderError(Exception):
     """Error raised when there is a problem with jinja rendering."""
 
 
-def filter_pathbase(val: Optional[str]) -> str:
-    """Base name of a path."""
-    return os.path.basename(val or '')
+class Interval(_Interval):
+    """Same as normal Interval, but gives a better string representation for our templates."""
+
+    def __str__(self):
+        return self.in_words()
 
 
-def filter_pathname(val: Optional[str]) -> str:
-    """Base name of a path, without its extension."""
-    return os.path.splitext(os.path.basename(val or ''))[0]
+class CoercingDateTime(DateTime):
+    """Datetime with some features that make it better when used in our templates.
+
+    The features are:
+
+    - Avoids crashing when comparing tz aware and naive datetimes.
+      When this happens, it will assume the naive datetime is in the same timezone as the dt aware one.
+    - Allows comparisons with plain dates, where the date is assumed to be at midnight in the same timezone.
+    - Returns ``Interval`` with a nicer string representation for our templates
+
+    This allows us to introduce tz aware datetimes into entry fields without breaking old configs, or old plugins.
+    """
+
+    @staticmethod
+    def _same_tz(first, second):
+        if not isinstance(first, datetime) or not isinstance(second, date):
+            raise TypeError(
+                f'Cannot compare instances of {first.__class__.__name__} and {second.__class__.__name__}'
+            )
+        if not first or not second:
+            return first, second
+        if isinstance(second, date) and not isinstance(second, datetime):
+            second = CoercingDateTime.create(
+                second.year, second.month, second.day, tz=first.tzinfo
+            )
+        if first.tzinfo and not second.tzinfo:
+            second = CoercingDateTime.instance(second, tz=first.tzinfo)
+        elif not first.tzinfo and second.tzinfo:
+            first = CoercingDateTime.instance(first, tz=second.tzinfo)
+        return first, second
+
+    def __lt__(self, other):
+        self, other = self._same_tz(self, other)
+        return DateTime.__lt__(self, other)
+
+    def __le__(self, other):
+        self, other = self._same_tz(self, other)
+        return DateTime.__le__(self, other)
+
+    def __gt__(self, other):
+        self, other = self._same_tz(self, other)
+        return DateTime.__gt__(self, other)
+
+    def __ge__(self, other):
+        self, other = self._same_tz(self, other)
+        return DateTime.__ge__(self, other)
+
+    def __eq__(self, other):
+        # stdlib and pendulum dates and datetimes all subclass 'date'
+        if not isinstance(other, date):
+            return False
+        self, other = self._same_tz(self, other)
+        return DateTime.__eq__(self, other)
+
+    def __ne__(self, other):
+        if not isinstance(other, date):
+            return True
+        self, other = self._same_tz(self, other)
+        return DateTime.__ne__(self, other)
+
+    def __sub__(self, other):
+        if isinstance(other, datetime):
+            self, other = self._same_tz(self, other)
+        return DateTime.__sub__(self, other)
+
+    __hash__ = DateTime.__hash__
+
+    def diff(self, dt: datetime | None = None, abs: bool = True) -> Interval:
+        """Return the difference between two DateTime objects represented as an Interval."""
+        if dt is None:
+            dt = self.now(self.tz)
+
+        return Interval(self, dt, absolute=abs)
 
 
-def filter_pathext(val: Optional[str]) -> str:
+def filter_pathbase(val: Path | str = '') -> str:
+    """Return base name of a path."""
+    if isinstance(val, str):
+        val = PureWindowsPath(val)
+    return val.name
+
+
+def filter_pathname(val: Path | str = '') -> str:
+    """Return base name of a path, without its extension."""
+    if isinstance(val, str):
+        val = PureWindowsPath(val)
+    return val.stem
+
+
+def filter_pathext(val: Path | str = '') -> str:
     """Extension of a path (including the '.')."""
-    return os.path.splitext(val or '')[1]
+    if isinstance(val, str):
+        val = PureWindowsPath(val)
+    return val.suffix
 
 
-def filter_pathdir(val: Optional[str]) -> str:
+def filter_pathdir(val: Path | str = '') -> PureWindowsPath | PurePosixPath | Path:
     """Directory containing the given path."""
-    return os.path.dirname(val or '')
+    if isinstance(val, str):
+        val = PureWindowsPath(val) if '\\' in val and val[1] == ':' else PurePosixPath(val)
+    return val.parent
 
 
-def filter_pathscrub(val: str, os_mode: str = None) -> str:
+def filter_pathscrub(val: str, os_mode: str | None = None) -> str:
     """Replace problematic characters in a path."""
+    if not isinstance(val, str):
+        return val
     return pathscrub(val, os_mode)
+
+
+def _quote_windows(value: str) -> str:
+    """Quote a value as a single safe argument for a command run via cmd.exe (Windows shell=True).
+
+    Unlike `subprocess.list2cmdline`, this *always* wraps in quotes (not just when the value
+    has whitespace/quotes), so cmd.exe treats characters it would otherwise parse itself
+    (`&|<>()^`) as inert content instead of command syntax.
+
+    ponytail: doesn't neutralize `%var%` expansion (cmd.exe performs it even inside quotes,
+    with no clean escape outside a batch file) or a value that mixes a literal `"` with those
+    metacharacters (the embedded-quote escape can end the quoted region early); reach for a
+    dedicated library (e.g. mslex) if either becomes a real threat.
+    """
+    out = ['"']
+    i, n = 0, len(value)
+    while i < n:
+        char = value[i]
+        if char == '\\':
+            j = i
+            while j < n and value[j] == '\\':
+                j += 1
+            run = j - i
+            out.append('\\' * (run * 2 if j == n or value[j] == '"' else run))
+            i = j
+        elif char == '"':
+            out.append('\\"')
+            i += 1
+        else:
+            out.append(char)
+            i += 1
+    out.append('"')
+    return ''.join(out)
+
+
+def filter_shell_quote(val) -> str:
+    """Quote a value so it is safe to use as a single token in a shell command line."""
+    if os.name == 'nt':
+        return _quote_windows(str(val))
+    return shlex.quote(str(val))
 
 
 def filter_re_replace(val: AnyStr, pattern: str, repl: str) -> str:
@@ -83,30 +232,26 @@ def filter_re_search(val, pattern: str):
 
 
 def filter_formatdate(val, format_str):
-    """Returns a string representation of a datetime object according to format string."""
-    encoding = locale.getpreferredencoding()
+    """Return a string representation of a datetime object according to format string."""
     if not isinstance(val, (datetime, date, time)):
         return val
     return val.strftime(format_str)
 
 
 def filter_parsedate(val):
-    """Attempts to parse a date according to the rules in ISO 8601 and RFC 2822"""
-    return dateutil_parse.parse(val)
+    """Attempt to parse a date according to the rules in ISO 8601 and RFC 2822."""
+    return CoercingDateTime.instance(pendulum.parse(val, strict=False, tz=None))
 
 
 def filter_date_suffix(date_str: str):
-    """Returns a date suffix for a given date"""
+    """Return a date suffix for a given date."""
     day = int(date_str[-2:])
-    if 4 <= day <= 20 or 24 <= day <= 30:
-        suffix = "th"
-    else:
-        suffix = ["st", "nd", "rd"][day % 10 - 1]
+    suffix = 'th' if 4 <= day <= 20 or 24 <= day <= 30 else ['st', 'nd', 'rd'][day % 10 - 1]
     return date_str + suffix
 
 
-def filter_format_number(val, places: int = None, grouping: bool = True) -> str:
-    """Formats a number according to the user's locale."""
+def filter_format_number(val, places: int | None = None, grouping: bool = True) -> str:
+    """Format a number according to the user's locale."""
     if not isinstance(val, (int, float)):
         return val
     if places is not None:
@@ -120,24 +265,48 @@ def filter_format_number(val, places: int = None, grouping: bool = True) -> str:
     return locale.format_string(format_str, val, grouping)
 
 
-def filter_pad(val: Union[int, str], width: int, fillchar: str = '0') -> str:
-    """Pads a number or string with fillchar to the specified width."""
+def filter_pad(val: int | str, width: int, fillchar: str = '0') -> str:
+    """Pad a number or string with fillchar to the specified width."""
     return str(val).rjust(width, fillchar)
 
 
 def filter_to_date(date_time_val):
-    """Returns the date from any date-time object"""
+    """Return the date from any date-time object."""
     if not isinstance(date_time_val, (datetime, date, time)):
         return date_time_val
     return date_time_val.date()
 
 
 def filter_default(value, default_value: str = '', boolean: bool = True) -> str:
-    """Override the built-in Jinja default filter to set the `boolean` param to True by default"""
+    """Override the built-in Jinja default filter to set the `boolean` param to True by default."""
     return jinja2.filters.do_default(value, default_value, boolean)
 
 
 filter_d = filter_default
+
+
+def filter_asciify(text: str) -> str:
+    """Simplify text."""
+    if not isinstance(text, str):
+        return text
+
+    result = normalize('NFD', text)
+    result = result.encode('ascii', 'ignore')
+    result = result.decode('utf-8')
+    return str(result)
+
+
+def filter_strip_symbols(text: str) -> str:
+    """Strip Symbols text."""
+    if not isinstance(text, str):
+        return text
+
+    # Symbols that should be converted to white space
+    result = re.sub(r'[ \(\)\-_\[\]\.]+', ' ', text)
+    # Leftovers
+    result = re.sub(r'[^\w\d\s]', '', result)
+    # Replace multiple white spaces with one
+    return ' '.join(result.split())
 
 
 def filter_strip_year(name: str) -> str:
@@ -148,19 +317,36 @@ def filter_get_year(name: str) -> str:
     return split_title_year(name).year
 
 
-def is_fs_file(pathname: Union[str, os.PathLike]) -> bool:
-    """Test whether item is existing file in filesystem"""
-    return os.path.isfile(pathname)
+def filter_parse_size(val: str, si: bool = False, match_re: str | None = None) -> int:
+    """Parse human-readable file size to bytes."""
+    if not isinstance(val, str):
+        return val
+
+    try:
+        return parse_filesize(val, si=si, match_re=match_re)
+    except ValueError:
+        return 0
 
 
-def is_fs_dir(pathname: Union[str, os.PathLike]) -> bool:
-    """Test whether item is existing directory in filesystem"""
-    return os.path.isdir(pathname)
+def filter_format_size(size: float, si=False, unit=None):
+    if not isinstance(size, (int, float)):
+        return size
+    return format_filesize(size, si=si, unit=unit)
 
 
-def is_fs_link(pathname: Union[str, os.PathLike]) -> bool:
-    """Test whether item is existing link in filesystem"""
-    return os.path.islink(pathname)
+def is_fs_file(pathname: Path | str) -> bool:
+    """Test whether item is existing file in filesystem."""
+    return Path(pathname).is_file()
+
+
+def is_fs_dir(pathname: Path | str) -> bool:
+    """Test whether item is existing directory in filesystem."""
+    return Path(pathname).is_dir()
+
+
+def is_fs_link(pathname: Path | str) -> bool:
+    """Test whether item is existing link in filesystem."""
+    return Path(pathname).is_symlink()
 
 
 class FlexGetTemplate(Template):
@@ -177,23 +363,21 @@ class FlexGetNativeTemplate(FlexGetTemplate, NativeTemplate):
 
 
 class FlexGetEnvironment(Environment):
-    """Environment with template_class support"""
+    """Environment with template_class support."""
 
-    template_class: Type[FlexGetTemplate]
+    template_class: type[FlexGetTemplate]
 
 
 @event('manager.initialize')
-def make_environment(manager: 'Manager') -> None:
-    """Create our environment and add our custom filters"""
+def make_environment(manager: Manager) -> None:
+    """Create our environment and add our custom filters."""
     global environment
     environment = FlexGetEnvironment(
         undefined=StrictUndefined,
-        loader=ChoiceLoader(
-            [
-                PackageLoader('flexget'),
-                FileSystemLoader(os.path.join(manager.config_base, 'templates')),
-            ]
-        ),
+        loader=ChoiceLoader([
+            PackageLoader('flexget'),
+            FileSystemLoader(manager.config_base / 'templates'),
+        ]),
         extensions=['jinja2.ext.loopcontrols'],
     )
     environment.template_class = FlexGetTemplate
@@ -205,15 +389,15 @@ def make_environment(manager: 'Manager') -> None:
             environment.tests[name.split('_', 1)[1]] = test
 
 
-def list_templates(extensions: List[str] = None) -> List[str]:
-    """Returns all templates names that are configured under environment loader dirs"""
+def list_templates(extensions: list[str] | None = None) -> list[str]:
+    """Return all templates names that are configured under environment loader dirs."""
     if environment is None or not hasattr(environment, 'loader'):
         return []
     return environment.list_templates(extensions=extensions)
 
 
 def get_filters() -> dict:
-    """Returns all built-in and custom Jinja filters in a dict
+    """Return all built-in and custom Jinja filters in a dict.
 
     The key is the name, and the value is the filter func
     """
@@ -222,9 +406,8 @@ def get_filters() -> dict:
     return environment.filters
 
 
-def get_template(template_name: str, scope: Optional[str] = 'task') -> FlexGetTemplate:
-    """Loads a template from disk. Looks in both included plugins and users custom scope dir."""
-
+def get_template(template_name: str, scope: str | None = 'task') -> FlexGetTemplate:
+    """Load a template from disk. Looks in both included plugins and users custom scope dir."""
     if not template_name.endswith('.template'):
         template_name += '.template'
     locations = []
@@ -234,17 +417,15 @@ def get_template(template_name: str, scope: Optional[str] = 'task') -> FlexGetTe
     for location in locations:
         if environment is not None:
             with suppress(TemplateNotFound):
-                return cast(FlexGetTemplate, environment.get_template(location))
-    else:
-        err = f'Template not found in templates dir: {template_name}'
-        if scope:
-            err += f' ({scope})'
-        raise ValueError(err)
+                return cast('FlexGetTemplate', environment.get_template(location))
+    err = f'Template not found in templates dir: {template_name}'
+    if scope:
+        err += f' ({scope})'
+    raise ValueError(err)
 
 
-def render(template: Union[FlexGetTemplate, str], context: Mapping, native: bool = False) -> str:
-    """
-    Renders a Template with `context` as its context.
+def render(template: FlexGetTemplate | str, context: Mapping, native: bool = False) -> str:
+    """Render a Template with `context` as its context.
 
     :param template: Template or template string to render.
     :param context: Context to render the template from.
@@ -257,29 +438,26 @@ def render(template: Union[FlexGetTemplate, str], context: Mapping, native: bool
             template_class = FlexGetNativeTemplate
         try:
             template = cast(
-                FlexGetTemplate, environment.from_string(template, template_class=template_class)
+                'FlexGetTemplate', environment.from_string(template, template_class=template_class)
             )
         except TemplateSyntaxError as e:
             raise RenderError(f'Error in template syntax: {e.message}')
     try:
-        template = cast(FlexGetTemplate, template)
+        template = cast('FlexGetTemplate', template)
         result = template.render(context)
     except Exception as e:
         error = RenderError(f'({type(e).__name__}) {e}')
-        logger.debug(f'Error during rendering: {error}')
+        logger.debug('Error during rendering: {}', error)
         raise error
 
     return result
 
 
-def render_from_entry(
-    template: Union[FlexGetTemplate, str], entry: 'Entry', native: bool = False
-) -> str:
-    """Renders a Template or template string with an Entry as its context."""
-
+def render_from_entry(template: FlexGetTemplate | str, entry: Entry, native: bool = False) -> str:
+    """Render a Template or template string with an Entry as its context."""
     # Make a copy of the Entry so we can add some more fields
     variables = copy(entry.store)
-    variables['now'] = datetime.now()
+    variables.update(extra_vars())
     # Add task name to variables, usually it's there because metainfo_task plugin, but not always
     if hasattr(entry, 'task') and entry.task is not None:
         if 'task' not in variables:
@@ -290,21 +468,20 @@ def render_from_entry(
     return render(template, variables, native=native)
 
 
-def render_from_task(template: Union[FlexGetTemplate, str], task: 'Task') -> str:
-    """
-    Renders a Template with a task as its context.
+def render_from_task(template: FlexGetTemplate | str, task: Task) -> str:
+    """Render a Template with a task as its context.
 
     :param template: Template or template string to render.
     :param task: Task to render the template from.
     :return: The rendered template text.
     """
-    variables = {'task': task, 'now': datetime.now(), 'task_name': task.name}
+    variables = {'task': task, 'task_name': task.name}
+    variables.update(extra_vars())
     return render(template, variables)
 
 
 def evaluate_expression(expression: str, context: Mapping) -> Any:
-    """
-    Evaluate a jinja `expression` using a given `context` with support for `LazyDict`s (`Entry`s.)
+    """Evaluate a jinja ``expression`` using a given ``context`` with support for ``LazyDict`` (``Entry``).
 
     :param str expression:  A jinja expression to evaluate
     :param context: dictlike, supporting LazyDicts
@@ -314,5 +491,5 @@ def evaluate_expression(expression: str, context: Mapping) -> Any:
         # If we have a LazyDict, grab the underlying store. Our environment supports LazyFields directly
         if isinstance(context, LazyDict):
             context = context.store
-        return compiled_expr(**context)
+        return compiled_expr(**{**context, **extra_vars()})
     return None

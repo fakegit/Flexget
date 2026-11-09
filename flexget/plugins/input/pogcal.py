@@ -35,11 +35,10 @@ class InputPogDesign:
                 raise plugin.PluginError('Invalid username/password for pogdesign.')
             page = session.get('https://www.pogdesign.co.uk/cat/show-select')
         except requests.RequestException as e:
-            raise plugin.PluginError('Error retrieving source: %s' % e)
+            raise plugin.PluginError(f'Error retrieving source: {e}')
         soup = get_soup(page.text)
         entries = []
         for row in soup.find_all('li', {'class': 'selectgrp checked'}):
-
             # Get name
             t = row.find('strong')
 
@@ -48,7 +47,7 @@ class InputPogDesign:
             for s in spantags:
                 s.extract()
             t = row.text
-            # remove newlines and whitepsace
+            # remove newlines and whitespace
             t = t.replace('\n', '').strip()
 
             if t.endswith('[The]'):
@@ -60,7 +59,7 @@ class InputPogDesign:
 
             e = Entry()
             e['title'] = t
-            e['url'] = 'https://www.pogdesign.co.uk/{0}'.format(
+            e['url'] = 'https://www.pogdesign.co.uk/{}'.format(
                 row.find_next('a')['href'].lstrip('/')
             )
             entries.append(e)

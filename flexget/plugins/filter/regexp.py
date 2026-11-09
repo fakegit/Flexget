@@ -12,28 +12,29 @@ logger = logger.bind(name='regexp')
 
 
 class FilterRegexp:
-    """
-    All possible forms.
+    """All possible forms.
 
-    regexp:
-      [operation]:           # operation to perform on matches
-        - [regexp]           # simple regexp
-        - [regexp]: <path>   # override path
-        - [regexp]:
-            [path]: <path>   # override path
-            [not]: <regexp>  # not match
-            [from]: <field>  # search from given entry field
-        - [regexp]:
-            [path]: <path>   # override path
-            [not]:           # list of not match regexps
-              - <regexp>
-            [from]:          # search only from these fields
-              - <field>
-      [operation]:
-        - <regexp>
-      [rest]: <operation>    # non matching entries are
-      [from]:                # search only from these fields for all regexps
-        - <field>
+    Configuration options::
+
+        regexp:
+          [operation]:           # operation to perform on matches
+            - [regexp]           # simple regexp
+            - [regexp]: <path>   # override path
+            - [regexp]:
+                [path]: <path>   # override path
+                [not]: <regexp>  # not match
+                [from]: <field>  # search from given entry field
+            - [regexp]:
+                [path]: <path>   # override path
+                [not]:           # list of not match regexps
+                  - <regexp>
+                [from]:          # search only from these fields
+                  - <field>
+          [operation]:
+            - <regexp>
+          [rest]: <operation>    # non matching entries are
+          [from]:                # search only from these fields for all regexps
+            - <field>
 
     Possible operations: accept, reject, accept_excluding, reject_excluding
     """
@@ -41,15 +42,15 @@ class FilterRegexp:
     schema = {
         'type': 'object',
         'properties': {
-            'accept': {'$ref': '#/definitions/regex_list'},
-            'reject': {'$ref': '#/definitions/regex_list'},
-            'accept_excluding': {'$ref': '#/definitions/regex_list'},
-            'reject_excluding': {'$ref': '#/definitions/regex_list'},
+            'accept': {'$ref': '#/$defs/regex_list'},
+            'reject': {'$ref': '#/$defs/regex_list'},
+            'accept_excluding': {'$ref': '#/$defs/regex_list'},
+            'reject_excluding': {'$ref': '#/$defs/regex_list'},
             'rest': {'type': 'string', 'enum': ['accept', 'reject']},
             'from': one_or_more({'type': 'string'}),
         },
         'additionalProperties': False,
-        'definitions': {
+        '$defs': {
             # The validator for a list of regexps, each with or without settings
             'regex_list': {
                 'type': 'array',
@@ -70,9 +71,10 @@ class FilterRegexp:
                                         'properties': {
                                             'path': {'type': 'string', 'format': 'path'},
                                             'set': {'type': 'object'},
-                                            'not': one_or_more(
-                                                {'type': 'string', 'format': 'regex'}
-                                            ),
+                                            'not': one_or_more({
+                                                'type': 'string',
+                                                'format': 'regex',
+                                            }),
                                             'from': one_or_more({'type': 'string'}),
                                         },
                                         'additionalProperties': False,
@@ -87,7 +89,7 @@ class FilterRegexp:
     }
 
     def prepare_config(self, config):
-        """Returns the config in standard format.
+        """Return the config in standard format.
 
         All regexps are turned into dictionaries in the form of {compiled regexp: options}
 
@@ -109,13 +111,9 @@ class FilterRegexp:
                 if not isinstance(regexp_item, dict):
                     regexp = regexp_item
                     regexp_item = {regexp: {}}
-                regexp, opts = list(regexp_item.items())[0]
-                # Parse custom settings for this regexp
-                if not isinstance(opts, dict):
-                    opts = {'path': opts}
-                else:
-                    # We don't want to modify original config
-                    opts = opts.copy()
+                regexp, opts = next(iter(regexp_item.items()))
+                # Parse custom settings for this regexp, and we don't want to modify original config
+                opts = {'path': opts} if not isinstance(opts, dict) else opts.copy()
                 # advanced configuration
                 if config.get('from'):
                     opts.setdefault('from', config['from'])
@@ -127,17 +125,15 @@ class FilterRegexp:
 
                 # compile `not` option regexps
                 if 'not' in opts:
-                    opts['not'] = [
-                        re.compile(not_re, re.IGNORECASE | re.UNICODE) for not_re in opts['not']
-                    ]
+                    opts['not'] = [re.compile(not_re, re.IGNORECASE) for not_re in opts['not']]
 
                 # compile regexp and make sure regexp is a string for series like '24'
                 try:
-                    regexp = re.compile(str(regexp), re.IGNORECASE | re.UNICODE)
+                    regexp = re.compile(str(regexp), re.IGNORECASE)
                 except re.error as e:
                     # Since validator can't validate dict keys (when an option is defined for the pattern) make sure we
                     # raise a proper error here.
-                    raise plugin.PluginError('Invalid regex `%s`: %s' % (regexp, e))
+                    raise plugin.PluginError(f'Invalid regex `{regexp}`: {e}')
                 out_config.setdefault(operation, []).append({regexp: opts})
         return out_config
 
@@ -161,8 +157,7 @@ class FilterRegexp:
                 rest_method(entry, 'regexp `rest`')
 
     def matches(self, entry, regexp, find_from=None, not_regexps=None):
-        """
-        Check if :entry: has any string fields or strings in a list field that match :regexp:
+        """Check if :entry: has any string fields or strings in a list field that match :regexp:.
 
         :param entry: Entry instance
         :param regexp: Compiled regexp
@@ -189,19 +184,20 @@ class FilterRegexp:
                     # Make sure the not_regexps do not match for this field
                     for not_regexp in not_regexps or []:
                         if self.matches(entry, not_regexp, find_from=[field]):
-                            entry.trace('Configured not_regexp %s matched, ignored' % not_regexp)
+                            entry.trace(f'Configured not_regexp {not_regexp} matched, ignored')
                             break
                     else:  # None of the not_regexps matched
                         return field
+        return None
 
     def filter(self, entries, operation, regexps):
-        """
+        """Return set of entries that matched regexps.
+
         :param entries: entries to filter
-        :param operation: one of 'accept' 'reject' 'accept_excluding' and 'reject_excluding'
+        :param operation: one of ``accept`` ``reject`` ``accept_excluding`` and ``reject_excluding``
                           accept and reject will be called on the entry if any of the regexps match
-                          *_excluding operations will be called if any of the regexps don't match
+                          ``*_excluding`` operations will be called if any of the regexps don't match
         :param regexps: list of {compiled_regexp: options} dictionaries
-        :return: Return set of entries that matched regexps
         """
         matched = set()
         method = Entry.accept if 'accept' in operation else Entry.reject
@@ -209,7 +205,7 @@ class FilterRegexp:
         for entry in entries:
             logger.trace('testing {} regexps to {}', len(regexps), entry['title'])
             for regexp_opts in regexps:
-                regexp, opts = list(regexp_opts.items())[0]
+                regexp, opts = next(iter(regexp_opts.items()))
 
                 # check if entry matches given regexp configuration
                 field = self.matches(entry, regexp, opts.get('from'), opts.get('not'))
@@ -217,8 +213,8 @@ class FilterRegexp:
                 # Run if we are in match mode and have a hit, or are in non-match mode and don't have a hit
                 if match_mode == bool(field):
                     # Creates the string with the reason for the hit
-                    matchtext = 'regexp \'%s\' ' % regexp.pattern + (
-                        'matched field \'%s\'' % field if match_mode else 'didn\'t match'
+                    matchtext = f"regexp '{regexp.pattern}' " + (
+                        f"matched field '{field}'" if match_mode else "didn't match"
                     )
                     logger.debug('{} for {}', matchtext, entry['title'])
                     # apply settings to entry and run the method on it
@@ -236,7 +232,7 @@ class FilterRegexp:
                     break
             else:
                 # We didn't run method for any of the regexps, add this entry to rest
-                entry.trace('None of configured %s regexps matched' % operation)
+                entry.trace(f'None of configured {operation} regexps matched')
         return matched
 
 

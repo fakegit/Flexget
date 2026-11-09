@@ -19,9 +19,7 @@ logger = logger.bind(name='subtitles')
 
 
 class Subtitles:
-    """
-    Fetch subtitles from opensubtitles.org
-    """
+    """Fetch subtitles from opensubtitles.org."""
 
     schema = {
         'type': 'object',
@@ -42,7 +40,6 @@ class Subtitles:
         return config
 
     def on_task_download(self, task, config):
-
         # filter all entries that have IMDB ID set
         try:
             entries = [e for e in task.accepted if e['imdb_id'] is not None]
@@ -52,14 +49,14 @@ class Subtitles:
             return
 
         try:
-            s = ServerProxy("http://api.opensubtitles.org/xml-rpc")
-            res = s.LogIn("", "", "en", "FlexGet")
+            s = ServerProxy('http://api.opensubtitles.org/xml-rpc')
+            res = s.LogIn('', '', 'en', 'FlexGet')
         except Exception:
             logger.warning('Error connecting to opensubtitles.org')
             return
 
         if res['status'] != '200 OK':
-            raise Exception("Login to opensubtitles.org XML-RPC interface failed")
+            raise RuntimeError('Login to opensubtitles.org XML-RPC interface failed')
 
         config = self.prepare_config(config, task)
 
@@ -79,9 +76,7 @@ class Subtitles:
                 logger.debug('no match for {}', entry['title'])
                 continue
 
-            query = []
-            for language in languages:
-                query.append({'sublanguageid': language, 'imdbid': imdbid})
+            query = [{'sublanguageid': language, 'imdbid': imdbid} for language in languages]
 
             subtitles = s.SearchSubtitles(token, query)
             subtitles = subtitles['data']
@@ -108,8 +103,8 @@ class Subtitles:
                 # did we find any subs for this language?
                 if langsubs:
 
-                    def seqmatch(subfile):
-                        s = difflib.SequenceMatcher(lambda x: x in " ._", entry['title'], subfile)
+                    def seqmatch(subfile, entry=entry):
+                        s = difflib.SequenceMatcher(lambda x: x in ' ._', entry['title'], subfile)  # noqa: B023 This is a false positive, see https://github.com/astral-sh/ruff/issues/15716
                         # print "matching: ", entry['title'], subfile, s.ratio()
                         return s.ratio() > match_limit
 
@@ -136,9 +131,8 @@ class Subtitles:
                     '^attachment; filename="(.*)"$', f.headers['content-disposition']
                 ).group(1)
                 outfile = os.path.join(config['output'], subfilename)
-                fp = open(outfile, 'w')
-                fp.write(f.raw)
-                fp.close()
+                with open(outfile, 'w') as fp:
+                    fp.write(f.raw)
                 f.close()
 
         s.LogOut(token)

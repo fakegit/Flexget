@@ -1,29 +1,22 @@
+from __future__ import annotations
+
 from datetime import datetime
 
 from loguru import logger
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, Unicode, func
-from sqlalchemy.orm import relationship
+from sqlalchemy import ForeignKey, func
+from sqlalchemy.orm import DynamicMapped, Mapped, mapped_column, relationship
 from sqlalchemy.sql.elements import and_
 
 from flexget import plugin
 from flexget.db_schema import versioned_base, with_session
 from flexget.entry import Entry
 
-try:
-    # NOTE: Importing other plugins is discouraged!
-    from flexget.components.parsing.parsers import parser_common as plugin_parser_common
-except ImportError:
-    raise plugin.DependencyError(issued_by=__name__, missing='parser_common')
-
 logger = logger.bind(name='movie_list')
 Base = versioned_base('movie_list', 0)
 
 
 class MovieListBase:
-    """
-    Class that contains helper methods for movie list as well as plugins that use it,
-    such as API and CLI.
-    """
+    """Class that contains helper methods for movie list as well as plugins that use it, such as API and CLI."""
 
     @property
     def supported_ids(self):
@@ -35,15 +28,15 @@ class MovieListBase:
 
 class MovieListList(Base):
     __tablename__ = 'movie_list_lists'
-    id = Column(Integer, primary_key=True)
-    name = Column(Unicode, unique=True)
-    added = Column(DateTime, default=datetime.now)
-    movies = relationship(
-        'MovieListMovie', backref='list', cascade='all, delete, delete-orphan', lazy='dynamic'
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str | None] = mapped_column(unique=True)
+    added: Mapped[datetime | None] = mapped_column(default=datetime.now)
+    movies: DynamicMapped[MovieListMovie] = relationship(
+        back_populates='list_', cascade='all, delete-orphan'
     )
 
     def __repr__(self):
-        return '<MovieListList,name={}id={}>'.format(self.name, self.id)
+        return f'<MovieListList,name={self.name}id={self.id}>'
 
     def to_dict(self):
         return {'id': self.id, 'name': self.name, 'added_on': self.added}
@@ -51,28 +44,27 @@ class MovieListList(Base):
 
 class MovieListMovie(Base):
     __tablename__ = 'movie_list_movies'
-    id = Column(Integer, primary_key=True)
-    added = Column(DateTime, default=datetime.now)
-    title = Column(Unicode)
-    year = Column(Integer)
-    list_id = Column(Integer, ForeignKey(MovieListList.id), nullable=False)
-    ids = relationship('MovieListID', backref='movie', cascade='all, delete, delete-orphan')
+    id: Mapped[int] = mapped_column(primary_key=True)
+    added: Mapped[datetime | None] = mapped_column(default=datetime.now)
+    title: Mapped[str | None]
+    year: Mapped[int | None]
+    list_id: Mapped[int] = mapped_column(ForeignKey(MovieListList.id))
+    list_: Mapped[MovieListList] = relationship(back_populates='movies')
+    ids: Mapped[list[MovieListID]] = relationship(
+        back_populates='movie', cascade='all, delete-orphan'
+    )
 
     def __repr__(self):
-        return '<MovieListMovie title=%s,year=%s,list_id=%d>' % (
-            self.title,
-            self.year,
-            self.list_id,
-        )
+        return f'<MovieListMovie title={self.title},year={self.year},list_id={self.list_id}>'
 
     def to_entry(self, strip_year=False):
         entry = Entry()
         entry['title'] = entry['movie_name'] = self.title
-        entry['url'] = 'mock://localhost/movie_list/%d' % self.id
+        entry['url'] = f'mock://localhost/movie_list/{self.id}'
         entry['added'] = self.added
         if self.year:
             if strip_year is False:
-                entry['title'] += ' (%d)' % self.year
+                entry['title'] += f' ({self.year})'
             entry['movie_year'] = self.year
         for movie_list_id in self.ids:
             entry[movie_list_id.id_name] = movie_list_id.id_value
@@ -90,24 +82,21 @@ class MovieListMovie(Base):
 
     @property
     def identifiers(self):
-        """ Return a dict of movie identifiers """
+        """Return a dict of movie identifiers."""
         return {identifier.id_name: identifier.id_value for identifier in self.ids}
 
 
 class MovieListID(Base):
     __tablename__ = 'movie_list_ids'
-    id = Column(Integer, primary_key=True)
-    added = Column(DateTime, default=datetime.now)
-    id_name = Column(Unicode)
-    id_value = Column(Unicode)
-    movie_id = Column(Integer, ForeignKey(MovieListMovie.id))
+    id: Mapped[int] = mapped_column(primary_key=True)
+    added: Mapped[datetime | None] = mapped_column(default=datetime.now)
+    id_name: Mapped[str | None]
+    id_value: Mapped[str | None]
+    movie_id: Mapped[int | None] = mapped_column(ForeignKey(MovieListMovie.id))
+    movie: Mapped[MovieListMovie | None] = relationship(back_populates='ids')
 
     def __repr__(self):
-        return '<MovieListID id_name=%s,id_value=%s,movie_id=%d>' % (
-            self.id_name,
-            self.id_value,
-            self.movie_id,
-        )
+        return f'<MovieListID id_name={self.id_name},id_value={self.id_value},movie_id={self.movie_id}>'
 
     def to_dict(self):
         return {
@@ -167,7 +156,8 @@ def get_list_by_id(list_id, session=None):
 def get_movie_by_id(list_id, movie_id, session=None):
     logger.debug('fetching movie with id {} from list id {}', movie_id, list_id)
     return (
-        session.query(MovieListMovie)
+        session
+        .query(MovieListMovie)
         .filter(and_(MovieListMovie.id == movie_id, MovieListMovie.list_id == list_id))
         .one()
     )
@@ -179,7 +169,8 @@ def get_movie_by_title_and_year(list_id, title, year=None, session=None):
     if movie_list:
         logger.debug('searching for movie {} in list {}', title, list_id)
         return (
-            session.query(MovieListMovie)
+            session
+            .query(MovieListMovie)
             .filter(
                 and_(
                     func.lower(MovieListMovie.title) == title.lower(),
@@ -189,12 +180,14 @@ def get_movie_by_title_and_year(list_id, title, year=None, session=None):
             )
             .one_or_none()
         )
+    return None
 
 
 @with_session
 def get_movie_identifier(identifier_name, identifier_value, movie_id=None, session=None):
     db_movie_id = (
-        session.query(MovieListID)
+        session
+        .query(MovieListID)
         .filter(
             and_(
                 MovieListID.id_name == identifier_name,
@@ -207,6 +200,7 @@ def get_movie_identifier(identifier_name, identifier_value, movie_id=None, sessi
     if db_movie_id:
         logger.debug('fetching movie identifier {}: {}', db_movie_id.id_name, db_movie_id.id_value)
         return db_movie_id
+    return None
 
 
 @with_session

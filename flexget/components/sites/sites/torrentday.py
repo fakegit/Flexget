@@ -46,26 +46,30 @@ CATEGORIES = {
 
 
 class UrlRewriteTorrentday:
-    """
-    Torrentday urlrewriter and search plugin.
+    """Torrentday urlrewriter and search plugin.
 
-    torrentday:
-      uid: xxxxxxxxxxxxx  (required)    NOT YOUR LOGIN. find this in your browser's cookies
-      passkey: xxxxxxxxx  (required)    NOT YOUR PASSWORD. see previous
-      cfduid: xxxxxxxxxx  (required)    AGAIN IN THE COOKIES
-      rss_key: xxxxxxxxx  (required)    get this from your profile page
-      category: xxxxxxxx
+    ::
 
-      Category can be one of
-        ID from browsing site OR 'name'
-        movies:
-          mov4k, mov480p, movHD, movBD, movDVD,
-          movMP4, movNonEnglish, movPACKS,
-          movSDx264, movX265, movXVID
-        tv:
-          tv480p, tvBRD, tvDVD, tvDVDrip,
-          tvMOBILE, tvNonEnglish, tvPACKS,
-          tvSDx264, tvHDx264, tvX265, tvXVID
+        torrentday:
+            uid: xxxxxxxxxxxxx  (required)    NOT YOUR LOGIN. find this in your browser's cookies
+            passkey: xxxxxxxxx  (required)    NOT YOUR PASSWORD. see previous
+            cfduid: xxxxxxxxxx  (required)    AGAIN IN THE COOKIES
+            rss_key: xxxxxxxxx  (required)    get this from your profile page
+            category: xxxxxxxx
+
+    Category can be one of
+
+    * ID from browsing site
+    * ``name``
+
+    movies:
+        mov4k, mov480p, movHD, movBD, movDVD,
+        movMP4, movNonEnglish, movPACKS,
+        movSDx264, movX265, movXVID
+    tv:
+        tv480p, tvBRD, tvDVD, tvDVDrip,
+        tvMOBILE, tvNonEnglish, tvPACKS,
+        tvSDx264, tvHDx264, tvX265, tvXVID
     """
 
     schema = {
@@ -75,9 +79,9 @@ class UrlRewriteTorrentday:
             'uid': {'oneOf': [{'type': 'integer'}, {'type': 'string'}]},
             'passkey': {'type': 'string'},
             'cfduid': {'type': 'string'},
-            'category': one_or_more(
-                {'oneOf': [{'type': 'integer'}, {'type': 'string', 'enum': list(CATEGORIES)}]}
-            ),
+            'category': one_or_more({
+                'oneOf': [{'type': 'integer'}, {'type': 'string', 'enum': list(CATEGORIES)}]
+            }),
         },
         'required': ['rss_key', 'uid', 'passkey', 'cfduid'],
         'additionalProperties': False,
@@ -88,14 +92,12 @@ class UrlRewriteTorrentday:
         url = entry['url']
         if url.find('.torrent'):
             return False
-        if url.startswith('https://www.torrentday.com'):
-            return True
-        return False
+        return bool(url.startswith('https://www.torrentday.com'))
 
     # urlrewriter API
     def url_rewrite(self, task, entry):
         if 'url' not in entry:
-            logger.error('Didn\'t actually get a URL...')
+            logger.error("Didn't actually get a URL...")
         else:
             logger.debug('Got the URL: {}', entry['url'])
         if entry['url'].startswith('https://www.torrentday.com/browse'):
@@ -107,10 +109,7 @@ class UrlRewriteTorrentday:
 
     @plugin.internet(logger)
     def search(self, task, entry, config=None):
-        """
-        Search for name from torrentday.
-        """
-
+        """Search for name from torrentday."""
         categories = config.get('category', 'all')
         # Make sure categories is a list
         if not isinstance(categories, list):
@@ -122,7 +121,6 @@ class UrlRewriteTorrentday:
 
         entries = set()
         for search_string in entry.get('search_strings', [entry['title']]):
-
             url = 'https://www.torrentday.com/t'
             params['q'] = normalize_unicode(search_string).replace(':', '')
             cookies = {
@@ -134,7 +132,7 @@ class UrlRewriteTorrentday:
             try:
                 page = requests.get(url, params=params, cookies=cookies).content
             except RequestException as e:
-                raise PluginError('Could not connect to torrentday: {}'.format(e))
+                raise PluginError(f'Could not connect to torrentday: {e}')
 
             # the following should avoid table being None due to a malformed
             # html in td search results

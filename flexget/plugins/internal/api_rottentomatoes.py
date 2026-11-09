@@ -1,13 +1,15 @@
+from __future__ import annotations
+
 import difflib
 import time
 from datetime import datetime, timedelta
-from typing import Any, Dict, Optional, Type
+from typing import TYPE_CHECKING, Any
 from urllib.error import URLError
 from urllib.parse import quote_plus
 
 from loguru import logger
-from sqlalchemy import Column, DateTime, Integer, String, Table, func, sql
-from sqlalchemy.orm import relation, Session
+from sqlalchemy import Column, String, Table, func, sql
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.schema import ForeignKey, Index
 
 from flexget import db_schema, plugin
@@ -16,8 +18,11 @@ from flexget.utils import requests
 from flexget.utils.database import text_date_synonym, with_session
 from flexget.utils.sqlalchemy_utils import table_add_column, table_schema
 
+if TYPE_CHECKING:
+    from sqlalchemy.orm import Session
+
 logger = logger.bind(name='api_rottentomatoes')
-Base: Type[db_schema.VersionedBaseMeta] = db_schema.versioned_base('api_rottentomatoes', 2)
+Base: type[db_schema.VersionedBaseMeta] = db_schema.versioned_base('api_rottentomatoes', 2)
 session = requests.Session()
 # There is a 5 call per second rate limit per api key with multiple users on the same api key, this can be problematic
 session.add_domain_limiter(requests.TimedLimiter('api.rottentomatoes.com', '0.4 seconds'))
@@ -55,7 +60,7 @@ def upgrade(ver: int, session: Session) -> int:
         ver = 1
     if ver == 1:
         table = table_schema('rottentomatoes_search_results', session)
-        session.execute(sql.delete(table, table.c.movie_id == None))
+        session.execute(sql.delete(table, table.c.movie_id.is_(None)))
         ver = 2
     return ver
 
@@ -64,8 +69,8 @@ def upgrade(ver: int, session: Session) -> int:
 genres_table = Table(
     'rottentomatoes_movie_genres',
     Base.metadata,
-    Column('movie_id', Integer, ForeignKey('rottentomatoes_movies.id')),
-    Column('genre_id', Integer, ForeignKey('rottentomatoes_genres.id')),
+    Column('movie_id', ForeignKey('rottentomatoes_movies.id')),
+    Column('genre_id', ForeignKey('rottentomatoes_genres.id')),
     Index('ix_rottentomatoes_movie_genres', 'movie_id', 'genre_id'),
 )
 Base.register_table(genres_table)
@@ -73,8 +78,8 @@ Base.register_table(genres_table)
 actors_table = Table(
     'rottentomatoes_movie_actors',
     Base.metadata,
-    Column('movie_id', Integer, ForeignKey('rottentomatoes_movies.id')),
-    Column('actor_id', Integer, ForeignKey('rottentomatoes_actors.id')),
+    Column('movie_id', ForeignKey('rottentomatoes_movies.id')),
+    Column('actor_id', ForeignKey('rottentomatoes_actors.id')),
     Index('ix_rottentomatoes_movie_actors', 'movie_id', 'actor_id'),
 )
 Base.register_table(actors_table)
@@ -82,8 +87,8 @@ Base.register_table(actors_table)
 directors_table = Table(
     'rottentomatoes_movie_directors',
     Base.metadata,
-    Column('movie_id', Integer, ForeignKey('rottentomatoes_movies.id')),
-    Column('director_id', Integer, ForeignKey('rottentomatoes_directors.id')),
+    Column('movie_id', ForeignKey('rottentomatoes_movies.id')),
+    Column('director_id', ForeignKey('rottentomatoes_directors.id')),
     Index('ix_rottentomatoes_movie_directors', 'movie_id', 'director_id'),
 )
 Base.register_table(directors_table)
@@ -91,14 +96,14 @@ Base.register_table(directors_table)
 
 # TODO: get rid of
 class RottenTomatoesContainer:
-    """Base class for RottenTomatoes objects"""
+    """Base class for RottenTomatoes objects."""
 
-    def __init__(self, init_dict: Optional[Dict[str, Any]] = None) -> None:
+    def __init__(self, init_dict: dict[str, Any] | None = None) -> None:
         if isinstance(init_dict, dict):
             self.update_from_dict(init_dict)
 
-    def update_from_dict(self, update_dict: Dict[str, Any]) -> None:
-        """Populates any simple (string or number) attributes from a dict"""
+    def update_from_dict(self, update_dict: dict[str, Any]) -> None:
+        """Populate any simple (string or number) attributes from a dict."""
         for col in self.__table__.columns:
             if isinstance(update_dict.get(col.name), (str, int, float)):
                 setattr(self, col.name, update_dict[col.name])
@@ -107,40 +112,50 @@ class RottenTomatoesContainer:
 class RottenTomatoesMovie(RottenTomatoesContainer, Base):
     __tablename__ = 'rottentomatoes_movies'
 
-    id = Column(Integer, primary_key=True, autoincrement=False, nullable=False)
-    title = Column(String)
-    year = Column(Integer)
-    genres = relation('RottenTomatoesGenre', secondary=genres_table, backref='movies')
-    mpaa_rating = Column(String)
-    runtime = Column(Integer)
-    critics_consensus = Column(String)
-    release_dates = relation('ReleaseDate', backref='movie', cascade='all, delete, delete-orphan')
-    critics_rating = Column(String)
-    critics_score = Column(Integer)
-    audience_rating = Column(String)
-    audience_score = Column(Integer)
-    synopsis = Column(String)
-    posters = relation(
-        'RottenTomatoesPoster', backref='movie', cascade='all, delete, delete-orphan'
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=False)
+    title: Mapped[str | None]
+    year: Mapped[int | None]
+    genres: Mapped[list[RottenTomatoesGenre]] = relationship(
+        secondary=genres_table, back_populates='movies'
     )
-    cast = relation('RottenTomatoesActor', secondary=actors_table, backref='movies')
-    directors = relation('RottenTomatoesDirector', secondary=directors_table, backref='movies')
-    studio = Column(String)
+    mpaa_rating: Mapped[str | None]
+    runtime: Mapped[int | None]
+    critics_consensus: Mapped[str | None]
+    release_dates: Mapped[list[ReleaseDate]] = relationship(
+        back_populates='movie', cascade='all, delete-orphan'
+    )
+    critics_rating: Mapped[str | None]
+    critics_score: Mapped[int | None]
+    audience_rating: Mapped[str | None]
+    audience_score: Mapped[int | None]
+    synopsis: Mapped[str | None]
+    posters: Mapped[list[RottenTomatoesPoster]] = relationship(
+        back_populates='movie', cascade='all, delete-orphan'
+    )
+    cast: Mapped[list[RottenTomatoesActor]] = relationship(
+        secondary=actors_table, back_populates='movies'
+    )
+    directors: Mapped[list[RottenTomatoesDirector]] = relationship(
+        secondary=directors_table, back_populates='movies'
+    )
+    studio: Mapped[str | None]
     # NOTE: alternate_ids is not anymore used, it used to store imdb_id
-    alternate_ids = relation(
-        'RottenTomatoesAlternateId', backref='movie', cascade='all, delete, delete-orphan'
+    alternate_ids: Mapped[list[RottenTomatoesAlternateId]] = relationship(
+        back_populates='movie', cascade='all, delete-orphan'
     )
-    links = relation('RottenTomatoesLink', backref='movie', cascade='all, delete, delete-orphan')
+    links: Mapped[list[RottenTomatoesLink]] = relationship(
+        back_populates='movie', cascade='all, delete-orphan'
+    )
 
     # updated time, so we can grab new rating counts after 48 hours
     # set a default, so existing data gets updated with a rating
-    updated = Column(DateTime)
+    updated: Mapped[datetime | None]
+
+    search_strings: Mapped[list[RottenTomatoesSearchResult]] = relationship(back_populates='movie')
 
     @property
     def expired(self) -> bool:
-        """
-        :return: True if movie details are considered to be expired, ie. need of update
-        """
+        """:return: True if movie details are considered to be expired, ie. need of update"""
         if self.updated is None:
             logger.debug('updated is None: {}', self)
             return True
@@ -152,14 +167,17 @@ class RottenTomatoesMovie(RottenTomatoesContainer, Base):
         return self.updated < datetime.now() - timedelta(days=refresh_interval)
 
     def __repr__(self) -> str:
-        return '<RottenTomatoesMovie(title=%s,id=%s,year=%s)>' % (self.title, self.id, self.year)
+        return f'<RottenTomatoesMovie(title={self.title},id={self.id},year={self.year})>'
 
 
 class RottenTomatoesGenre(Base):
     __tablename__ = 'rottentomatoes_genres'
 
-    id = Column(Integer, primary_key=True)
-    name = Column(String)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str | None]
+    movies: Mapped[list[RottenTomatoesMovie]] = relationship(
+        secondary=genres_table, back_populates='genres'
+    )
 
     def __init__(self, name: str) -> None:
         self.name = name
@@ -168,11 +186,12 @@ class RottenTomatoesGenre(Base):
 class ReleaseDate(Base):
     __tablename__ = 'rottentomatoes_releasedates'
 
-    db_id = Column(Integer, primary_key=True)
-    movie_id = Column(Integer, ForeignKey('rottentomatoes_movies.id'))
-    name = Column(String)
+    db_id: Mapped[int] = mapped_column(primary_key=True)
+    movie_id: Mapped[int | None] = mapped_column(ForeignKey('rottentomatoes_movies.id'))
+    movie: Mapped[RottenTomatoesMovie | None] = relationship(back_populates='release_dates')
+    name: Mapped[str | None]
     date = text_date_synonym('_date')
-    _date = Column('date', DateTime)
+    _date: Mapped[datetime | None] = mapped_column('date')
 
     def __init__(self, name: str, date: datetime) -> None:
         self.name = name
@@ -182,10 +201,11 @@ class ReleaseDate(Base):
 class RottenTomatoesPoster(Base):
     __tablename__ = 'rottentomatoes_posters'
 
-    db_id = Column(Integer, primary_key=True)
-    movie_id = Column(Integer, ForeignKey('rottentomatoes_movies.id'))
-    name = Column(String)
-    url = Column(String)
+    db_id: Mapped[int] = mapped_column(primary_key=True)
+    movie_id: Mapped[int | None] = mapped_column(ForeignKey('rottentomatoes_movies.id'))
+    movie: Mapped[RottenTomatoesMovie | None] = relationship(back_populates='posters')
+    name: Mapped[str | None]
+    url: Mapped[str | None]
 
     def __init__(self, name: str, url: str) -> None:
         self.name = name
@@ -195,9 +215,12 @@ class RottenTomatoesPoster(Base):
 class RottenTomatoesActor(Base):
     __tablename__ = 'rottentomatoes_actors'
 
-    id = Column(Integer, primary_key=True)
-    rt_id = Column(String)
-    name = Column(String)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    rt_id: Mapped[str | None]
+    name: Mapped[str | None]
+    movies: Mapped[list[RottenTomatoesMovie]] = relationship(
+        secondary=actors_table, back_populates='cast'
+    )
 
     def __init__(self, name: str, rt_id: str) -> None:
         self.name = name
@@ -207,8 +230,11 @@ class RottenTomatoesActor(Base):
 class RottenTomatoesDirector(Base):
     __tablename__ = 'rottentomatoes_directors'
 
-    id = Column(Integer, primary_key=True)
-    name = Column(String)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str | None]
+    movies: Mapped[list[RottenTomatoesMovie]] = relationship(
+        secondary=directors_table, back_populates='directors'
+    )
 
     def __init__(self, name: str) -> None:
         self.name = name
@@ -217,10 +243,11 @@ class RottenTomatoesDirector(Base):
 class RottenTomatoesAlternateId(Base):
     __tablename__ = 'rottentomatoes_alternate_ids'
 
-    db_id = Column(Integer, primary_key=True)
-    movie_id = Column(Integer, ForeignKey('rottentomatoes_movies.id'))
-    name = Column(String)
-    id = Column(String)
+    db_id: Mapped[int] = mapped_column(primary_key=True)
+    movie_id: Mapped[int | None] = mapped_column(ForeignKey('rottentomatoes_movies.id'))
+    movie: Mapped[RottenTomatoesMovie | None] = relationship(back_populates='alternate_ids')
+    name: Mapped[str | None]
+    id: Mapped[str | None]
 
     def __init__(self, name: str, id: str) -> None:
         self.name = name
@@ -230,10 +257,11 @@ class RottenTomatoesAlternateId(Base):
 class RottenTomatoesLink(Base):
     __tablename__ = 'rottentomatoes_links'
 
-    db_id = Column(Integer, primary_key=True)
-    movie_id = Column(Integer, ForeignKey('rottentomatoes_movies.id'))
-    name = Column(String)
-    url = Column(String)
+    db_id: Mapped[int] = mapped_column(primary_key=True)
+    movie_id: Mapped[int | None] = mapped_column(ForeignKey('rottentomatoes_movies.id'))
+    movie: Mapped[RottenTomatoesMovie | None] = relationship(back_populates='links')
+    name: Mapped[str | None]
+    url: Mapped[str | None]
 
     def __init__(self, name: str, url: str) -> None:
         self.name = name
@@ -243,32 +271,28 @@ class RottenTomatoesLink(Base):
 class RottenTomatoesSearchResult(Base):
     __tablename__ = 'rottentomatoes_search_results'
 
-    id = Column(Integer, primary_key=True)
-    search = Column(String, nullable=False)
-    movie_id = Column(Integer, ForeignKey('rottentomatoes_movies.id'), nullable=False)
-    movie = relation(RottenTomatoesMovie, backref='search_strings')
+    id: Mapped[int] = mapped_column(primary_key=True)
+    search: Mapped[str]
+    movie_id: Mapped[int] = mapped_column(ForeignKey('rottentomatoes_movies.id'))
+    movie: Mapped[RottenTomatoesMovie] = relationship(back_populates='search_strings')
 
     def __repr__(self) -> str:
-        return '<RottenTomatoesSearchResult(search=%s,movie_id=%s,movie=%s)>' % (
-            self.search,
-            self.movie_id,
-            self.movie,
-        )
+        return f'<RottenTomatoesSearchResult(search={self.search},movie_id={self.movie_id},movie={self.movie})>'
 
 
 @internet(logger)
 @with_session
 def lookup_movie(
-    title: Optional[str] = None,
-    year: Optional[int] = None,
-    rottentomatoes_id: Optional[int] = None,
-    smart_match: Optional[bool] = None,
+    title: str | None = None,
+    year: int | None = None,
+    rottentomatoes_id: int | None = None,
+    smart_match: bool | None = None,
     only_cached: bool = False,
-    session: Optional[Session] = None,
-    api_key: Optional[str] = None,
+    session: Session | None = None,
+    api_key: str | None = None,
 ) -> RottenTomatoesMovie:
-    """
-    Do a lookup from Rotten Tomatoes for the movie matching the passed arguments.
+    """Do a lookup from Rotten Tomatoes for the movie matching the passed arguments.
+
     Any combination of criteria can be passed, the most specific criteria specified will be used.
 
     :param rottentomatoes_id: rottentomatoes_id of desired movie
@@ -277,7 +301,7 @@ def lookup_movie(
     :param smart_match: attempt to clean and parse title and year from a string
     :param only_cached: if this is specified, an online lookup will not occur if the movie is not in the cache
     :param session: optionally specify a session to use, if specified, returned Movie will be live in that session
-    :param api_key: optionaly specify an API key to use
+    :param api_key: optionally specify an API key to use
     :returns: The Movie object populated with data from Rotten Tomatoes
     :raises: PluginError if a match cannot be found or there are other problems with the lookup
     """
@@ -287,13 +311,13 @@ def lookup_movie(
         title = title_parser.name
         year = title_parser.year
         if title == '' and not (rottentomatoes_id or title):
-            raise PluginError('Failed to parse name from %s' % smart_match)
+            raise PluginError(f'Failed to parse name from {smart_match}')
 
-    search_string = ""
+    search_string = ''
     if title:
         search_string = title.lower()
         if year:
-            search_string = '%s %s' % (search_string, year)
+            search_string = f'{search_string} {year}'
     elif not rottentomatoes_id:
         raise PluginError('No criteria specified for rotten tomatoes lookup')
 
@@ -307,7 +331,8 @@ def lookup_movie(
     # Try to lookup from cache
     if rottentomatoes_id:
         movie = (
-            session.query(RottenTomatoesMovie)
+            session
+            .query(RottenTomatoesMovie)
             .filter(RottenTomatoesMovie.id == rottentomatoes_id)
             .first()
         )
@@ -321,7 +346,8 @@ def lookup_movie(
         if not movie:
             logger.debug('No matches in movie cache found, checking search cache.')
             found = (
-                session.query(RottenTomatoesSearchResult)
+                session
+                .query(RottenTomatoesSearchResult)
                 .filter(func.lower(RottenTomatoesSearchResult.search) == search_string)
                 .first()
             )
@@ -346,7 +372,7 @@ def lookup_movie(
             logger.debug('Movie {} information restored from cache.', id_str())
     else:
         if only_cached:
-            raise PluginError('Movie %s not found from cache' % id_str())
+            raise PluginError(f'Movie {id_str()} not found from cache')
         # There was no movie found in the cache, do a lookup from Rotten Tomatoes
         logger.debug('Movie {} not found in cache, looking up from rotten tomatoes.', id_str())
         try:
@@ -373,7 +399,6 @@ def lookup_movie(
 
                         # Remove all movies below MIN_MATCH, and different year
                         for movie_res in results[:]:
-
                             if year and movie_res.get('year'):
                                 movie_res['year'] = int(movie_res['year'])
                                 if movie_res['year'] != year:
@@ -403,7 +428,7 @@ def lookup_movie(
                                 continue
 
                         if not results:
-                            raise PluginError('no appropiate results')
+                            raise PluginError('no appropriate results')
 
                         if len(results) == 1:
                             logger.debug('SUCCESS: only one movie remains')
@@ -435,7 +460,8 @@ def lookup_movie(
                             result = results[0]
 
                         movie = (
-                            session.query(RottenTomatoesMovie)
+                            session
+                            .query(RottenTomatoesMovie)
                             .filter(RottenTomatoesMovie.id == result['id'])
                             .first()
                         )
@@ -455,39 +481,36 @@ def lookup_movie(
             raise PluginError('Error looking up movie from RottenTomatoes')
 
     if not movie:
-        raise PluginError('No results found from rotten tomatoes for %s' % id_str())
-    else:
-        # Access attributes to force the relationships to eager load before we detach from session
-        for attr in [
-            'alternate_ids',
-            'cast',
-            'directors',
-            'genres',
-            'links',
-            'posters',
-            'release_dates',
-        ]:
-            getattr(movie, attr)
-        session.commit()
-        return movie
+        raise PluginError(f'No results found from rotten tomatoes for {id_str()}')
+    # Access attributes to force the relationships to eager load before we detach from session
+    for attr in [
+        'alternate_ids',
+        'cast',
+        'directors',
+        'genres',
+        'links',
+        'posters',
+        'release_dates',
+    ]:
+        getattr(movie, attr)
+    session.commit()
+    return movie
 
 
 # TODO: get rid of or heavily refactor
 def _set_movie_details(
     movie: RottenTomatoesMovie,
     session: Session,
-    movie_data: Optional[Dict[str, Any]] = None,
-    api_key: Optional[str] = None,
+    movie_data: dict[str, Any] | None = None,
+    api_key: str | None = None,
 ) -> Any:
-    """
-    Populate ``movie`` object from given data
+    """Populate ``movie`` object from given data.
 
     :param movie: movie object to update
     :param session: session to use, returned Movie will be live in that session
     :param api_key: optionally specify an API key to use
     :param movie_data: data to copy into the :movie:
     """
-
     if not movie_data:
         if not movie.id:
             raise PluginError('Cannot get rotten tomatoes details without rotten tomatoes id')
@@ -495,7 +518,7 @@ def _set_movie_details(
     if movie_data:
         if movie.id:
             logger.debug(
-                "Updating movie info (actually just deleting the old info and adding the new)"
+                'Updating movie info (actually just deleting the old info and adding the new)'
             )
             del movie.release_dates[:]
             del movie.posters[:]
@@ -507,7 +530,8 @@ def _set_movie_details(
         if genres:
             for name in genres:
                 genre = (
-                    session.query(RottenTomatoesGenre)
+                    session
+                    .query(RottenTomatoesGenre)
                     .filter(func.lower(RottenTomatoesGenre.name) == name.lower())
                     .first()
                 )
@@ -526,7 +550,8 @@ def _set_movie_details(
         if cast:
             for res_actor in cast:
                 actor = (
-                    session.query(RottenTomatoesActor)
+                    session
+                    .query(RottenTomatoesActor)
                     .filter(func.lower(RottenTomatoesActor.rt_id) == res_actor['id'])
                     .first()
                 )
@@ -537,7 +562,8 @@ def _set_movie_details(
         if directors:
             for res_director in directors:
                 director = (
-                    session.query(RottenTomatoesDirector)
+                    session
+                    .query(RottenTomatoesDirector)
                     .filter(
                         func.lower(RottenTomatoesDirector.name) == res_director['name'].lower()
                     )
@@ -556,18 +582,19 @@ def _set_movie_details(
                 movie.links.append(RottenTomatoesLink(name, url))
         movie.updated = datetime.now()
     else:
-        raise PluginError('No movie_data for rottentomatoes_id %s' % movie.id)
+        raise PluginError(f'No movie_data for rottentomatoes_id {movie.id}')
 
     return movie
 
 
-def movies_info(id, api_key: Optional[str] = None):
+def movies_info(id, api_key: str | None = None):
     if not api_key:
         api_key = API_KEY
     url = f'{SERVER}/{API_VER}/movies/{id}.json?apikey={api_key}'
     result = get_json(url)
     if isinstance(result, dict) and result.get('id'):
         return result
+    return None
 
 
 def lists(
@@ -575,7 +602,7 @@ def lists(
     list_name,
     limit: int = 20,
     page_limit: int = 20,
-    page: Optional[int] = None,
+    page: int | None = None,
     api_key=None,
 ):
     if isinstance(list_type, str):
@@ -597,10 +624,11 @@ def lists(
     results = get_json(url)
     if isinstance(results, dict) and len(results.get('movies')):
         return results
+    return None
 
 
 def movies_search(
-    q, page_limit: Optional[int] = None, page: Optional[int] = None, api_key: Optional[str] = None
+    q, page_limit: int | None = None, page: int | None = None, api_key: str | None = None
 ):
     if isinstance(q, str):
         q = quote_plus(q.encode('latin-1', errors='ignore'))
@@ -617,9 +645,10 @@ def movies_search(
     results = get_json(url)
     if isinstance(results, dict) and results.get('total') and results.get('movies'):
         return results
+    return None
 
 
-def get_json(url: str) -> Optional[Dict[str, Any]]:
+def get_json(url: str) -> dict[str, Any] | None:
     try:
         logger.debug('fetching json at {}', url)
         data = session.get(url)

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import base64
 import binascii
 import copy
@@ -8,8 +10,7 @@ import threading
 import traceback
 from pathlib import Path
 from time import sleep
-from typing import Dict, IO, Generator
-from typing import Optional as OptionalType
+from typing import IO, TYPE_CHECKING
 
 import cherrypy
 import yaml
@@ -27,27 +28,33 @@ from pyparsing import (
     White,
     Word,
     alphanums,
+    alphas,
     nums,
-    oneOf,
+    one_of,
     printables,
-    restOfLine,
+    rest_of_line,
 )
-from sqlalchemy.orm import Session
-from yaml.error import YAMLError, MarkedYAMLError
+from yaml.error import MarkedYAMLError, YAMLError
 
 from flexget._version import __version__
 from flexget.api import APIResource, api
-from flexget.api.app import APIError, BadRequest
-from flexget.api.app import __version__ as __api_version__
 from flexget.api.app import (
+    APIError,
+    BadRequest,
     base_message,
     base_message_schema,
     empty_response,
     etag,
     success_response,
 )
+from flexget.api.app import __version__ as __api_version__
 from flexget.config_schema import ConfigError
 from flexget.utils.tools import get_latest_flexget_version_number
+
+if TYPE_CHECKING:
+    from collections.abc import Generator
+
+    from sqlalchemy.orm import Session
 
 logger = logger.bind(name='api.server')
 
@@ -135,30 +142,30 @@ class ServerReloadAPI(APIResource):
     @api.response(502, model=config_validation_schema, description='Config validation error')
     @api.response(200, model=base_message_schema)
     def post(self, session: Session = None) -> Response:
-        """ Manage server operations """
+        """Manage server operations."""
         data = request.json
         if data['operation'] == 'reload':
             try:
                 self.manager.load_config(output_to_console=False)
             except YAMLError as e:
                 if isinstance(e, MarkedYAMLError):
-                    error: Dict[str, int] = {}
+                    error: dict[str, int] = {}
                     if e.problem is not None:
                         error.update({'reason': e.problem})
                     if e.context_mark is not None:
-                        error.update(
-                            {'line': e.context_mark.line, 'column': e.context_mark.column}
-                        )
+                        error.update({
+                            'line': e.context_mark.line,
+                            'column': e.context_mark.column,
+                        })
                     if e.problem_mark is not None:
-                        error.update(
-                            {'line': e.problem_mark.line, 'column': e.problem_mark.column}
-                        )
+                        error.update({
+                            'line': e.problem_mark.line,
+                            'column': e.problem_mark.column,
+                        })
                     raise APIError(message='Invalid YAML syntax', payload=error)
             except ConfigError as e:
-                errors = []
-                for er in e.errors:
-                    errors.append({'error': er.message, 'config_path': er.json_pointer})
-                raise APIError('Error loading config: %s' % e.args[0], payload={'errors': errors})
+                errors = [{'error': er.message, 'config_path': er.json_pointer} for er in e.errors]
+                raise APIError(f'Error loading config: {e.args[0]}', payload={'errors': errors})
             response = 'Config successfully reloaded from disk'
         else:
             self.manager.shutdown(data.get('force'))
@@ -170,7 +177,7 @@ class ServerReloadAPI(APIResource):
 class ServerPIDAPI(APIResource):
     @api.response(200, description='Reloaded config', model=pid_schema)
     def get(self, session: Session = None) -> Response:
-        """ Get server PID """
+        """Get server PID."""
         return jsonify({'pid': os.getpid()})
 
 
@@ -179,7 +186,7 @@ class ServerConfigAPI(APIResource):
     @etag
     @api.response(200, description='Flexget config', model=empty_response)
     def get(self, session: Session = None) -> Response:
-        """ Get Flexget Config in JSON form"""
+        """Get Flexget Config in JSON form."""
         return jsonify(self.manager.config)
 
 
@@ -191,9 +198,9 @@ class ServerRawConfigAPI(APIResource):
         200, model=raw_config_schema, description='Flexget raw YAML config file encoded in Base64'
     )
     def get(self, session: Session = None) -> Response:
-        """ Get raw YAML config file """
-        with open(self.manager.config_path, 'r', encoding='utf-8') as f:
-            raw_config = base64.b64encode(f.read().encode("utf-8"))
+        """Get raw YAML config file."""
+        with self.manager.config_path.open(encoding='utf-8') as f:
+            raw_config = base64.b64encode(f.read().encode('utf-8'))
         return jsonify(raw_config=raw_config.decode('utf-8'))
 
     @api.validate(raw_config_schema)
@@ -205,7 +212,7 @@ class ServerRawConfigAPI(APIResource):
         ' be loaded and saved to original file.'
     )
     def post(self, session: Session = None) -> Response:
-        """ Update config """
+        """Update config."""
         config = {}
         data = request.json
         try:
@@ -217,7 +224,7 @@ class ServerRawConfigAPI(APIResource):
             config = yaml.safe_load(raw_config)
         except YAMLError as e:
             if isinstance(e, MarkedYAMLError):
-                error: Dict[str, int] = {}
+                error: dict[str, int] = {}
                 if e.problem is not None:
                     error.update({'reason': e.problem})
                 if e.context_mark is not None:
@@ -229,9 +236,7 @@ class ServerRawConfigAPI(APIResource):
         try:
             backup_path = self.manager.update_config(config)
         except ConfigError as e:
-            errors = []
-            for er in e.errors:
-                errors.append({'error': er.message, 'config_path': er.json_pointer})
+            errors = [{'error': er.message, 'config_path': er.json_pointer} for er in e.errors]
             raise BadRequest(
                 message=f'Error loading config: {e.args[0]}', payload={'errors': errors}
             )
@@ -245,7 +250,7 @@ class ServerRawConfigAPI(APIResource):
             )
 
         try:
-            with open(self.manager.config_path, 'w', encoding='utf-8') as f:
+            with self.manager.config_path.open('w', encoding='utf-8') as f:
                 f.write(raw_config.decode('utf-8').replace('\r\n', '\n'))
         except Exception as e:
             raise APIError(
@@ -263,31 +268,29 @@ class ServerRawConfigAPI(APIResource):
 class ServerVersionAPI(APIResource):
     @api.response(200, description='Flexget version', model=version_schema)
     def get(self, session: Session = None) -> Response:
-        """ Flexget Version """
+        """Flexget Version."""
         latest = get_latest_flexget_version_number()
-        return jsonify(
-            {
-                'flexget_version': __version__,
-                'api_version': __api_version__,
-                'latest_version': latest,
-            }
-        )
+        return jsonify({
+            'flexget_version': __version__,
+            'api_version': __api_version__,
+            'latest_version': latest,
+        })
 
 
 @server_api.route('/dump_threads/', doc=False)
 class ServerDumpThreads(APIResource):
     @api.response(200, description='Flexget threads dump', model=dump_threads_schema)
     def get(self, session: Session = None) -> Response:
-        """ Dump Server threads for debugging """
-        id2name = dict([(th.ident, th.name) for th in threading.enumerate()])
+        """Dump Server threads for debugging."""
+        id2name = {th.ident: th.name for th in threading.enumerate()}
         threads = []
-        for threadId, stack in sys._current_frames().items():
+        for thread_id, stack in sys._current_frames().items():
             dump = []
             for filename, lineno, name, line in traceback.extract_stack(stack):
-                dump.append('File: "%s", line %d, in %s' % (filename, lineno, name))
+                dump.append(f'File: "{filename}", line {lineno}, in {name}')
                 if line:
                     dump.append(line.strip())
-            threads.append({'name': id2name.get(threadId), 'id': threadId, 'dump': dump})
+            threads.append({'name': id2name.get(thread_id), 'id': thread_id, 'dump': dump})
 
         return jsonify(threads=threads)
 
@@ -302,8 +305,8 @@ server_log_parser.add_argument('search', help='Search filter support google like
 def reverse_readline(
     fh: IO, start_byte: int = 0, buf_size: int = 8192
 ) -> Generator[str, None, None]:
-    """a generator that returns the lines of a file in reverse order"""
-    segment: OptionalType[str] = None
+    """Return the lines of a file in reverse order."""
+    segment: str | None = None
     offset = 0
     if start_byte:
         fh.seek(start_byte)
@@ -334,12 +337,11 @@ def reverse_readline(
     yield segment
 
 
-def file_inode(filename: str) -> int:
+def file_inode(file: Path) -> int:
     fd = None
     try:
-        fd = os.open(filename, os.O_RDONLY)
-        inode = os.fstat(fd).st_ino
-        return inode
+        fd = os.open(file, os.O_RDONLY)
+        return os.fstat(fd).st_ino
     except OSError:
         return 0
     finally:
@@ -349,10 +351,10 @@ def file_inode(filename: str) -> int:
 
 @server_api.route('/log/')
 class ServerLogAPI(APIResource):
-    @api.doc(parser=server_log_parser)
+    @api.doc(expect=[server_log_parser])
     @api.response(200, description='Streams as line delimited JSON')
     def get(self, session: Session = None) -> Response:
-        """ Stream Flexget log Streams as line delimited JSON """
+        """Stream Flexget log Streams as line delimited JSON."""
         args = server_log_parser.parse_args()
 
         def follow(lines, search):
@@ -361,25 +363,21 @@ class ServerLogAPI(APIResource):
 
             lines_found = []
 
-            if os.path.isabs(self.manager.options.logfile):
-                base_log_file = self.manager.options.logfile
+            if Path(self.manager.options.logfile).is_absolute():
+                base_log_file = Path(self.manager.options.logfile)
             else:
-                base_log_file = os.path.join(
-                    self.manager.config_base, self.manager.options.logfile
-                )
+                base_log_file = self.manager.config_base / self.manager.options.logfile
 
             yield '{"stream": ['  # Start of the json stream
 
             # Read back in the logs until we find enough lines
-            for i in range(0, 9):
-                log_file = ('%s.%s' % (base_log_file, i)).rstrip(
-                    '.0'
-                )  # 1st log file has no number
+            for i in range(9):
+                log_file = f'{base_log_file}.{i}'.rstrip('.0')  # 1st log file has no number
 
-                if not os.path.isfile(log_file):
+                if not Path(log_file).is_file():
                     break
 
-                with open(log_file, 'rb') as fh:
+                with Path(log_file).open('rb') as fh:
                     fh.seek(0, 2)  # Seek to bottom of file
                     end_byte = fh.tell()
                     if i == 0:
@@ -395,8 +393,8 @@ class ServerLogAPI(APIResource):
                         if log_parser.matches(line):
                             lines_found.append(log_parser.json_string(line))
 
-                    for l in reversed(lines_found):
-                        yield l + ',\n'
+                    for line in reversed(lines_found):
+                        yield line + ',\n'
 
             # We need to track the inode in case the log file is rotated
             current_inode = file_inode(base_log_file)
@@ -413,7 +411,7 @@ class ServerLogAPI(APIResource):
                     current_inode = new_inode
 
                 try:
-                    with open(base_log_file, 'rb') as fh:
+                    with base_log_file.open('rb') as fh:
                         fh.seek(stream_from_byte)
                         line = fh.readline().decode(sys.getfilesystemencoding())
                         stream_from_byte = fh.tell()
@@ -436,8 +434,7 @@ class ServerLogAPI(APIResource):
 
 
 class LogParser:
-    """
-    Filter log file.
+    """Filter log file.
 
     Supports
       * 'and', 'or' and implicit 'and' operators;
@@ -445,7 +442,7 @@ class LogParser:
       * quoted strings;
     """
 
-    def __init__(self, query: OptionalType[str]) -> None:
+    def __init__(self, query: str | None) -> None:
         self._methods = {
             'and': self.evaluate_and,
             'or': self.evaluate_or,
@@ -474,7 +471,7 @@ class LogParser:
             )
 
             operator_parenthesis = (
-                Group((Suppress('(') + operator_or + Suppress(")"))).setResultsName('parenthesis')
+                Group(Suppress('(') + operator_or + Suppress(')')).setResultsName('parenthesis')
                 | operator_quotes
             )
 
@@ -489,7 +486,7 @@ class LogParser:
                 Group(
                     operator_not + Suppress(Keyword('and', caseless=True)) + operator_and
                 ).setResultsName('and')
-                | Group(operator_not + OneOrMore(~oneOf('and or') + operator_and)).setResultsName(
+                | Group(operator_not + OneOrMore(~one_of('and or') + operator_and)).setResultsName(
                     'and'
                 )
                 | operator_not
@@ -506,26 +503,22 @@ class LogParser:
         else:
             self._query_parser = False
 
-        time_cmpnt = Word(nums).setParseAction(lambda t: t[0].zfill(2))
+        integer = Word(nums)
         date = Combine(
-            (time_cmpnt + '-' + time_cmpnt + '-' + time_cmpnt)
-            + ' '
-            + time_cmpnt
-            + ':'
-            + time_cmpnt
-            + Optional(':' + time_cmpnt)
+            Combine(integer + '-' + integer + '-' + integer)
+            + White(' ')
+            + Combine(integer + ':' + integer + Optional(':' + integer))
         )
-        word = Word(printables)
 
         self._log_parser = (
-            date.setResultsName('timestamp')
-            + word.setResultsName('log_level')
-            + word.setResultsName('plugin')
+            date.set_results_name('timestamp')
+            + Word(alphas).set_results_name('log_level')
+            + Word(printables).set_results_name('plugin')
             + (
-                White(min=16).setParseAction(lambda s, l, t: [t[0].strip()]).setResultsName('task')
-                | (White(min=1).suppress() & word.setResultsName('task'))
-            )
-            + restOfLine.setResultsName('message')
+                White(' ', min=16).set_parse_action(lambda t: ['']).set_results_name('task')
+                | White(' ', max=15) + Word(alphanums + '_-').set_results_name('task')
+            ).leave_whitespace()
+            + rest_of_line.set_parse_action(lambda t: [t[0].strip()]).set_results_name('message')
         )
 
     def evaluate_and(self, argument):
@@ -558,8 +551,7 @@ class LogParser:
 
         if not self._query_parser:
             return True
-        else:
-            return self.evaluate(self._query_parser)
+        return self.evaluate(self._query_parser)
 
     def json_string(self, line):
         try:
@@ -570,13 +562,12 @@ class LogParser:
 
 @server_api.route('/crash_logs/')
 class ServerCrashLogAPI(APIResource):
-    @api.response(200, 'Succesfully retreived crash logs', model=crash_logs_schema)
+    @api.response(200, 'Successfully retrieved crash logs', model=crash_logs_schema)
     def get(self, session: Session):
-        """Get Crash logs"""
-        path = Path(self.manager.config_base)
-        crashes = [
-            {'name': file.name, 'content': file.open().readlines()}
-            for file in path.iterdir()
-            if file.match('crash_report*.log')
-        ]
+        """Get Crash logs."""
+        path = self.manager.config_base
+        crashes = []
+        for file in path.glob('crash_report*.log'):
+            with file.open() as f:
+                crashes.append({'name': file.name, 'content': f.readlines()})
         return jsonify(crashes)

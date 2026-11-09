@@ -16,7 +16,8 @@ NOTIFYMYANDROID_URL = 'https://www.notifymyandroid.com/publicapi/notify'
 
 
 class NotifyMyAndroidNotifier:
-    """
+    """Send a Notifymyandroid notification.
+
     Example::
 
       notify:
@@ -46,9 +47,7 @@ class NotifyMyAndroidNotifier:
     }
 
     def notify(self, title, message, config):
-        """
-        Send a Notifymyandroid notification
-        """
+        """Send a Notifymyandroid notification."""
         notification = {
             'event': title,
             'description': message,
@@ -77,14 +76,13 @@ class NotifyMyAndroidNotifier:
         error = request_status.find('error')
         if error is not None:
             raise PluginWarning(error.text)
-        else:
-            success = request_status.find('success').attrib
-            logger.debug(
-                'notifymyandroid notification sent. Notifications remaining until next reset: {}. '
-                'Next reset will occur in {} minutes',
-                success['remaining'],
-                success['resettimer'],
-            )
+        success = request_status.find('success').attrib
+        logger.debug(
+            'notifymyandroid notification sent. Notifications remaining until next reset: {}. '
+            'Next reset will occur in {} minutes',
+            success['remaining'],
+            success['resettimer'],
+        )
 
 
 @event('plugin.register')

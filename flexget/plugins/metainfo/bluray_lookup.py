@@ -1,6 +1,7 @@
 from loguru import logger
 
-from flexget import entry, plugin
+from flexget import plugin
+from flexget.entry import register_lazy_lookup
 from flexget.event import event
 from flexget.manager import Session
 from flexget.utils.log import log_once
@@ -14,6 +15,7 @@ class PluginBlurayLookup:
 
     Example:
         tmdb_lookup: yes
+
     """
 
     field_map = {
@@ -36,9 +38,9 @@ class PluginBlurayLookup:
 
     schema = {'type': 'boolean'}
 
-    @entry.register_lazy_lookup('bluray_lookup')
+    @register_lazy_lookup('bluray_lookup')
     def lazy_loader(self, entry):
-        """Does the lookup for this entry and populates the entry fields."""
+        """Do the lookup for this entry and populate the entry fields."""
         lookup = plugin.get('api_bluray', self).lookup
 
         try:
@@ -47,12 +49,12 @@ class PluginBlurayLookup:
                 movie = lookup(title=title, year=year, session=session)
                 entry.update_using_map(self.field_map, movie)
         except LookupError:
-            log_once('Bluray lookup failed for %s' % entry['title'], logger, 'WARNING')
+            log_once('Bluray lookup failed for {}'.format(entry['title']), logger, 'WARNING')
 
     def lookup(self, entry):
-        """
-        Populates all lazy fields to an Entry. May be called by other plugins
-        requiring bluray info on an Entry
+        """Populate all lazy fields to an Entry.
+
+        May be called by other plugins requiring bluray info on an Entry
 
         :param entry: Entry instance
         """
@@ -66,7 +68,7 @@ class PluginBlurayLookup:
 
     @property
     def movie_identifier(self):
-        """Returns the plugin main identifier type"""
+        """Returns the plugin main identifier type."""
         return 'bluray_id'
 
 

@@ -10,9 +10,7 @@ logger = logger.bind(name='cookies')
 
 
 class PluginCookies:
-    """
-    Adds cookie to all requests (rss, resolvers, download). Anything
-    that uses urllib2 to be exact.
+    """Add cookie to all requests (rss, resolvers, download). Anything that uses urllib2 to be exact.
 
     Currently supports Firefox 3 cookies only.
 
@@ -64,7 +62,7 @@ class PluginCookies:
         logger.debug('connecting: {}', filename)
         try:
             con = sqlite.connect(filename)
-        except:
+        except Exception:
             raise plugin.PluginError('Unable to open cookies sqlite database')
 
         cur = con.cursor()
@@ -72,7 +70,7 @@ class PluginCookies:
             cur.execute('select host, path, isSecure, expiry, name, value from moz_cookies')
         except sqlite.Error:
             raise plugin.PluginError(
-                '%s does not appear to be a valid Firefox 3 cookies file' % filename, logger
+                f'{filename} does not appear to be a valid Firefox 3 cookies file', logger
             )
 
         ftstr = ['FALSE', 'TRUE']
@@ -102,8 +100,7 @@ class PluginCookies:
                 item = [notabs(field) for field in item]
                 try:
                     s.write(
-                        '%s\t%s\t%s\t%s\t%s\t%s\t%s\n'
-                        % (
+                        '{}\t{}\t{}\t{}\t{}\t{}\t{}\n'.format(
                             item[0],
                             ftstr[item[0].startswith('.')],
                             item[1],
@@ -121,15 +118,13 @@ class PluginCookies:
                 except OSError:
 
                     def to_hex(x):
-                        return ''.join([hex(ord(c))[2:].zfill(2) for c in x])
+                        return ''.join(f'{ord(c):02x}' for c in x)
 
-                    i = 0
-                    for val in item:
+                    for i, val in enumerate(item):
                         if isinstance(val, str):
                             logger.debug('item[{}]: {}', i, to_hex(val))
                         else:
                             logger.debug('item[{}]: {}', i, val)
-                        i += 1
                     failed += 1
 
             except UnicodeDecodeError:
@@ -149,7 +144,7 @@ class PluginCookies:
         return cookie_jar
 
     def on_task_start(self, task, config):
-        """Task starting, install cookiejar"""
+        """Task starting, install cookiejar."""
         import os
 
         config = self.prepare_config(config)
@@ -172,7 +167,7 @@ class PluginCookies:
                 cj = http.cookiejar.LWPCookieJar()
                 self.cookiejars[cookie_file] = cj
             else:
-                raise plugin.PluginError('Unknown cookie type %s' % cookie_type, logger)
+                raise plugin.PluginError(f'Unknown cookie type {cookie_type}', logger)
 
             try:
                 cj.load(filename=cookie_file, ignore_expires=True)
@@ -181,7 +176,7 @@ class PluginCookies:
                 import sys
 
                 raise plugin.PluginError(
-                    'Cookies could not be loaded: %s' % sys.exc_info()[1], logger
+                    f'Cookies could not be loaded: {sys.exc_info()[1]}', logger
                 )
 
         # Add cookiejar to our requests session

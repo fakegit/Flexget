@@ -1,5 +1,4 @@
-import datetime
-import math
+from datetime import datetime, timedelta
 
 from loguru import logger
 from requests import RequestException
@@ -50,10 +49,12 @@ class TraktCalendar:
         'trakt_series_content_rating': 'certification',
         'trakt_genres': 'genres',
         'trakt_series_network': 'network',
-        'imdb_url': lambda s: s['ids']['imdb']
-        and 'http://www.imdb.com/title/%s' % s['ids']['imdb'],
-        'trakt_series_url': lambda s: s['ids']['slug']
-        and 'https://trakt.tv/shows/%s' % s['ids']['slug'],
+        'imdb_url': lambda s: (
+            s['ids']['imdb'] and 'http://www.imdb.com/title/{}'.format(s['ids']['imdb'])
+        ),
+        'trakt_series_url': lambda s: (
+            s['ids']['slug'] and 'https://trakt.tv/shows/{}'.format(s['ids']['slug'])
+        ),
         'trakt_series_country': 'country',
         'trakt_series_status': 'status',
         'trakt_series_overview': 'overview',
@@ -78,7 +79,7 @@ class TraktCalendar:
         'trakt_ep_abs_number': 'number_abs',
         'trakt_season': 'season',
         'trakt_episode': 'number',
-        'trakt_ep_id': lambda ep: 'S%02dE%02d' % (ep['season'], ep['number']),
+        'trakt_ep_id': lambda ep: 'S{:02d}E{:02d}'.format(ep['season'], ep['number']),
         'trakt_ep_languages': 'available_translations',
         'trakt_ep_runtime': 'runtime',
         'trakt_ep_updated_at': 'updated_at',
@@ -88,18 +89,18 @@ class TraktCalendar:
 
     @cached('trakt_calendar', persist='2 hours')
     def on_task_input(self, task, config):
-        start_date = datetime.datetime.now().date() + datetime.timedelta(days=config['start_day'])
+        start_date = datetime.now().date() + timedelta(days=config['start_day'])
         entries = set()
 
         # The API limit is max_number_of_days days for a single call.
         for start_day in range(0, config['days'], max_number_of_days):
-            current_start_date = start_date + datetime.timedelta(days=start_day)
+            current_start_date = start_date + timedelta(days=start_day)
             number_of_days = min(config['days'] - start_day, max_number_of_days)
 
             logger.debug(
                 'Start date for calendar: {}, end date: {}',
                 current_start_date,
-                current_start_date + datetime.timedelta(days=number_of_days),
+                current_start_date + timedelta(days=number_of_days),
             )
 
             url = db.get_api_url(
@@ -112,13 +113,14 @@ class TraktCalendar:
 
             try:
                 results = (
-                    db.get_session(config.get('account'))
+                    db
+                    .get_session(config.get('account'))
                     .get(url, params={'extended': 'full'})
                     .json()
                 )
                 logger.debug('Found {} calendar entries', len(results))
             except RequestException as e:
-                raise plugin.PluginError('Error while fetching calendar: {0}'.format(e))
+                raise plugin.PluginError(f'Error while fetching calendar: {e}')
 
             for result in results:
                 e = Entry()
@@ -128,16 +130,16 @@ class TraktCalendar:
 
                 title = e['trakt_series_name']
                 if not config['strip_dates']:
-                    title = '{0} ({1})'.format(title, e['trakt_series_year'])
+                    title = '{} ({})'.format(title, e['trakt_series_year'])
 
                 url = e['trakt_series_url']
 
                 if config['type'] == 'episodes':
-                    title = '{0} S{1:02d}E{2:02d}'.format(
+                    title = '{} S{:02d}E{:02d}'.format(
                         title, e['trakt_season'], e['trakt_episode']
                     )
 
-                    url = '{0}/seasons/{1}/episodes/{2}'.format(
+                    url = '{}/seasons/{}/episodes/{}'.format(
                         url, e['trakt_season'], e['trakt_episode']
                     )
 

@@ -1,5 +1,7 @@
 from argparse import ArgumentParser
 
+from sqlalchemy import text
+
 from flexget import options
 from flexget.db_schema import plugin_schemas, reset_schema
 from flexget.event import event
@@ -28,7 +30,7 @@ def vacuum():
     console('Running VACUUM on sqlite database, this could take a while.')
     session = Session()
     try:
-        session.execute('VACUUM')
+        session.execute(text('VACUUM'))
         session.commit()
     finally:
         session.close()
@@ -45,16 +47,16 @@ def reset_plugin(options):
     plugin = options.plugin_name[0]
     try:
         reset_schema(plugin)
-        console('The database for `%s` has been reset.' % plugin)
+        console(f'The database for `{plugin}` has been reset.')
     except ValueError as e:
-        console('Unable to reset %s: %s' % (plugin, e.message))
+        console(f'Unable to reset {plugin}: {e.message}')
 
 
 @event('options.register')
 def register_parser_arguments():
     plugins_parser = ArgumentParser(add_help=False)
     plugins_parser.add_argument(
-        'plugin_name', help="Name of plugin to reset", nargs=1, choices=list(plugin_schemas)
+        'plugin_name', help='Name of plugin to reset', nargs=1, choices=list(plugin_schemas)
     )
 
     parser = options.register_command(

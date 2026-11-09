@@ -2,7 +2,7 @@ import re
 from datetime import datetime
 
 from loguru import logger
-from sqlalchemy import Column, DateTime, Integer, String
+from sqlalchemy.orm import Mapped, mapped_column
 
 from flexget import plugin
 from flexget.db_schema import versioned_base
@@ -16,26 +16,23 @@ Base = versioned_base('myepisodes', 0)
 class MyEpisodesInfo(Base):
     __tablename__ = 'myepisodes'
 
-    id = Column(Integer, primary_key=True)
-    series_name = Column(String, unique=True)
-    myepisodes_id = Column(Integer, unique=True)
-    updated = Column(DateTime)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    series_name: Mapped[str | None] = mapped_column(unique=True)
+    myepisodes_id: Mapped[int | None] = mapped_column(unique=True)
+    updated: Mapped[datetime | None] = mapped_column(default=datetime.now)
 
     def __init__(self, series_name, myepisodes_id):
         self.series_name = series_name
         self.myepisodes_id = myepisodes_id
-        self.updated = datetime.now()
 
     def __repr__(self):
-        return '<MyEpisodesInfo(series_name=%s, myepisodes_id=%s)>' % (
-            self.series_name,
-            self.myepisodes_id,
+        return (
+            f'<MyEpisodesInfo(series_name={self.series_name}, myepisodes_id={self.myepisodes_id})>'
         )
 
 
 class MyEpisodes:
-    """
-    Marks a series episode as acquired in your myepisodes.com account.
+    """Marks a series episode as acquired in your myepisodes.com account.
 
     Simple Example:
 
@@ -56,16 +53,18 @@ class MyEpisodes:
     In some cases, the TVDB name is either not unique or won't even be discovered.
     In that case you need to specify the MyEpisodes id manually using the set plugin.
 
-    tasks:
-      tvshows:
-        myepisodes:
-          username: <username>
-          password: <password>
-        series:
-         - human target:
-             set:
-               myepisodes_id: 5111
-         - chuck
+    .. code:: yaml
+
+        tasks:
+          tvshows:
+            myepisodes:
+              username: <username>
+              password: <password>
+            series:
+             - human target:
+                 set:
+                   myepisodes_id: 5111
+             - chuck
 
     How to find the MyEpisodes id: http://matrixagents.org/screencasts/myep_example-20110507-131555.png
     """
@@ -85,10 +84,7 @@ class MyEpisodes:
 
     @plugin.priority(plugin.PRIORITY_LAST)
     def on_task_output(self, task, config):
-        """
-        Mark all accepted episodes as acquired on MyEpisodes
-        """
-
+        """Mark all accepted episodes as acquired on MyEpisodes."""
         if not task.accepted:
             # Nothing accepted, don't do anything
             return
@@ -120,8 +116,8 @@ class MyEpisodes:
                 logger.warning(w)
 
     def _validate_entry(self, entry):
-        """
-        Checks an entry for all of the fields needed to comunicate with myepidoes
+        """Check an entry for all of the fields needed to communicate with myepidoes.
+
         Return: boolean
         """
         if (
@@ -129,19 +125,17 @@ class MyEpisodes:
             or 'series_episode' not in entry
             or 'series_name' not in entry
         ):
-
             raise plugin.PluginWarning(
-                'Can\'t mark entry `%s` in myepisodes without series_season, series_episode and series_name '
-                'fields' % entry['title'],
+                "Can't mark entry `{}` in myepisodes without series_season, series_episode and series_name "
+                'fields'.format(entry['title']),
                 logger,
             )
 
     def _lookup_myepisodes_id(self, entry):
-        """
-        Attempts to find the myepisodes id for the series
+        """Attempt to find the myepisodes id for the series.
+
         Return: myepisode id or None
         """
-
         # Do we already have the id?
         myepisodes_id = entry.get('myepisodes_id')
         if myepisodes_id:
@@ -158,26 +152,28 @@ class MyEpisodes:
             return myepisodes_id
 
         raise plugin.PluginWarning(
-            'Unable to determine the myepisodes id for: `%s`' % entry['title'], logger
+            'Unable to determine the myepisodes id for: `{}`'.format(entry['title']), logger
         )
 
     def _retrieve_id_from_database(self, entry):
-        """
-        Attempts to find the myepisodes id in the database
+        """Attempt to find the myepisodes id in the database.
+
         Return: myepisode id or None
         """
         lc_series_name = entry['series_name'].lower()
         info = (
-            self.db_session.query(MyEpisodesInfo)
+            self.db_session
+            .query(MyEpisodesInfo)
             .filter(MyEpisodesInfo.series_name == lc_series_name)
             .first()
         )
         if info:
             return info.myepisodes_id
+        return None
 
     def _retrieve_id_from_website(self, entry):
-        """
-        Attempts to find the myepisodes id for the series for the website itself
+        """Attempt to find the myepisodes id for the series for the website itself.
+
         Return: myepisode id or None
         """
         myepisodes_id = None
@@ -195,13 +191,12 @@ class MyEpisodes:
                 self._save_id(search_value, myepisodes_id)
 
         except requests.RequestException as e:
-            raise plugin.PluginError('Error searching for myepisodes id: %s' % e)
+            raise plugin.PluginError(f'Error searching for myepisodes id: {e}')
 
         return myepisodes_id
 
     def _generate_search_value(self, entry):
-        """
-        Find the TVDB name for searching myepisodes with.
+        """Find the TVDB name for searching myepisodes with.
 
         myepisodes.com is backed by tvrage, so this will not be perfect.
 
@@ -226,14 +221,14 @@ class MyEpisodes:
         return search_value
 
     def _save_id(self, series_name, myepisodes_id):
-        """
-        Save the myepisodes id in the database.
+        """Save the myepisodes id in the database.
+
         This will help prevent unecceary communication with the website
         """
-
         # if we already have the a record for that id, update the name so that we find it next time
         db_item = (
-            self.db_session.query(MyEpisodesInfo)
+            self.db_session
+            .query(MyEpisodesInfo)
             .filter(MyEpisodesInfo.myepisodes_id == myepisodes_id)
             .first()
         )
@@ -257,16 +252,16 @@ class MyEpisodes:
 
         Raises:
             PluginWarning if operation fails
-        """
 
-        url = "http://www.myepisodes.com/ajax/service.php?mode=eps_update"
+        """
+        url = 'http://www.myepisodes.com/ajax/service.php?mode=eps_update'
         myepisodes_id = entry['myepisodes_id']
         season = entry['series_season']
         episode = entry['series_episode']
 
-        super_secret_code = "A%s-%s-%s" % (str(myepisodes_id), str(season), str(episode))
+        super_secret_code = f'A{myepisodes_id!s}-{season!s}-{episode!s}'
 
-        payload = {super_secret_code: "true"}
+        payload = {super_secret_code: 'true'}
 
         if self.test_mode:
             logger.info(
@@ -279,14 +274,15 @@ class MyEpisodes:
 
         except requests.RequestException:
             raise plugin.PluginError(
-                'Failed to mark %s of `%s` as acquired.'
-                % (entry['series_id'], entry['series_name'])
+                'Failed to mark {} of `{}` as acquired.'.format(
+                    entry['series_id'], entry['series_name']
+                )
             )
 
         logger.info('Marked {} of `{}` as acquired.', entry['series_id'], entry['series_name'])
 
     def _login(self, config):
-        """Authenicate with the myepisodes service and return a requests session
+        """Authenticate with the myepisodes service and return a requests session.
 
         Return:
             requests session
@@ -294,9 +290,9 @@ class MyEpisodes:
         Raises:
             PluginWarning if login fails
             PluginError if http communication fails
-        """
 
-        url = "https://www.myepisodes.com/login.php"
+        """
+        url = 'https://www.myepisodes.com/login.php'
         session = requests.Session()
 
         payload = {
@@ -317,7 +313,7 @@ class MyEpisodes:
                     logger,
                 )
         except requests.RequestException as e:
-            raise plugin.PluginError('Error logging in to myepisodes: %s' % e)
+            raise plugin.PluginError(f'Error logging in to myepisodes: {e}')
 
         return session
 

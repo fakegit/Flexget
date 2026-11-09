@@ -1,9 +1,9 @@
-import datetime
 import re
+from datetime import datetime
 
 from loguru import logger
 from requests.exceptions import TooManyRedirects
-from sqlalchemy import Column, DateTime, Unicode
+from sqlalchemy.orm import Mapped, mapped_column
 
 from flexget import db_schema, plugin
 from flexget.config_schema import one_or_more
@@ -11,21 +11,30 @@ from flexget.entry import Entry
 from flexget.event import event
 from flexget.manager import Session
 from flexget.utils.database import json_synonym
-from flexget.utils.requests import RequestException
+from flexget.utils.requests import RequestException, TimedLimiter
 from flexget.utils.requests import Session as RequestSession
-from flexget.utils.requests import TimedLimiter
 from flexget.utils.soup import get_soup
 from flexget.utils.tools import parse_filesize
+
+SITE_DOMAIN = 'morethantv.me'
+SITE_URL = f'https://www.{SITE_DOMAIN}/'
 
 logger = logger.bind(name='morethantv')
 Base = db_schema.versioned_base('morethantv', 0)
 
 requests = RequestSession()
 requests.add_domain_limiter(
-    TimedLimiter('morethan.tv', '5 seconds')
-)  # TODO find out if they want a delay
+    TimedLimiter(SITE_DOMAIN, '5 seconds')
+)  # TODO: find out if they want a delay
 
-CATEGORIES = {'Movies': 'filter_cat[1]', 'TV': 'filter_cat[2]', 'Other': 'filter_cat[3]'}
+CATEGORIES = {
+    'HD Episode': 'filter_cat[3]',
+    'HD Movies': 'filter_cat[1]',
+    'HD Season': 'filter_cat[5]',
+    'SD Epiosde': 'filter_cat[4]',
+    'SD Movies': 'filter_cat[2]',
+    'SD Season': 'filter_cat[6]',
+}
 
 TAGS = [
     'action',
@@ -97,16 +106,14 @@ TAGS = [
 class MoreThanTVCookie(Base):
     __tablename__ = 'morethantv_cookie'
 
-    username = Column(Unicode, primary_key=True)
-    _cookie = Column('cookie', Unicode)
+    username: Mapped[str] = mapped_column(primary_key=True)
+    _cookie: Mapped[str | None] = mapped_column('cookie')
     cookie = json_synonym('_cookie')
-    expires = Column(DateTime)
+    expires: Mapped[datetime | None]
 
 
 class SearchMoreThanTV:
-    """
-    MorethanTV search plugin.
-    """
+    """MorethanTV search plugin."""
 
     schema = {
         'type': 'object',
@@ -129,12 +136,10 @@ class SearchMoreThanTV:
         'additionalProperties': False,
     }
 
-    base_url = 'https://www.morethan.tv/'
     errors = False
 
     def get(self, url, params, username, password, force=False):
-        """
-        Wrapper to allow refreshing the cookie if it is invalid for some reason
+        """Allow refreshing the cookie if it is invalid for some reason.
 
         :param str url:
         :param list params:
@@ -148,7 +153,7 @@ class SearchMoreThanTV:
 
         try:
             response = requests.get(url, params=params, cookies=cookies)
-            if self.base_url + 'login.php' in response.url:
+            if SITE_URL + 'login.php' in response.url:
                 invalid_cookie = True
         except TooManyRedirects:
             # Apparently it endlessly redirects if the cookie is invalid?
@@ -169,8 +174,7 @@ class SearchMoreThanTV:
         return response
 
     def get_login_cookie(self, username, password, force=False):
-        """
-        Retrieves login cookie
+        """Retrieve login cookie.
 
         :param str username:
         :param str password:
@@ -180,19 +184,20 @@ class SearchMoreThanTV:
         if not force:
             with Session() as session:
                 saved_cookie = (
-                    session.query(MoreThanTVCookie)
+                    session
+                    .query(MoreThanTVCookie)
                     .filter(MoreThanTVCookie.username == username)
                     .first()
                 )
                 if (
                     saved_cookie
                     and saved_cookie.expires
-                    and saved_cookie.expires >= datetime.datetime.now()
+                    and saved_cookie.expires >= datetime.now()
                 ):
                     logger.debug('Found valid login cookie')
                     return saved_cookie.cookie
 
-        url = self.base_url + 'login.php'
+        url = SITE_URL + 'login.php'
         try:
             logger.debug('Attempting to retrieve MoreThanTV cookie')
             response = requests.post(
@@ -206,7 +211,7 @@ class SearchMoreThanTV:
                 timeout=30,
             )
         except RequestException as e:
-            raise plugin.PluginError('MoreThanTV login failed: %s' % e)
+            raise plugin.PluginError(f'MoreThanTV login failed: {e}')
 
         if 'Your username or password was incorrect.' in response.text:
             raise plugin.PluginError(
@@ -219,7 +224,7 @@ class SearchMoreThanTV:
                 if c.name == 'session':
                     expires = c.expires
             if expires:
-                expires = datetime.datetime.fromtimestamp(expires)
+                expires = datetime.fromtimestamp(expires)
             logger.debug('Saving or updating MoreThanTV cookie in db')
             cookie = MoreThanTVCookie(
                 username=username, cookie=dict(requests.cookies), expires=expires
@@ -229,9 +234,7 @@ class SearchMoreThanTV:
 
     @plugin.internet(logger)
     def search(self, task, entry, config):
-        """
-        Search for entries on MoreThanTV
-        """
+        """Search for entries on MoreThanTV."""
         params = {}
 
         if 'category' in config:
@@ -250,23 +253,21 @@ class SearchMoreThanTV:
 
         entries = set()
 
-        params.update(
-            {
-                'tags_type': int(config['all_tags']),
-                'order_by': config['order_by'],
-                'search_submit': 1,
-                'order_way': config['order_way'],
-                'action': 'basic',
-                'group_results': 0,
-            }
-        )
+        params.update({
+            'tags_type': int(config['all_tags']),
+            'order_by': config['order_by'],
+            'search_submit': 1,
+            'order_way': config['order_way'],
+            'action': 'basic',
+            'group_results': 0,
+        })
 
         for search_string in entry.get('search_strings', [entry['title']]):
-            params['searchstr'] = search_string.replace("'", "")
+            params['searchstr'] = search_string.replace("'", '')
             logger.debug('Using search params: {}', params)
             try:
                 page = self.get(
-                    self.base_url + 'torrents.php', params, config['username'], config['password']
+                    SITE_URL + 'torrents.php', params, config['username'], config['password']
                 )
                 logger.debug('requesting: {}', page.url)
             except RequestException as e:
@@ -281,16 +282,16 @@ class SearchMoreThanTV:
                 # TODO: compiling regexp within loop achieves nothing
                 title = group_info.find('a', href=re.compile(r'torrents.php\?id=\d+')).text
                 url = (
-                    self.base_url
+                    SITE_URL
                     + group_info.find('a', href=re.compile(r'torrents.php\?action=download'))[
                         'href'
                     ]
                 )
                 torrent_info = result.findAll('td', attrs={'class': 'number_column'})
                 size = re.search(r'(\d+(?:[.,]\d+)*)\s?([KMG]B)', torrent_info[0].text)
-                torrent_tags = ', '.join(
-                    [tag.text for tag in group_info.findAll('div', attrs={'class': 'tags'})]
-                )
+                torrent_tags = ', '.join([
+                    tag.text for tag in group_info.findAll('div', attrs={'class': 'tags'})
+                ])
 
                 e = Entry()
 
@@ -299,15 +300,13 @@ class SearchMoreThanTV:
                 e['torrent_snatches'] = int(torrent_info[1].text)
                 e['torrent_seeds'] = int(torrent_info[2].text)
                 e['torrent_leeches'] = int(torrent_info[3].text)
-                e['torrent_internal'] = (
-                    True if group_info.find('span', attrs={'class': 'flag_internal'}) else False
+                e['torrent_internal'] = bool(
+                    group_info.find('span', attrs={'class': 'flag_internal'})
                 )
-                e['torrent_fast_server'] = (
-                    True if group_info.find('span', attrs={'class': 'flag_fast'}) else False
+                e['torrent_fast_server'] = bool(
+                    group_info.find('span', attrs={'class': 'flag_fast'})
                 )
-                e['torrent_sticky'] = (
-                    True if group_info.find('span', attrs={'class': 'flag_sticky'}) else False
-                )
+                e['torrent_sticky'] = bool(group_info.find('span', attrs={'class': 'flag_sticky'}))
                 e['torrent_tags'] = torrent_tags
 
                 e['content_size'] = parse_filesize(size.group(0))

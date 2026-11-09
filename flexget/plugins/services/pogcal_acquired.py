@@ -2,7 +2,7 @@ import re
 from datetime import datetime
 
 from loguru import logger
-from sqlalchemy import Column, Integer, Unicode
+from sqlalchemy.orm import Mapped, mapped_column
 
 from flexget import plugin
 from flexget.db_schema import versioned_base
@@ -18,8 +18,8 @@ session = requests.Session(max_retries=3)
 
 class PogcalShow(Base):
     __tablename__ = 'pogcal_shows'
-    id = Column(Integer, primary_key=True, autoincrement=False, nullable=False)
-    name = Column(Unicode)
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=False)
+    name: Mapped[str | None]
 
 
 class PogcalAcquired:
@@ -49,10 +49,10 @@ class PogcalAcquired:
         if 'logout' not in result.text:
             logger.error('Username/password for pogdesign calendar appear to be incorrect.')
             return
-        elif task.options.test:
+        if task.options.test:
             logger.verbose('Successfully logged in to pogdesign calendar.')
         for entry in task.accepted:
-            if not entry.get('series_name') or not entry.get('series_id_type') == 'ep':
+            if not entry.get('series_name') or entry.get('series_id_type') != 'ep':
                 continue
             show_id = self.find_show_id(entry['series_name'], task.session)
             if not show_id:
@@ -65,13 +65,12 @@ class PogcalAcquired:
                     entry['series_id'],
                 )
                 continue
-            else:
-                logger.verbose(
-                    'Marking {} {} in pogdesign calenadar.',
-                    entry['series_name'],
-                    entry['series_id'],
-                )
-            shid = '%s-%s-%s/%s-%s' % (
+            logger.verbose(
+                'Marking {} {} in pogdesign calenadar.',
+                entry['series_name'],
+                entry['series_id'],
+            )
+            shid = '{}-{}-{}/{}-{}'.format(
                 show_id,
                 entry['series_season'],
                 entry['series_episode'],
@@ -101,18 +100,18 @@ class PogcalAcquired:
             page = session.get('http://www.pogdesign.co.uk/cat/showselect.php')
         except requests.RequestException as e:
             logger.error('Error looking up show show list from pogdesign calendar: {}', e)
-            return
+            return None
         # Try to find the show id from pogdesign show list
         show_re = name_to_re(show_name)
         soup = get_soup(page.content)
-        search = re.compile(show_re, flags=re.I)
+        search = re.compile(show_re, flags=re.IGNORECASE)
         show = soup.find(text=search)
         if show:
             id = int(show.find_previous('input')['value'])
             db_sess.add(PogcalShow(id=id, name=show_name))
             return id
-        else:
-            logger.verbose('Could not find pogdesign calendar id for show `{}`', show_re)
+        logger.verbose('Could not find pogdesign calendar id for show `{}`', show_re)
+        return None
 
 
 @event('plugin.register')

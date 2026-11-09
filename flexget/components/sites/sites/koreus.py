@@ -16,9 +16,7 @@ class UrlRewriteKoreus:
     # urlrewriter API
     def url_rewritable(self, task, entry):
         url = entry['url']
-        if url.startswith('http://www.koreus.com'):
-            return True
-        return False
+        return bool(url.startswith('http://www.koreus.com'))
 
     # urlrewriter API
     def url_rewrite(self, task, entry):
@@ -32,9 +30,9 @@ class UrlRewriteKoreus:
             soup = get_soup(page.text)
         except Exception as e:
             raise UrlRewritingError(e)
-        down_link = soup.find('a', attrs={'href': re.compile(".+mp4")})
+        down_link = soup.find('a', attrs={'href': re.compile('.+mp4')})
         if not down_link:
-            raise UrlRewritingError('Unable to locate download link from url %s' % url)
+            raise UrlRewritingError(f'Unable to locate download link from url {url}')
         return down_link.get('href')
 
 

@@ -20,8 +20,7 @@ requests.add_domain_limiter(TimedLimiter('prowlapp.com', '5 seconds'))
 
 
 class ProwlNotifier:
-    """
-    Send prowl notifications
+    """Send prowl notifications.
 
     Example::
 
@@ -34,7 +33,6 @@ class ProwlNotifier:
                 [event: event title, default New Release]
                 [priority: -2 - 2 (2 = highest), default 0]
                 [description: notification to send]
-
     """
 
     schema = {
@@ -51,9 +49,7 @@ class ProwlNotifier:
     }
 
     def notify(self, title, message, config):
-        """
-        Send a Prowl notification
-        """
+        """Send a Prowl notification."""
         notification = {
             'application': config.get('application'),
             'event': title,
@@ -76,14 +72,13 @@ class ProwlNotifier:
         error = request_status.find('error')
         if error is not None:
             raise PluginWarning(error.text)
-        else:
-            success = request_status.find('success').attrib
-            logger.debug(
-                'prowl notification sent. Notifications remaining until next reset: {}. '
-                'Next reset will occur in {} minutes',
-                success['remaining'],
-                success['resetdate'],
-            )
+        success = request_status.find('success').attrib
+        logger.debug(
+            'prowl notification sent. Notifications remaining until next reset: {}. '
+            'Next reset will occur in {} minutes',
+            success['remaining'],
+            success['resetdate'],
+        )
 
 
 @event('plugin.register')

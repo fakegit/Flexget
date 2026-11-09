@@ -1,9 +1,9 @@
-import datetime
 import re
+from datetime import datetime
 
 from loguru import logger
 from requests.exceptions import TooManyRedirects
-from sqlalchemy import Column, DateTime, Unicode
+from sqlalchemy.orm import Mapped, mapped_column
 
 from flexget import db_schema, plugin
 from flexget.config_schema import one_or_more
@@ -11,11 +11,15 @@ from flexget.entry import Entry
 from flexget.event import event
 from flexget.manager import Session
 from flexget.utils.database import json_synonym
-from flexget.utils.requests import RequestException
+from flexget.utils.requests import RequestException, TimedLimiter
 from flexget.utils.requests import Session as RequestSession
-from flexget.utils.requests import TimedLimiter
 from flexget.utils.soup import get_soup
 from flexget.utils.tools import parse_filesize
+
+
+def remove_special_characters(text):
+    return re.sub(r'[^a-zA-Z0-9 ]', '', text)
+
 
 logger = logger.bind(name='alpharatio')
 Base = db_schema.versioned_base('alpharatio', 0)
@@ -63,16 +67,14 @@ LEECHSTATUS = {'normal': 0, 'freeleech': 1, 'neutral leech': 2, 'either': 3}
 class AlphaRatioCookie(Base):
     __tablename__ = 'alpharatio_cookie'
 
-    username = Column(Unicode, primary_key=True)
-    _cookie = Column('cookie', Unicode)
+    username: Mapped[str] = mapped_column(primary_key=True)
+    _cookie: Mapped[str | None] = mapped_column('cookie')
     cookie = json_synonym('_cookie')
-    expires = Column(DateTime)
+    expires: Mapped[datetime | None]
 
 
 class SearchAlphaRatio:
-    """
-    AlphaRatio search plugin.
-    """
+    """AlphaRatio search plugin."""
 
     schema = {
         'type': 'object',
@@ -103,8 +105,7 @@ class SearchAlphaRatio:
     errors = False
 
     def get(self, url, params, username, password, force=False):
-        """
-        Wrapper to allow refreshing the cookie if it is invalid for some reason
+        """Allow refreshing the cookie if it is invalid for some reason.
 
         :param unicode url:
         :param dict params:
@@ -139,8 +140,7 @@ class SearchAlphaRatio:
         return response
 
     def get_login_cookie(self, username, password, force=False):
-        """
-        Retrieves login cookie
+        """Retrieve login cookie.
 
         :param str username:
         :param str password:
@@ -150,14 +150,15 @@ class SearchAlphaRatio:
         if not force:
             with Session() as session:
                 saved_cookie = (
-                    session.query(AlphaRatioCookie)
+                    session
+                    .query(AlphaRatioCookie)
                     .filter(AlphaRatioCookie.username == username)
                     .first()
                 )
                 if (
                     saved_cookie
                     and saved_cookie.expires
-                    and saved_cookie.expires >= datetime.datetime.now()
+                    and saved_cookie.expires >= datetime.now()
                 ):
                     logger.debug('Found valid login cookie')
                     return saved_cookie.cookie
@@ -176,7 +177,7 @@ class SearchAlphaRatio:
                 timeout=30,
             )
         except RequestException as e:
-            raise plugin.PluginError('AlphaRatio login failed: %s' % e)
+            raise plugin.PluginError(f'AlphaRatio login failed: {e}')
 
         if 'Your username or password was incorrect.' in response.text:
             raise plugin.PluginError(
@@ -189,7 +190,7 @@ class SearchAlphaRatio:
                 if c.name == 'session':
                     expires = c.expires
             if expires:
-                expires = datetime.datetime.fromtimestamp(expires)
+                expires = datetime.fromtimestamp(expires)
             logger.debug('Saving or updating AlphaRatio cookie in db')
             cookie = AlphaRatioCookie(
                 username=username, cookie=dict(requests.cookies), expires=expires
@@ -198,12 +199,12 @@ class SearchAlphaRatio:
             return cookie.cookie
 
     def find_index(self, soup, text):
-        """Finds the index of the tag containing the text"""
-        for i in range(0, len(soup)):
+        """Find the index of the tag containing the text."""
+        for i in range(len(soup)):
             img = soup[i].find('img')
-            if soup[i].text.strip() == '' and img and text.lower() in img.get('title').lower():
-                return i
-            elif text.lower() in soup[i].text.lower():
+            if (
+                soup[i].text.strip() == '' and img and text.lower() in img.get('title').lower()
+            ) or text.lower() in soup[i].text.lower():
                 return i
 
         raise plugin.PluginError(
@@ -212,9 +213,7 @@ class SearchAlphaRatio:
 
     @plugin.internet(logger)
     def search(self, task, entry, config):
-        """
-        Search for entries on AlphaRatio
-        """
+        """Search for entries on AlphaRatio."""
         params = {}
 
         if 'category' in config:
@@ -233,18 +232,16 @@ class SearchAlphaRatio:
 
         entries = set()
 
-        params.update(
-            {
-                'order_by': config['order_by'],
-                'search_submit': 1,
-                'action': 'basic',
-                'order_way': ordering,
-                'freeleech': LEECHSTATUS[config['leechstatus']],
-            }
-        )
+        params.update({
+            'order_by': config['order_by'],
+            'search_submit': 1,
+            'action': 'basic',
+            'order_way': ordering,
+            'freeleech': LEECHSTATUS[config['leechstatus']],
+        })
 
         for search_string in entry.get('search_strings', [entry['title']]):
-            params['searchstr'] = search_string
+            params['searchstr'] = remove_special_characters(search_string)
             logger.debug('Using search params: {}', params)
             try:
                 page = self.get(
@@ -285,9 +282,9 @@ class SearchAlphaRatio:
                 size_col = torrent_info[size_idx].text
                 logger.debug('AlphaRatio size: {}', size_col)
                 size = re.search(r'(\d+(?:[.,]\d+)*)\s?([KMGTP]B)', size_col)
-                torrent_tags = ', '.join(
-                    [tag.text for tag in group_info.findAll('div', attrs={'class': 'tags'})]
-                )
+                torrent_tags = ', '.join([
+                    tag.text for tag in group_info.findAll('div', attrs={'class': 'tags'})
+                ])
 
                 e = Entry()
 
@@ -308,16 +305,16 @@ class SearchAlphaRatio:
                 }
 
                 for dest, src in mappings_int.items():
-                    if not src in torrent_info:
+                    if src not in torrent_info:
                         continue
 
-                    # Some values are tagged with a ',' insted of a '.', replace them
+                    # Some values are tagged with a ',' instead of a '.', replace them
                     value = torrent_info[src].text.replace(',', '.')
 
                     try:
                         e[dest] = int(value)
                     except ValueError as e:
-                        logger.debug('Invalid \'{}\' with \'{}\'', dest, value)
+                        logger.debug("Invalid '{}' with '{}'", dest, value)
                         continue
 
                 entries.add(e)

@@ -11,8 +11,7 @@ pat = re.compile('xt=urn:btih:([^&/]+)')
 
 
 class PluginRtorrentMagnet:
-    """
-    Process Magnet URI's into rtorrent compatible torrent files
+    """Process Magnet URI's into rtorrent compatible torrent files.
 
     Magnet URI's will look something like this:
 
@@ -28,12 +27,13 @@ class PluginRtorrentMagnet:
 
     Example:
       rtorrent_magnet: ~/torrents/
+
     """
 
     schema = {'type': 'string', 'format': 'path'}
 
     def write_torrent_file(self, task, entry, path):
-        path = os.path.join(path, 'meta-%s.torrent' % entry['title'])
+        path = os.path.join(path, 'meta-{}.torrent'.format(entry['title']))
         path = os.path.expanduser(path)
 
         if task.options.test:
@@ -41,13 +41,12 @@ class PluginRtorrentMagnet:
         else:
             logger.info('Writing rTorrent Magnet File: {}', path)
             with open(path, 'w') as f:
-                f.write('d10:magnet-uri%d:%se' % (len(entry['url']), entry['url']))
+                f.write('d10:magnet-uri{}:{}e'.format(len(entry['url']), entry['url']))
         entry['output'] = path
 
     # Run after download plugin to only pick up entries it did not already handle
     @plugin.priority(0)
     def on_task_output(self, task, config):
-
         for entry in task.accepted:
             if 'output' in entry:
                 logger.debug(
@@ -61,8 +60,7 @@ class PluginRtorrentMagnet:
                     if pat.search(url):
                         self.write_torrent_file(task, entry, entry.get('path', config))
                         break
-                    else:
-                        logger.warning('Unrecognized Magnet URI Format: {}', url)
+                    logger.warning('Unrecognized Magnet URI Format: {}', url)
 
 
 @event('plugin.register')

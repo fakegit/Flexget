@@ -5,6 +5,7 @@ from urllib import parse
 
 from jinja2 import Template
 from loguru import logger
+from requests.exceptions import HTTPError
 
 from flexget import plugin
 from flexget.entry import Entry
@@ -16,9 +17,9 @@ logger = logger.bind(name='html')
 
 
 class InputHtml:
-    """
-    Parses urls from html page. Usefull on sites which have direct download
-    links of any type (mp3, jpg, torrent, ...).
+    """Parse urls from html page.
+
+    Useful on sites which have direct download links of any type (mp3, jpg, torrent, ...).
 
     Many anime-fansubbers do not provide RSS-feed, this works well in many cases.
 
@@ -52,6 +53,7 @@ class InputHtml:
                                     'name': {'type': 'string'},
                                     'step': {'type': 'integer'},
                                     'stop_when_empty': {'type': 'boolean'},
+                                    'stop_when_404': {'type': 'boolean'},
                                     'entries_count': {'type': 'integer'},
                                 },
                                 'additionalProperties': False,
@@ -67,7 +69,7 @@ class InputHtml:
 
     def build_config(self, config):
         def get_auth_from_url():
-            """Moves basic authentication from url to username and password fields"""
+            """Move basic authentication from url to username and password fields."""
             parts = list(parse.urlsplit(config['url']))
             split = parts[1].split('@')
             if len(split) > 1:
@@ -108,6 +110,7 @@ class InputHtml:
             base_url = config['url']
             entries_count = increment.get('entries_count', 500)
             stop_when_empty = increment.get('stop_when_empty', True)
+            stop_when_404 = increment.get('stop_when_404', True)
             increment_name = increment.get('name', 'i')
 
             template_url = Template(base_url)
@@ -123,7 +126,12 @@ class InputHtml:
                 dump_name = None
                 if template_dump:
                     dump_name = template_dump.render(**render_ctx)
-                new_entries = self._request_url(task, config, url, auth, dump_name)
+                try:
+                    new_entries = self._request_url(task, config, url, auth, dump_name)
+                except HTTPError as e:
+                    if stop_when_404 and e.response.status_code == 404:
+                        break
+                    raise
                 if not entries:
                     entries = new_entries
                 else:
@@ -134,8 +142,7 @@ class InputHtml:
                     break
                 current += step
             return entries
-        else:
-            return self._request_url(task, config, base_url, auth, dump_name=config.get('dump'))
+        return self._request_url(task, config, base_url, auth, dump_name=config.get('dump'))
 
     def _request_url(self, task, config, url, auth, dump_name=None):
         logger.verbose('Requesting: {}', url)
@@ -175,16 +182,16 @@ class InputHtml:
         return parse.unquote_plus(name)
 
     def create_entries(self, page_url, soup, config):
-
         queue = []
         duplicates = {}
         duplicate_limit = 4
 
         def title_exists(title):
-            """Helper method. Return True if title is already added to entries"""
+            """Return True if title is already added to entries."""
             for entry in queue:
                 if entry['title'] == title:
                     return True
+            return None
 
         for link in soup.find_all('a'):
             # not a valid link
@@ -253,21 +260,21 @@ class InputHtml:
                         config['title_from'] = switch_to
                         # start from the beginning  ...
                         return self.create_entries(page_url, soup, config)
-            elif title_from == 'link' or title_from == 'contents':
+            elif title_from in ('link', 'contents'):
                 # link from link name
                 title = self._title_from_link(link, log_link)
                 if title is None:
                     continue
                 logger.debug('title from link: {}', title)
             else:
-                raise plugin.PluginError('Unknown title_from value %s' % title_from)
+                raise plugin.PluginError(f'Unknown title_from value {title_from}')
 
             if not title:
                 logger.warning('title could not be determined for link {}', log_link)
                 continue
 
             # strip unicode white spaces
-            title = title.replace('\u200B', '').strip()
+            title = title.replace('\u200b', '').strip()
 
             # in case the title contains xxxxxxx.torrent - foooo.torrent clean it a bit (get up to first .torrent)
             # TODO: hack
@@ -276,9 +283,9 @@ class InputHtml:
 
             if title_exists(title):
                 # title link should be unique, add CRC32 to end if it's not
-                hash = zlib.crc32(url.encode("utf-8"))
+                hash = zlib.crc32(url.encode('utf-8'))
                 crc32 = '%08X' % (hash & 0xFFFFFFFF)
-                title = '%s [%s]' % (title, crc32)
+                title = f'{title} [{crc32}]'
                 # truly duplicate, title + url crc already exists in queue
                 if title_exists(title):
                     continue

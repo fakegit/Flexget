@@ -1,69 +1,68 @@
-name: Build and release to PyPI
+name: Build and release to PyPI and GitHub
 on:
-  deployment: {}
+  schedule:
+    - cron: 0 15 * * *
+  workflow_dispatch:
+permissions: {}
 jobs:
-  release:
+  check:
+    name: Check release prerequisites
     runs-on: ubuntu-latest
-    env:
-      PYTHON_VERSION: "3.7"
+    outputs:
+      new_commits: ${{steps.check.outputs.new_commits}}
+    concurrency:
+      group: 'check release prerequisites, ${{ github.ref }}'
+      cancel-in-progress: true
     steps:
-    - uses: actions/checkout@v2
-      with:
-        token: ${{ secrets.flexgetbot_pat }}
-        fetch-depth: 0
-    - name: Setup Git User
-      run: |
-        git config user.email ${{ secrets.git_email }}
-        git config user.name ${{ secrets.git_user }}
-    - name: Set up Python ${{ env.PYTHON_VERSION }}
-      uses: actions/setup-python@v2
-      with:
-        python-version: ${{ env.PYTHON_VERSION }}
-    - name: Set up pip cache
-      uses: actions/cache@v2
-      with:
-        path: pip_cache
-        key: ${{ runner.OS }}-python${{ env.PYTHON_VERSION }}-${{ hashFiles('*requirements*.txt') }}
-        restore-keys: |
-          ${{ runner.OS }}-python${{ env.PYTHON_VERSION }}-
-    - name: Install dev dependencies
-      run: |
-        pip --cache-dir pip_cache install -r dev-requirements.txt
-    - name: Set Deployment Status Pending
-      uses: deliverybot/deployment-status@v1
-      with:
-        state: pending
-        token: ${{ github.token }}
-    - name: Run release script
-      env:
-        TWINE_USERNAME: "__token__"
-        TWINE_PASSWORD: ${{ secrets.pypi_token }}
-      run: |
-        ./release.sh
-    - name: Prep Changelog
-      id: changelog
-      if: env.release_tag
-      run: |
-        version=$(echo ${{ env.release_tag }} | sed -e 's/v//' -e 's/\.//g')
-        date=$(date +%Y-%m-%d)
-        link="${{ env.release_tag }} [Changelog](https://flexget.com/ChangeLog#${version}-${date})"
-        echo ::set-output name=changeloglink::$link
-    - name: Create GitHub Release
-      uses: ncipollo/release-action@v1
-      if: env.release_tag
-      with:
-        tag: ${{ env.release_tag }}
-        artifacts: "dist/*"
-        token: ${{ secrets.GITHUB_TOKEN }}
-        body: ${{ steps.changelog.output.changeloglink }}
-    - name: Set Deployment Status Success
-      uses: deliverybot/deployment-status@v1
-      with:
-        state: success
-        token: ${{ github.token }}
-    - name: Set Deployment Status Failure
-      if: failure() || cancelled()
-      uses: deliverybot/deployment-status@v1
-      with:
-        state: failure
-        token: ${{ github.token }}
+      - name: Check release prerequisites
+        id: check
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
+        with:
+          script: |
+            if (context.ref !== 'refs/heads/develop')
+              core.setFailed("Release script should be run from develop branch.");
+            const release = await github.rest.repos.getLatestRelease(context.repo).catch(() => null);
+            if (!release) {
+              core.info("No release exists, or the latest release has been deleted. Assuming new commits exist.");
+              core.setOutput('new_commits', 'true');
+              return;
+            }
+            const { data: diff } = await github.rest.repos.compareCommitsWithBasehead({
+              ...context.repo,
+              basehead: `${release.data.tag_name}...${context.ref}`,
+            });
+            core.info(`${context.ref} is ${diff.ahead_by} commits ahead of and ${diff.behind_by} commits behind ${release.data.tag_name}.`);
+            core.setOutput('new_commits', diff.ahead_by > 1 || diff.behind_by > 0);
+  release:
+    name: Build and release
+    permissions:
+      contents: write # for writing "flexget/_version.py" and release
+    runs-on: ubuntu-latest
+    if: needs.check.outputs.new_commits == 'true'
+    needs: check
+    environment: production
+    env:
+      PYTHON_VERSION: '3.13' # renovate: datasource=python-version depName=python
+      UV_VERSION: 0.13.7 # renovate: datasource=pypi depName=uv
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          token: ${{ secrets.flexgetbot_pat }}
+          persist-credentials: true
+          fetch-depth: 0
+      - name: Install uv and Python
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          version: ${{ env.UV_VERSION }}
+      - name: Run release script
+        env:
+          UV_PUBLISH_TOKEN: ${{ secrets.pypi_token }}
+        run: scripts/release.sh
+      - name: Create GitHub Release
+        uses: ncipollo/release-action@339a81892b84b4eeb0f6e744e4574d79d0d9b8dd # v1
+        with:
+          tag: ${{ env.RELEASE_TAG }}
+          artifacts: dist/*,flexget-config.schema.json
+          body: ${{ env.CHANGELOG_BODY }}

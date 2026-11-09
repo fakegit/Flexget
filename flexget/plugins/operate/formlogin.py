@@ -1,6 +1,3 @@
-import os
-import socket
-
 import requests
 from loguru import logger
 
@@ -17,9 +14,7 @@ logger = logger.bind(name='formlogin')
 
 
 class FormLogin:
-    """
-    Login on form
-    """
+    """Login on form."""
 
     schema = {
         'type': 'object',
@@ -62,7 +57,7 @@ class FormLogin:
 
         num_forms = len(br.get_current_page().find_all('form'))
         if not num_forms:
-            raise plugin.PluginError('Unable to find any forms on {}'.format(url), logger)
+            raise plugin.PluginError(f'Unable to find any forms on {url}', logger)
         try:
             for form_num in range(num_forms):
                 br.select_form(nr=form_num)
@@ -73,18 +68,18 @@ class FormLogin:
                 except mechanicalsoup.LinkNotFoundError:
                     pass
             else:
-                received = os.path.join(task.manager.config_base, 'received')
-                if not os.path.isdir(received):
-                    os.mkdir(received)
-                filename = os.path.join(received, '%s.formlogin.html' % task.name)
-                with open(filename, 'wb') as f:
+                received = task.manager.config_base / 'received'
+                if not received.is_dir():
+                    received.mkdir()
+                filename = received / f'{task.name}.formlogin.html'
+                with filename.open('wb') as f:
                     f.write(response.content)
                 logger.critical(
                     'I have saved the login page content to {} for you to view', filename
                 )
                 raise plugin.PluginError('Unable to find login fields', logger)
-        except socket.timeout:
-            raise plugin.PluginError('Timed out on url %s' % url)
+        except TimeoutError:
+            raise plugin.PluginError(f'Timed out on url {url}')
 
         try:
             br.submit_selected()

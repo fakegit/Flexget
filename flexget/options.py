@@ -1,33 +1,39 @@
+from __future__ import annotations
+
 import copy
 import random
 import string
 import sys
-from argparse import _UNRECOGNIZED_ARGS_ATTR, PARSER, REMAINDER, SUPPRESS, Action, ArgumentError
+from argparse import (
+    _UNRECOGNIZED_ARGS_ATTR,
+    PARSER,
+    REMAINDER,
+    SUPPRESS,
+    Action,
+    ArgumentError,
+    Namespace,
+    _SubParsersAction,
+    _VersionAction,
+)
 from argparse import ArgumentParser as ArgParser
-from argparse import Namespace, _SubParsersAction, _VersionAction
-from typing import Any, Callable, List, Optional, TextIO, IO
+from typing import IO, TYPE_CHECKING, Any, TextIO
+
+from packaging.version import Version
 
 import flexget
 from flexget.entry import Entry
 from flexget.event import fire_event
 from flexget.utils.tools import get_current_flexget_version, get_latest_flexget_version_number
 
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
 _UNSET = object()
 
-core_parser: Optional['CoreArgumentParser'] = None
+core_parser: CoreArgumentParser | None = None
 
 
-def unicode_argv() -> List[str]:
-    """Like sys.argv, but decodes all arguments."""
-    args = []
-    for arg in sys.argv:
-        if isinstance(arg, bytes):
-            arg = arg.decode(sys.getfilesystemencoding())
-        args.append(arg)
-    return args
-
-
-def get_parser(command: str = None) -> 'ArgumentParser':
+def get_parser(command: str | None = None) -> ArgumentParser:
     global core_parser
     if not core_parser:
         core_parser = CoreArgumentParser()
@@ -39,10 +45,9 @@ def get_parser(command: str = None) -> 'ArgumentParser':
 
 
 def register_command(
-    command: str, callback: Callable[['flexget.manager.Manager', Namespace], Any], **kwargs
-) -> 'ArgumentParser':
-    """
-    Register a callback function to be executed when flexget is launched with the given `command`.
+    command: str, callback: Callable[[flexget.manager.Manager, Namespace], Any], **kwargs
+) -> ArgumentParser:
+    """Register a callback function to be executed when flexget is launched with the given `command`.
 
     :param command: The command being defined.
     :param callback: Callback function executed when this command is invoked from the CLI. Should take manager instance
@@ -56,12 +61,12 @@ def register_command(
 
 
 def required_length(nmin: int, nmax: int):
-    """Generates a custom Action to validate an arbitrary range of arguments."""
+    """Generate a custom Action to validate an arbitrary range of arguments."""
 
     class RequiredLength(Action):
         def __call__(self, parser: ArgParser, args, values, option_string=None):
             if not nmin <= len(values) <= nmax:
-                raise ArgumentError(self, 'requires between %s and %s arguments' % (nmin, nmax))
+                raise ArgumentError(self, f'requires between {nmin} and {nmax} arguments')
             setattr(args, self.dest, values)
 
     return RequiredLength
@@ -77,13 +82,13 @@ class VersionAction(_VersionAction):
         latest = get_latest_flexget_version_number()
 
         # Print the version number
-        console('%s' % get_current_flexget_version())
+        console(f'{get_current_flexget_version()}')
         # Check for latest version from server
         if latest:
-            if current == latest:
-                console('You are on the latest release.')
+            if Version(current) >= Version(latest):
+                console("You're up to date.")
             else:
-                console('Latest release: %s' % latest)
+                console(f'Latest release: {latest}')
         else:
             console(
                 'Error getting latest version number from https://pypi.python.org/pypi/FlexGet'
@@ -128,8 +133,8 @@ class InjectAction(Action):
         if values:
             kwargs['url'] = values.pop(0)
         else:
-            kwargs['url'] = 'http://localhost/inject/%s' % ''.join(
-                random.sample(string.ascii_letters + string.digits, 30)
+            kwargs['url'] = 'http://localhost/inject/{}'.format(
+                ''.join(random.sample(string.ascii_letters + string.digits, 30))
             )
         if 'force' in [v.lower() for v in values]:
             kwargs['immortal'] = True
@@ -137,17 +142,17 @@ class InjectAction(Action):
         if 'accept' in [v.lower() for v in values]:
             entry.accept(reason='accepted by --inject')
         existing = getattr(namespace, self.dest, None) or []
-        setattr(namespace, self.dest, existing + [entry])
+        setattr(namespace, self.dest, [*existing, entry])
 
 
 class ParseExtrasAction(Action):
-    """This action will take extra arguments, and parser them with a different parser."""
+    """Extra arguments are taken, and then parsed with a different parser."""
 
     def __init__(self, option_strings, parser, help=None, metavar=None, dest=None, required=False):
         if metavar is None:
-            metavar = '<%s arguments>' % parser.prog
+            metavar = f'<{parser.prog} arguments>'
         if help is None:
-            help = 'arguments for the `%s` command are allowed here' % parser.prog
+            help = f'arguments for the `{parser.prog}` command are allowed here'
         self._parser = parser
         super().__init__(
             option_strings=option_strings,
@@ -161,7 +166,7 @@ class ParseExtrasAction(Action):
     def __call__(self, parser, namespace, values, option_string=None):
         namespace, extras = self._parser.parse_known_args(values, namespace)
         if extras:
-            parser.error('unrecognized arguments: %s' % ' '.join(extras))
+            parser.error('unrecognized arguments: {}'.format(' '.join(extras)))
 
 
 class ScopedNamespace(Namespace):
@@ -176,7 +181,7 @@ class ScopedNamespace(Namespace):
 
         if self.__parent__:
             return getattr(self.__parent__, key)
-        raise AttributeError("'%s' object has no attribute '%s'" % (type(self).__name__, key))
+        raise AttributeError(f"'{type(self).__name__}' object has no attribute '{key}'")
 
     def __setattr__(self, key: str, value):
         if '.' in key:
@@ -207,12 +212,9 @@ class NestedSubparserAction(_SubParsersAction):
     def __init__(self, *args, **kwargs):
         self.nested_namespaces = kwargs.pop('nested_namespaces', False)
         self.parent_defaults = {}
-        # Python < 3.7 doesn't support the 'required' argument for subparsers
-        required = kwargs.pop('required', True)
         super().__init__(*args, **kwargs)
-        self.required = required
 
-    def add_parser(self, name: str, parent_defaults: dict = None, **kwargs):
+    def add_parser(self, name: str, parent_defaults: dict | None = None, **kwargs):
         if parent_defaults:
             self.parent_defaults[name] = parent_defaults
         return super().add_parser(name, **kwargs)
@@ -249,43 +251,41 @@ class ParserError(Exception):
         return self.message
 
     def __repr__(self):
-        return 'ParserError(%s, %s)' % (self.message, self.parser)
+        return f'ParserError({self.message}, {self.parser})'
 
 
 class ArgumentParser(ArgParser):
-    """
-    Mimics the default :class:`argparse.ArgumentParser` class, with a few distinctions, mostly to ease subparser usage:
+    """Mimics the default :class:`argparse.ArgumentParser` class.
 
-    - If `add_subparsers` is called with the `nested_namespaces` kwarg, all subcommand options will be stored in a
+     There are a few distinctions, mostly to ease subparser usage:
+
+    - If ``add_subparsers`` is called with the ``nested_namespaces`` kwarg, all subcommand options will be stored in a
       nested namespace based on the command name for the subparser
-    - Adds the `add_subparser` method. After `add_subparsers` has been called, the `add_subparser` method can be used
-      instead of the `add_parser` method of the object returned by the `add_subparsers` call.
-    - `add_subparser` takes takes the `parent_defaults` argument, which will set/change the defaults for the parent
+    - Adds the ``add_subparser`` method. After ``add_subparsers`` has been called, the ``add_subparser`` method can be used
+      instead of the ``add_parser`` method of the object returned by the ``add_subparsers`` call.
+    - ``add_subparser`` takes takes the ``parent_defaults`` argument, which will set/change the defaults for the parent
       parser when that subparser is selected.
-    - The `get_subparser` method will get the :class:`ArgumentParser` instance for an existing subparser on this parser
+    - The ``get_subparser`` method will get the :class:`ArgumentParser` instance for an existing subparser on this parser
     - For any arguments defined both in this parser and one of its subparsers, the selected subparser default will
       override the main one.
-    - Adds the `set_post_defaults` method. This works like the normal argparse `set_defaults` method, but all actions
+    - Adds the ``set_post_defaults`` method. This works like the normal argparse ``set_defaults`` method, but all actions
       and subparsers will be run before any of these defaults are set.
     - Command shortening: If the command for a subparser is abbreviated unambiguously, it will still be accepted.
-    - The add_argument `nargs` keyword argument supports a range of arguments, e.g. `"2-4"
-    - If the `raise_errors` keyword argument to `parse_args` is True, a `ParserError` will be raised instead of sys.exit
-    - If the `file` argument is given to `parse_args`, output will be printed there instead of sys.stdout or stderr
+    - The add_argument ``nargs`` keyword argument supports a range of arguments, e.g. ``2-4``
+    - If the ``raise_errors`` keyword argument to ``parse_args`` is True, a ``ParserError`` will be raised instead of ``sys.exit``
+    - If the ``file`` argument is given to ``parse_args``, output will be printed there instead of ``sys.stdout`` or ``stderr``
     """
 
     # These are created as a class attribute so that we can set it for parser and all subparsers at once
-    file: Optional[IO[str]] = None
+    file: IO[str] | None = None
     do_help = True
 
     def __init__(self, **kwargs):
-        """
-        :param nested_namespace_name: When used as a subparser, options from this parser will be stored nested under
-            this attribute name in the root parser's namespace
-        """
-        # Do this early, so even option processing stuff is caught
-        if '--bugreport' in unicode_argv():
-            self._debug_tb_callback()
+        """Init an ArgumentParser instance.
 
+        :param nested_namespace_name: When used as a subparser, options from this parser will be stored nested under
+        this attribute name in the root parser's namespace
+        """
         self.subparsers = None
         self.raise_errors = None
         add_help = kwargs.pop('add_help', True)
@@ -344,14 +344,12 @@ class ArgumentParser(ArgParser):
 
     def parse_args(
         self,
-        args: List[str] = None,
-        namespace: Namespace = None,
+        args: list[str] | None = None,
+        namespace: Namespace | None = None,
         raise_errors: bool = False,
-        file: TextIO = None,
-    ):  # pylint: disable=W0221
-        """
-        :param raise_errors: If this is true, errors will be raised as `ParserError`s instead of calling sys.exit
-        """
+        file: TextIO | None = None,
+    ):
+        """:param raise_errors: If this is true, errors will be raised as ``ParserError`` instead of calling sys.exit"""
         ArgumentParser.file = file
         try:
             return super().parse_args(args, namespace)
@@ -364,13 +362,12 @@ class ArgumentParser(ArgParser):
 
     def parse_known_args(
         self,
-        args: List[str] = None,
-        namespace: Namespace = None,
-        do_help: bool = None,
+        args: list[str] | None = None,
+        namespace: Namespace | None = None,
+        do_help: bool | None = None,
     ):
         if args is None:
-            # Decode all arguments to unicode before parsing
-            args = unicode_argv()[1:]
+            args = sys.argv[1:]
         if namespace is None:
             namespace = ScopedNamespace()
         old_do_help = ArgumentParser.do_help
@@ -389,9 +386,10 @@ class ArgumentParser(ArgParser):
         return namespace, args
 
     def add_subparsers(self, **kwargs):
-        """
+        """Add a parser for a new subcommand and return it.
+
         :param nested_namespaces: If True, options from subparsers will appear in nested namespace under the subparser
-            name.
+          name.
         """
         # Set the parser class so subparsers don't end up being an instance of a subclass, like CoreArgumentParser
         kwargs.setdefault('parser_class', ArgumentParser)
@@ -400,8 +398,7 @@ class ArgumentParser(ArgParser):
         return self.subparsers
 
     def add_subparser(self, name: str, **kwargs):
-        """
-        Adds a parser for a new subcommand and returns it.
+        """Add a parser for a new subcommand and return it.
 
         :param name: Name of the subcommand
         :param parent_defaults: Default argument values which should be supplied to the parent parser if this subparser
@@ -409,19 +406,18 @@ class ArgumentParser(ArgParser):
         """
         if not self.subparsers:
             raise TypeError('This parser does not have subparsers')
-        result = self.subparsers.add_parser(name, **kwargs)
-        return result
+        return self.subparsers.add_parser(name, **kwargs)
 
     def get_subparser(self, name: str, default=_UNSET):
         if not self.subparsers:
             raise TypeError('This parser does not have subparsers')
         p = self.subparsers.choices.get(name, default)
         if p is _UNSET:
-            raise ValueError('%s is not an existing subparser name' % name)
+            raise ValueError(f'{name} is not an existing subparser name')
         return p
 
     def _get_values(self, action, arg_strings):
-        """Complete the full name for partial subcommands"""
+        """Complete the full name for partial subcommands."""
         if action.nargs == PARSER and self.subparsers:
             subcommand = arg_strings[0]
             if subcommand not in self.subparsers.choices:
@@ -429,11 +425,6 @@ class ArgumentParser(ArgParser):
                 if len(matches) == 1:
                     arg_strings[0] = matches[0]
         return super()._get_values(action, arg_strings)
-
-    def _debug_tb_callback(self, *dummy):
-        import cgitb
-
-        cgitb.enable(format="text")
 
 
 # This will hold just the arguments directly for Manager.
@@ -462,8 +453,7 @@ manager_parser.add_argument(
     '--logfile',
     '-l',
     default='flexget.log',
-    help='Specify a custom logfile name/location. '
-    'Default: %(default)s in the config directory.',
+    help='Specify a custom logfile name/location. Default: %(default)s in the config directory.',
 )
 manager_parser.add_argument(
     '--loglevel',
@@ -474,14 +464,6 @@ manager_parser.add_argument(
     type=str.upper,
 )
 manager_parser.set_post_defaults(loglevel='VERBOSE')
-# This option is already handled above.
-manager_parser.add_argument(
-    '--bugreport',
-    action='store_true',
-    dest='debug_tb',
-    help='Use this option to create a detailed bug report, '
-    'note that the output might contain PRIVATE data, so edit that out',
-)
 manager_parser.add_argument(
     '--profile',
     metavar='OUTFILE',
@@ -505,8 +487,7 @@ manager_parser.add_argument(
 
 
 class CoreArgumentParser(ArgumentParser):
-    """
-    The core argument parser, contains the manager arguments, command parsers, and plugin arguments.
+    """The core argument parser, contains the manager arguments, command parsers, and plugin arguments.
 
     Warning: Only gets plugin arguments if instantiated after plugins have been loaded.
 
@@ -567,7 +548,12 @@ class CoreArgumentParser(ArgumentParser):
         start_parser.add_argument(
             '--autoreload-config',
             action='store_true',
-            help='automatically reload the config from disk if the daemon detects any changes',
+            help='This option is already the default behavior. It is retained only for compatibility and will be removed in a future version. Please stop using this option.',
+        )
+        start_parser.add_argument(
+            '--no-autoreload-config',
+            action='store_true',
+            help='do not automatically reload the config from disk if the daemon detects any changes',
         )
         start_parser.add_argument(
             '--enable-tray-icon',
@@ -594,11 +580,11 @@ class CoreArgumentParser(ArgumentParser):
     def parse_args(self, *args, **kwargs):
         result = super().parse_args(*args, **kwargs)
         # Make sure we always have execute parser settings even when other commands called
-        if not result.cli_command == 'execute':
+        if result.cli_command != 'execute':
             exec_options = get_parser('execute').parse_args([])
             if hasattr(result, 'execute'):
                 exec_options.__dict__.update(result.execute.__dict__)
             result.execute = exec_options
         # Set the 'allow_manual' flag to True for any usage of the CLI
-        setattr(result, 'allow_manual', True)
+        result.allow_manual = True
         return result

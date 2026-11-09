@@ -1,4 +1,5 @@
 """Plugin for text file or URL feeds via regex."""
+
 import re
 from pathlib import Path
 
@@ -13,8 +14,7 @@ logger = logger.bind(name='text')
 
 
 class Text:
-    """
-    Parse any text for entries using regular expression.
+    """Parse any text for entries using regular expression.
 
     Example::
 
@@ -24,7 +24,7 @@ class Text:
       format:
         <field>: <python string formatting>
 
-    Note: each entry must have atleast two fields, title and url
+    Note: each entry must have at least two fields, title and url
 
     Example::
 
@@ -59,7 +59,7 @@ class Text:
             'format': {'type': 'object', 'additionalProperties': {'type': 'string'}},
         },
         'required': ['entry', 'url'],
-        'additonalProperties': False,
+        'additionalProperties': False,
     }
 
     def format_entry(self, entry, d):
@@ -120,7 +120,7 @@ class Text:
 
                 # if all fields have been found
                 if len(used) == len(entry_config):
-                    # check that entry has atleast title and url
+                    # check that entry has at least title and url
                     if not entry.isvalid():
                         logger.info(
                             'Invalid data, constructed entry is missing mandatory fields (title or url)'

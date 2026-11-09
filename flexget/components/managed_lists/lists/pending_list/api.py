@@ -122,10 +122,10 @@ list_parser.add_argument('name', help='Filter results by list name')
 @pending_list_api.route('/')
 class PendingListListsAPI(APIResource):
     @etag
-    @api.doc(parser=list_parser)
+    @api.doc(expect=[list_parser])
     @api.response(200, 'Successfully retrieved pending lists', pending_list_return_lists_schema)
     def get(self, session=None):
-        """ Get pending lists """
+        """Get pending lists."""
         args = list_parser.parse_args()
         name = args.get('name')
 
@@ -139,7 +139,7 @@ class PendingListListsAPI(APIResource):
     @api.response(201, model=pending_list_object_schema)
     @api.response(Conflict)
     def post(self, session=None):
-        """ Create a new pending list """
+        """Create a new pending list."""
         data = request.json
         name = data.get('name')
 
@@ -148,7 +148,7 @@ class PendingListListsAPI(APIResource):
         except NoResultFound:
             pass
         else:
-            raise Conflict('list with name \'%s\' already exists' % name)
+            raise Conflict(f"list with name '{name}' already exists")
 
         pending_list = db.PendingListList()
         pending_list.name = name
@@ -166,21 +166,21 @@ class PendingListListAPI(APIResource):
     @api.response(NotFoundError)
     @api.response(200, model=pending_list_object_schema)
     def get(self, list_id, session=None):
-        """ Get pending list by ID """
+        """Get pending list by ID."""
         try:
             list = db.get_list_by_id(list_id=list_id, session=session)
         except NoResultFound:
-            raise NotFoundError('list_id %d does not exist' % list_id)
+            raise NotFoundError(f'list_id {list_id} does not exist')
         return jsonify(list.to_dict())
 
     @api.response(200, description='list successfully deleted', model=base_message_schema)
     @api.response(NotFoundError)
     def delete(self, list_id, session=None):
-        """ Delete pending list by ID """
+        """Delete pending list by ID."""
         try:
             db.delete_list_by_id(list_id=list_id, session=session)
         except NoResultFound:
-            raise NotFoundError('list_id %d does not exist' % list_id)
+            raise NotFoundError(f'list_id {list_id} does not exist')
         return success_response('list successfully deleted')
 
 
@@ -198,17 +198,17 @@ entries_parser.add_argument('filter', help='Filter by title name')
 
 
 @pending_list_api.route('/<int:list_id>/entries/')
-@api.doc(params={'list_id': 'ID of the list'}, parser=entries_parser)
+@api.doc(params={'list_id': 'ID of the list'}, expect=[entries_parser])
 @api.response(NotFoundError)
 class PendingListEntriesAPI(APIResource):
     @etag
     @api.response(200, model=pending_lists_entries_return_schema)
     def get(self, list_id, session=None):
-        """ Get entries by list ID """
+        """Get entries by list ID."""
         try:
             list = db.get_list_by_id(list_id=list_id, session=session)
         except NoResultFound:
-            raise NotFoundError('list_id %d does not exist' % list_id)
+            raise NotFoundError(f'list_id {list_id} does not exist')
 
         args = entries_parser.parse_args()
 
@@ -221,8 +221,7 @@ class PendingListEntriesAPI(APIResource):
         filter_ = args['filter']
 
         # Handle max size limit
-        if per_page > 100:
-            per_page = 100
+        per_page = min(per_page, 100)
 
         start = per_page * (page - 1)
         stop = start + per_page
@@ -247,10 +246,10 @@ class PendingListEntriesAPI(APIResource):
         entries = [entry.to_dict() for entry in db.get_entries_by_list_id(**kwargs)]
 
         # Total number of pages
-        total_pages = int(ceil(total_items / float(per_page)))
+        total_pages = ceil(total_items / float(per_page))
 
         if page > total_pages:
-            raise NotFoundError('page %s does not exist' % page)
+            raise NotFoundError(f'page {page} does not exist')
 
         # Actual results in page
         actual_size = min(len(entries), per_page)
@@ -271,16 +270,16 @@ class PendingListEntriesAPI(APIResource):
     )
     @api.response(Conflict)
     def post(self, list_id, session=None):
-        """ Create a new entry object"""
+        """Create a new entry object."""
         try:
             db.get_list_by_id(list_id=list_id, session=session)
         except NoResultFound:
-            raise NotFoundError('list_id %d does not exist' % list_id)
+            raise NotFoundError(f'list_id {list_id} does not exist')
         data = request.json
         title = data.get('title')
         entry_object = db.get_entry_by_title(list_id=list_id, title=title, session=session)
         if entry_object:
-            raise Conflict('entry with title \'%s\' already exists' % title)
+            raise Conflict(f"entry with title '{title}' already exists")
         entry_object = db.PendingListEntry(entry=data, pending_list_id=list_id)
         if data.get('approved'):
             entry_object.approved = data['approved']
@@ -299,7 +298,7 @@ class PendingListEntriesBatchAPI(APIResource):
     @api.validate(model=pending_list_batch_operation_schema)
     @api.doc(description='Approve and reject multiple entries')
     def put(self, list_id, session=None):
-        """Perform operations on multiple entries"""
+        """Perform operations on multiple entries."""
         data = request.json
         entry_ids = data.get('ids')
         operation = data.get('operation')
@@ -321,7 +320,7 @@ class PendingListEntriesBatchAPI(APIResource):
     @api.validate(model=pending_list_batch_remove_schema)
     @api.doc(description='Remove multiple entries')
     def delete(self, list_id, session=None):
-        """Remove multiple entries"""
+        """Remove multiple entries."""
         data = request.json
         entry_ids = data.get('ids')
         try:
@@ -345,39 +344,39 @@ class PendingListEntryAPI(APIResource):
     @etag
     @api.response(200, model=pending_list_entry_base_schema)
     def get(self, list_id, entry_id, session=None):
-        """ Get an entry by list ID and entry ID """
+        """Get an entry by list ID and entry ID."""
         try:
             entry = db.get_entry_by_id(list_id=list_id, entry_id=entry_id, session=session)
         except NoResultFound:
-            raise NotFoundError('could not find entry with id %d in list %d' % (entry_id, list_id))
+            raise NotFoundError(f'could not find entry with id {entry_id} in list {list_id}')
 
         return jsonify(entry.to_dict())
 
     @api.response(200, model=base_message_schema)
     def delete(self, list_id, entry_id, session=None):
-        """ Delete an entry by list ID and entry ID """
+        """Delete an entry by list ID and entry ID."""
         try:
             entry = db.get_entry_by_id(list_id=list_id, entry_id=entry_id, session=session)
         except NoResultFound:
-            raise NotFoundError('could not find entry with id %d in list %d' % (entry_id, list_id))
+            raise NotFoundError(f'could not find entry with id {entry_id} in list {list_id}')
         logger.debug('deleting movie {}', entry.id)
         session.delete(entry)
-        return success_response('successfully deleted entry %d' % entry.id)
+        return success_response(f'successfully deleted entry {entry.id}')
 
     @api.response(201, model=pending_list_entry_base_schema)
     @api.validate(model=pending_list_operation_schema)
-    @api.doc(description='Approve or reject an entry\'s status')
+    @api.doc(description="Approve or reject an entry's status")
     def put(self, list_id, entry_id, session=None):
-        """Sets entry object's pending status"""
+        """Set entry object's pending status."""
         try:
             entry = db.get_entry_by_id(list_id=list_id, entry_id=entry_id, session=session)
         except NoResultFound:
-            raise NotFoundError('could not find entry with id %d in list %d' % (entry_id, list_id))
+            raise NotFoundError(f'could not find entry with id {entry_id} in list {list_id}')
         data = request.json
         approved = data['operation'] == 'approve'
         operation_text = 'approved' if approved else 'pending'
         if entry.approved is approved:
-            raise BadRequest('Entry with id {} is already {}'.format(entry_id, operation_text))
+            raise BadRequest(f'Entry with id {entry_id} is already {operation_text}')
 
         entry.approved = approved
         session.commit()

@@ -1,13 +1,17 @@
+from __future__ import annotations
+
 import queue
-import sys
 import threading
 import time
-from typing import Optional
+from typing import TYPE_CHECKING
 
 from loguru import logger
 from sqlalchemy.exc import OperationalError, ProgrammingError
 
-from flexget.task import Task, TaskAbort
+from flexget.task import TaskAbort
+
+if TYPE_CHECKING:
+    from flexget.task import Task
 
 logger = logger.bind(name='task_queue')
 
@@ -19,11 +23,11 @@ class TaskQueue:
     """
 
     def __init__(self) -> None:
-        self.run_queue: 'queue.PriorityQueue[Task]' = queue.PriorityQueue()
+        self.run_queue: queue.PriorityQueue[Task] = queue.PriorityQueue()
         self._shutdown_now = False
         self._shutdown_when_finished = False
 
-        self.current_task: Optional[Task] = None
+        self.current_task: Task | None = None
         self._thread = None
 
     def start(self) -> None:
@@ -68,8 +72,15 @@ class TaskQueue:
     def is_alive(self) -> bool:
         return self._thread and self._thread.is_alive()
 
+    def has_died(self) -> bool:
+        """Return True if the queue thread was started and is no longer running.
+
+        Distinct from ``not is_alive()``, which is also true for a queue that was never started.
+        """
+        return self._thread is not None and not self._thread.is_alive()
+
     def put(self, task: Task):
-        """Adds a task to be executed to the queue."""
+        """Add a task to be executed to the queue."""
         self.run_queue.put(task)
 
     def __len__(self) -> int:
@@ -92,9 +103,9 @@ class TaskQueue:
             self._shutdown_now = True
 
     def wait(self) -> None:
-        """Waits for the thread to exit.
+        """Wait for the thread to exit.
 
-        Allows abortion of task queue with ctrl-c
+        Allow abortion of task queue with ctrl-c
         """
         try:
             while self._thread.is_alive():

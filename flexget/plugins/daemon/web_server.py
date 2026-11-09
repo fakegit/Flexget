@@ -8,7 +8,7 @@ from flexget.ui.v2 import register_web_ui as register_web_ui_v2
 from flexget.utils.tools import get_config_hash
 from flexget.webserver import get_secret, register_app, setup_server
 
-logger = logger.bind(name="web_server_daemon")
+logger = logger.bind(name='web_server_daemon')
 config_hash = ''
 web_server = None
 
@@ -27,12 +27,13 @@ web_config_schema = {
                 'base_url': {'type': 'string'},
                 'run_v2': {
                     'type': 'boolean',
-                    'deprecated': 'v2 is registered by default if web_ui: true so `run_v2` is now redundant. To run v1 alongside, use the `run_v1`.',
+                    'deprecated': True,
+                    'deprecationMessage': 'v2 is registered by default if web_ui: true so `run_v2` is now redundant. To run v1 alongside, use the `run_v1`.',
                 },
                 'run_v1': {'type': 'boolean'},
             },
             'additionalProperties': False,
-            'dependencies': {
+            'dependentRequired': {
                 'ssl_certificate': ['ssl_private_key'],
                 'ssl_private_key': ['ssl_certificate'],
             },
@@ -43,7 +44,7 @@ web_config_schema = {
 
 def prepare_config(config):
     if not config:
-        return
+        return None
     if isinstance(config, bool):
         config = {}
     if isinstance(config, int):
@@ -59,8 +60,7 @@ def prepare_config(config):
     if config['base_url']:
         if not config['base_url'].startswith('/'):
             config['base_url'] = '/' + config['base_url']
-        if config['base_url'].endswith('/'):
-            config['base_url'] = config['base_url'][:-1]
+        config['base_url'] = config['base_url'].removesuffix('/')
 
     return config
 
@@ -73,7 +73,7 @@ def register_config():
 @event('manager.config_updated')
 @event('manager.daemon.started')
 def register_web_server(manager):
-    """Registers Web Server and loads API (always) and WebUi via config"""
+    """Register Web Server and load API (always) and WebUi via config."""
     global web_server, config_hash
 
     if not manager.is_daemon:
@@ -81,7 +81,7 @@ def register_web_server(manager):
 
     config = manager.config.get('web_server')
     if get_config_hash(config) == config_hash:
-        logger.debug('web server config has\'nt changed')
+        logger.debug("web server config hasn't changed")
         return
 
     config_hash = get_config_hash(config)
@@ -99,7 +99,7 @@ def register_web_server(manager):
     # Register API
     api_app.secret_key = get_secret()
 
-    logger.info("Initiating API")
+    logger.info('Initiating API')
     register_app('/api', api_app, 'API')
 
     # Register WebUI
@@ -116,7 +116,7 @@ def register_web_server(manager):
 
 @event('manager.shutdown')
 def stop_server(manager):
-    """ Sets up and starts/restarts the webui. """
+    """Set up and start/restart the webui."""
     global web_server
 
     if not manager.is_daemon:

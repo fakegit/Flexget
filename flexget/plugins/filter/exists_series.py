@@ -18,13 +18,14 @@ logger = logger.bind(name='exists_series')
 
 
 class FilterExistsSeries:
-    """
-    Intelligent series aware exists rejecting.
+    """Intelligent series aware exists rejecting.
 
     Example::
 
       exists_series: /storage/series/
     """
+
+    VIDEO_EXTENSIONS = {'.avi', '.mkv', '.mp4', '.mpg', '.m4v', '.ts', '.wmv', '.webm'}
 
     schema = {
         'anyOf': [
@@ -37,6 +38,7 @@ class FilterExistsSeries:
                         'enum': ['better', True, False],
                         'default': False,
                     },
+                    'recursive': {'type': 'boolean', 'default': False},
                 },
                 'required': ['path'],
                 'additionalProperties': False,
@@ -80,16 +82,18 @@ class FilterExistsSeries:
 
         # scan through
         # For speed, only test accepted entries since our priority should be after everything is accepted.
-        for series in accepted_series:
+        for series, value in accepted_series.items():
             # make new parser from parser in entry
-            series_parser = accepted_series[series][0]['series_parser']
+            series_parser = value[0]['series_parser']
             for folder in paths:
                 folder = Path(folder).expanduser()
                 if not folder.is_dir():
                     logger.warning('Directory {} does not exist', folder)
                     continue
 
-                for filename in folder.iterdir():
+                for filename in folder.rglob('*') if config.get('recursive') else folder.iterdir():
+                    if filename.is_file() and filename.suffix.lower() not in self.VIDEO_EXTENSIONS:
+                        continue
                     # run parser on filename data
                     try:
                         disk_parser = plugin.get('parsing', self).parse_series(
@@ -104,7 +108,7 @@ class FilterExistsSeries:
                         logger.debug('disk_parser.quality = {}', disk_parser.quality)
                         logger.debug('disk_parser.proper_count = {}', disk_parser.proper_count)
 
-                        for entry in accepted_series[series]:
+                        for entry in value:
                             logger.debug(
                                 'series_parser.identifier = {}', entry['series_parser'].identifier
                             )
@@ -118,10 +122,12 @@ class FilterExistsSeries:
                                 if entry['series_parser'].quality > disk_parser.quality:
                                     logger.trace('better quality')
                                     continue
-                            elif config.get('allow_different_qualities'):
-                                if disk_parser.quality != entry['series_parser'].quality:
-                                    logger.trace('wrong quality')
-                                    continue
+                            elif (
+                                config.get('allow_different_qualities')
+                                and disk_parser.quality != entry['series_parser'].quality
+                            ):
+                                logger.trace('wrong quality')
+                                continue
                             logger.debug(
                                 'entry parser.proper_count = {}',
                                 entry['series_parser'].proper_count,
@@ -129,9 +135,8 @@ class FilterExistsSeries:
                             if disk_parser.proper_count >= entry['series_parser'].proper_count:
                                 entry.reject('episode already exists')
                                 continue
-                            else:
-                                logger.trace('new one is better proper, allowing')
-                                continue
+                            logger.trace('new one is better proper, allowing')
+                            continue
 
 
 @event('plugin.register')

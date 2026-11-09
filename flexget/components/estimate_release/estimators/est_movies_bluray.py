@@ -1,4 +1,4 @@
-import datetime
+from datetime import datetime
 
 from loguru import logger
 
@@ -13,29 +13,30 @@ class EstimatesMoviesBluray:
     @plugin.priority(2)
     def estimate(self, entry):
         if 'movie_name' not in entry:
-            return
+            return None
 
         movie_name = entry['movie_name']
         movie_year = entry.get('movie_year')
 
-        if movie_year is not None and movie_year > datetime.datetime.now().year:
+        if movie_year is not None and movie_year > datetime.now().year:
             logger.debug('Skipping Blu-ray.com lookup since movie year is {}', movie_year)
-            return
+            return None
 
         logger.debug('Searching Blu-ray.com for release date of {} ({})', movie_name, movie_year)
 
-        release_date = None
+        entity_data = {'data_exists': True, 'entity_date': None}
         try:
             with Session() as session:
                 lookup = plugin.get('api_bluray', self).lookup
                 movie = lookup(title=movie_name, year=movie_year, session=session)
                 if movie:
-                    release_date = movie.release_date
+                    entity_data['entity_date'] = movie.release_date
         except LookupError as e:
             logger.debug(e)
-        if release_date:
-            logger.debug('received release date: {}', release_date)
-        return release_date
+            entity_data['data_exists'] = False
+        if entity_data['entity_date']:
+            logger.debug('received release date: {}', entity_data['entity_date'])
+        return entity_data
 
 
 @event('plugin.register')

@@ -2,7 +2,8 @@ import pickle
 from datetime import datetime
 
 from loguru import logger
-from sqlalchemy import Column, DateTime, Integer, Unicode, select
+from sqlalchemy import Unicode, select
+from sqlalchemy.orm import Mapped, mapped_column
 
 from flexget import db_schema, plugin
 from flexget.config_schema import one_or_more
@@ -28,11 +29,12 @@ def upgrade(ver, session):
         table_add_column(table, 'json', Unicode, session)
         # Make sure we get the new schema with the added column
         table = table_schema('digest_entries', session)
-        for row in session.execute(select([table.c.id, table.c.entry])):
+        for row in session.execute(select(table.c.id, table.c.entry)):
             try:
                 p = pickle.loads(row['entry'])
                 session.execute(
-                    table.update()
+                    table
+                    .update()
                     .where(table.c.id == row['id'])
                     .values(json=json.dumps(p, encode_datetime=True))
                 )
@@ -42,7 +44,7 @@ def upgrade(ver, session):
         ver = 1
     if ver == 1:
         table = table_schema('digest_entries', session)
-        for row in session.execute(select([table.c.id, table.c.json])):
+        for row in session.execute(select(table.c.id, table.c.json)):
             if not row['json']:
                 # Seems there could be invalid data somehow. See #2590
                 continue
@@ -59,10 +61,10 @@ def upgrade(ver, session):
 
 class DigestEntry(Base):
     __tablename__ = 'digest_entries'
-    id = Column(Integer, primary_key=True)
-    list = Column(Unicode, index=True)
-    added = Column(DateTime, default=datetime.now)
-    _json = Column('json', Unicode)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    list: Mapped[str | None] = mapped_column(index=True)
+    added: Mapped[datetime | None] = mapped_column(default=datetime.now)
+    _json: Mapped[str | None] = mapped_column('json')
     entry = entry_synonym('_json')
 
 
@@ -74,9 +76,10 @@ class OutputDigest:
                 'type': 'object',
                 'properties': {
                     'list': {'type': 'string'},
-                    'state': one_or_more(
-                        {'type': 'string', 'enum': ['accepted', 'rejected', 'failed', 'undecided']}
-                    ),
+                    'state': one_or_more({
+                        'type': 'string',
+                        'enum': ['accepted', 'rejected', 'failed', 'undecided'],
+                    }),
                 },
                 'required': ['list'],
                 'additionalProperties': False,
@@ -110,7 +113,8 @@ class FromDigest:
         'properties': {
             'list': {'type': 'string'},
             'limit': {
-                'deprecated': 'The `limit` option of from_digest is deprecated. Use the `limit` plugin instead.',
+                'deprecated': True,
+                'deprecationMessage': 'The `limit` option of from_digest is deprecated. Use the `limit` plugin instead.',
                 'type': 'integer',
             },
             'expire': {

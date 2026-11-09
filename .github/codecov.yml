@@ -1,0 +1,16 @@
+codecov:
+  notify:
+    after_n_builds: 15
+
+comment:
+  require_changes: 'coverage_drop OR uncovered_patch'
+
+coverage:
+  status:
+    patch:
+      default:
+        target: 100%
+        informational: true # Once the project achieves high code coverage, consider making it a mandatory check.
+    project:
+      default:
+        target: auto

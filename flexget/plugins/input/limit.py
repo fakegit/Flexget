@@ -9,9 +9,7 @@ logger = logger.bind(name='limit')
 
 
 class PluginLimit:
-    """
-    Limits the number of entries an input plugin can produce.
-    """
+    """Limits the number of entries an input plugin can produce."""
 
     schema = {
         'type': 'object',
@@ -42,6 +40,7 @@ class PluginLimit:
             if config['amount'] < 1:
                 return result
             return itertools.islice(result, config['amount'])
+        return None
 
 
 @event('plugin.register')

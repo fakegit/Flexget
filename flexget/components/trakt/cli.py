@@ -1,7 +1,7 @@
 from flexget import options, plugin
 from flexget.event import event
 from flexget.manager import Session
-from flexget.terminal import TerminalTable, TerminalTableError, console, table_parser
+from flexget.terminal import TerminalTable, console, table_parser
 
 from . import db
 
@@ -15,9 +15,8 @@ def action_auth(options):
     try:
         db.get_access_token(options.account, options.pin, re_auth=True, called_from_cli=True)
         console('Successfully authorized Flexget app on Trakt.tv. Enjoy!')
-        return
     except plugin.PluginError as e:
-        console('Authorization failed: %s' % e)
+        console(f'Authorization failed: {e}')
 
 
 def action_list(options):
@@ -29,31 +28,26 @@ def action_list(options):
                 console('No trakt authorizations stored in database.')
                 return
             header = ['Account', 'Created', 'Expires']
-            table_data = [header]
+            table = TerminalTable(*header, table_type=options.table_type)
 
             for auth in accounts:
-                table_data.append(
-                    [
-                        auth.account,
-                        auth.created.strftime('%Y-%m-%d'),
-                        auth.expires.strftime('%Y-%m-%d'),
-                    ]
+                table.add_row(
+                    auth.account,
+                    auth.created.strftime('%Y-%m-%d'),
+                    auth.expires.strftime('%Y-%m-%d'),
                 )
-            try:
-                table = TerminalTable(options.table_type, table_data)
-                console(table.output)
-                return
-            except TerminalTableError as e:
-                console('ERROR: %s' % str(e))
+            console(table)
+            return
 
         # Show a specific account
         acc = (
-            session.query(db.TraktUserAuth)
+            session
+            .query(db.TraktUserAuth)
             .filter(db.TraktUserAuth.account == options.account)
             .first()
         )
         if acc:
-            console('Authorization expires on %s' % acc.expires)
+            console(f'Authorization expires on {acc.expires}')
         else:
             console('Flexget has not been authorized to access your account.')
 
@@ -65,9 +59,8 @@ def action_refresh(options):
     try:
         db.get_access_token(options.account, refresh=True)
         console('Successfully refreshed your access token.')
-        return
     except plugin.PluginError as e:
-        console('Authorization failed: %s' % e)
+        console(f'Authorization failed: {e}')
 
 
 def action_delete(options):
@@ -77,9 +70,8 @@ def action_delete(options):
     try:
         db.delete_account(options.account)
         console('Successfully deleted your access token.')
-        return
     except plugin.PluginError as e:
-        console('Deletion failed: %s' % e)
+        console(f'Deletion failed: {e}')
 
 
 def do_cli(manager, options):
@@ -111,13 +103,13 @@ def register_parser_arguments():
         'pin',
         metavar='<pin>',
         help='Get this by authorizing FlexGet to use your trakt account '
-        'at %s. WARNING: DEPRECATED.' % db.PIN_URL,
+        f'at {db.PIN_URL}. WARNING: DEPRECATED.',
         nargs='?',
     )
 
     show_parser = subparsers.add_parser(
         'list',
-        help='List expiration date for Flexget authorization(s) (don\'t worry, '
+        help="List expiration date for Flexget authorization(s) (don't worry, "
         'they will automatically refresh when expired)',
         parents=[table_parser],
     )
@@ -125,7 +117,7 @@ def register_parser_arguments():
 
     refresh_parser = subparsers.add_parser(
         'refresh',
-        help='Manually refresh your access token associated with your' ' --account <name>',
+        help='Manually refresh your access token associated with your --account <name>',
     )
     refresh_parser.add_argument('account', metavar='<account>', help=acc_text)
 

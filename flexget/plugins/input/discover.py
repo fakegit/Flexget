@@ -1,9 +1,10 @@
-import datetime
 import itertools
 import random
+from datetime import date, datetime, time
 
 from loguru import logger
-from sqlalchemy import Column, DateTime, Index, Integer, Unicode
+from sqlalchemy import Index
+from sqlalchemy.orm import Mapped, mapped_column
 
 from flexget import db_schema, options, plugin
 from flexget.event import event
@@ -17,10 +18,10 @@ Base = db_schema.versioned_base('discover', 0)
 class DiscoverEntry(Base):
     __tablename__ = 'discover_entry'
 
-    id = Column(Integer, primary_key=True)
-    title = Column(Unicode, index=True)
-    task = Column(Unicode, index=True)
-    last_execution = Column(DateTime)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    title: Mapped[str | None] = mapped_column(index=True)
+    task: Mapped[str | None] = mapped_column(index=True)
+    last_execution: Mapped[datetime | None]
 
     def __init__(self, title, task):
         self.title = title
@@ -28,11 +29,7 @@ class DiscoverEntry(Base):
         self.last_execution = None
 
     def __str__(self):
-        return '<DiscoverEntry(title=%s,task=%s,added=%s)>' % (
-            self.title,
-            self.task,
-            self.last_execution,
-        )
+        return f'<DiscoverEntry(title={self.title},task={self.task},added={self.last_execution})>'
 
 
 Index('ix_discover_entry_title_task', DiscoverEntry.title, DiscoverEntry.task)
@@ -40,7 +37,7 @@ Index('ix_discover_entry_title_task', DiscoverEntry.title, DiscoverEntry.task)
 
 @event('manager.db_cleanup')
 def db_cleanup(manager, session):
-    value = datetime.datetime.now() - parse_timedelta('7 days')
+    value = datetime.now() - parse_timedelta('7 days')
     for discover_entry in (
         session.query(DiscoverEntry).filter(DiscoverEntry.last_execution <= value).all()
     ):
@@ -49,8 +46,7 @@ def db_cleanup(manager, session):
 
 
 class Discover:
-    """
-    Discover content based on other inputs material.
+    """Discover content based on other inputs material.
 
     Example::
 
@@ -87,7 +83,11 @@ class Discover:
             'interval': {'type': 'string', 'format': 'interval', 'default': '5 hours'},
             'release_estimations': {
                 'oneOf': [
-                    {'type': 'string', 'default': 'strict', 'enum': ['loose', 'strict', 'ignore']},
+                    {
+                        'type': 'string',
+                        'default': 'strict',
+                        'enum': ['loose', 'strict', 'ignore', 'smart'],
+                    },
                     {
                         'type': 'object',
                         'properties': {'optimistic': {'type': 'string', 'format': 'interval'}},
@@ -102,23 +102,22 @@ class Discover:
     }
 
     def execute_searches(self, config, entries, task):
-        """
+        """Return list of entries found from search engines listed under `from` configuration.
+
         :param config: Discover plugin config
         :param entries: List of pseudo entries to search
         :param task: Task being run
-        :return: List of entries found from search engines listed under `from` configuration
         """
-
         result = []
         for index, entry in enumerate(entries):
             entry_results = []
             for item in config['from']:
                 if isinstance(item, dict):
-                    plugin_name, plugin_config = list(item.items())[0]
+                    plugin_name, plugin_config = next(iter(item.items()))
                 else:
                     plugin_name, plugin_config = item, None
                 search = plugin.get(plugin_name, self)
-                if not callable(getattr(search, 'search')):
+                if not callable(search.search):
                     logger.critical(
                         'Search plugin {} does not implement search method', plugin_name
                     )
@@ -162,7 +161,7 @@ class Discover:
         return result
 
     def entry_complete(self, entry, query=None, search_results=None, **kwargs):
-        """Callback for Entry"""
+        """Use as callback for Entry."""
         if entry.accepted:
             # One of the search results was accepted, transfer the acceptance back to the query entry which generated it
             query.accept()
@@ -173,31 +172,50 @@ class Discover:
             query.complete()
 
     def estimated(self, entries, estimation_mode):
-        """
+        """Return entries that we have estimated to be available.
+
         :param dict estimation_mode: mode -> loose, strict, ignore
-        :return: Entries that we have estimated to be available
         """
         estimator = plugin.get('estimate_release', self)
         result = []
         for entry in entries:
-            est_date = estimator.estimate(entry)
+            estimation = estimator.estimate(entry)
+
+            est_date = estimation['entity_date']
+            data_exists = estimation['data_exists']
+
             if est_date is None:
-                logger.debug('No release date could be determined for {}', entry['title'])
                 if estimation_mode['mode'] == 'strict':
+                    logger.verbose(
+                        'Skipping discovery for `{}`, no release date could be determined. '
+                        'To discover anyway, add `release_estimations: ignore` to your configuration.',
+                        entry['title'],
+                    )
                     entry.reject('has no release date')
                     entry.complete()
+                elif estimation_mode['mode'] == 'smart' and data_exists:
+                    logger.debug(
+                        'No release date could be determined for `{}`, but exists data',
+                        entry['title'],
+                    )
+                    entry.reject('exists but has no release date')
+                    entry.complete()
+                elif estimation_mode['mode'] == 'smart' and not data_exists:
+                    logger.debug(
+                        'Discovering because mode is `{}` and no data is found for entry',
+                        estimation_mode['mode'],
+                    )
+                    result.append(entry)
                 else:
                     result.append(entry)
                 continue
-            if isinstance(est_date, datetime.date):
+            if isinstance(est_date, date):
                 # If we just got a date, add a time so we can compare it to now()
-                est_date = datetime.datetime.combine(est_date, datetime.time())
-            if datetime.datetime.now() >= est_date:
+                est_date = datetime.combine(est_date, time())
+            if datetime.now() >= est_date:
                 logger.debug('{} has been released at {}', entry['title'], est_date)
                 result.append(entry)
-            elif datetime.datetime.now() >= est_date - parse_timedelta(
-                estimation_mode['optimistic']
-            ):
+            elif datetime.now() >= est_date - parse_timedelta(estimation_mode['optimistic']):
                 logger.debug(
                     '{} will be released at {}. Ignoring release estimation because estimated release date is in less than {}',
                     entry['title'],
@@ -214,9 +232,7 @@ class Discover:
         return result
 
     def interval_expired(self, config, task, entries):
-        """
-        Maintain some limit levels so that we don't hammer search
-        sites with unreasonable amount of queries.
+        """Maintain some limit levels so that we don't hammer search sites with unreasonable amount of queries.
 
         :return: Entries that are up for ``config['interval']``
         """
@@ -229,7 +245,8 @@ class Discover:
         with Session() as session:
             for entry in entries:
                 discover_entry = (
-                    session.query(DiscoverEntry)
+                    session
+                    .query(DiscoverEntry)
                     .filter(DiscoverEntry.title == entry['title'])
                     .filter(DiscoverEntry.task == task.name)
                     .first()
@@ -244,7 +261,7 @@ class Discover:
                 ) or not discover_entry.last_execution:
                     # First time we execute (and on --discover-now) we randomize time to avoid clumping
                     delta = multiply_timedelta(interval, random.random())
-                    discover_entry.last_execution = datetime.datetime.now() - delta
+                    discover_entry.last_execution = datetime.now() - delta
                 else:
                     next_time = discover_entry.last_execution + interval
                     logger.debug(
@@ -253,13 +270,13 @@ class Discover:
                         config['interval'],
                         next_time,
                     )
-                    if datetime.datetime.now() < next_time:
+                    if datetime.now() < next_time:
                         logger.debug('interval not met')
                         interval_count += 1
                         entry.reject('discover interval not met')
                         entry.complete()
                         continue
-                    discover_entry.last_execution = datetime.datetime.now()
+                    discover_entry.last_execution = datetime.now()
                 logger.trace('interval passed for {}', entry['title'])
                 result.append(entry)
         if interval_count and not task.is_rerun:

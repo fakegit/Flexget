@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from loguru import logger
-from sqlalchemy import Column, DateTime, Integer, String, Unicode
+from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.schema import Index
 from sqlalchemy.sql.expression import desc
 
@@ -17,26 +17,16 @@ logger = logger.bind(name='proper_movies')
 class ProperMovie(Base):
     __tablename__ = 'proper_movies'
 
-    id = Column(Integer, primary_key=True)
-    title = Column(Unicode)
-    task = Column('feed', Unicode)
-    imdb_id = Column(String, index=True)
-    quality = Column(String)
-    proper_count = Column(Integer)
-    added = Column(DateTime)
-
-    def __init__(self):
-        self.added = datetime.now()
+    id: Mapped[int] = mapped_column(primary_key=True)
+    title: Mapped[str | None]
+    task: Mapped[str | None] = mapped_column('feed')
+    imdb_id: Mapped[str | None] = mapped_column(index=True)
+    quality: Mapped[str | None]
+    proper_count: Mapped[int | None]
+    added: Mapped[datetime] = mapped_column(default=datetime.now)
 
     def __repr__(self):
-        return '<ProperMovie(title=%s,task=%s,imdb_id=%s,quality=%s,proper_count=%s,added=%s)>' % (
-            self.title,
-            self.task,
-            self.imdb_id,
-            self.quality,
-            self.proper_count,
-            self.added,
-        )
+        return f'<ProperMovie(title={self.title},task={self.task},imdb_id={self.imdb_id},quality={self.quality},proper_count={self.proper_count},added={self.added})>'
 
 
 # create index
@@ -47,8 +37,7 @@ Index(
 
 
 class FilterProperMovies:
-    """
-    Automatically download proper movies.
+    """Automatically download proper movies.
 
     Configuration:
 
@@ -109,7 +98,8 @@ class FilterProperMovies:
             logger.debug('current proper count: {}', parser.proper_count)
 
             proper_movie = (
-                task.session.query(ProperMovie)
+                task.session
+                .query(ProperMovie)
                 .filter(ProperMovie.imdb_id == entry['imdb_id'])
                 .filter(ProperMovie.quality == quality)
                 .order_by(desc(ProperMovie.proper_count))
@@ -149,7 +139,7 @@ class FilterProperMovies:
                 entry.accept('proper version of previously downloaded movie')
 
     def on_task_learn(self, task, config):
-        """Add downloaded movies to the database"""
+        """Add downloaded movies to the database."""
         logger.debug('check for learning')
         for entry in task.accepted:
             if 'imdb_id' not in entry:
@@ -165,7 +155,8 @@ class FilterProperMovies:
             logger.debug('proper count: {}', parser.proper_count)
 
             proper_movie = (
-                task.session.query(ProperMovie)
+                task.session
+                .query(ProperMovie)
                 .filter(ProperMovie.imdb_id == entry['imdb_id'])
                 .filter(ProperMovie.quality == quality)
                 .filter(ProperMovie.proper_count == parser.proper_count)

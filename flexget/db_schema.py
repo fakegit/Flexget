@@ -1,11 +1,13 @@
+from __future__ import annotations
+
 from datetime import datetime
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import TYPE_CHECKING, Any
 
 import sqlalchemy.event
 from loguru import logger
-from sqlalchemy import Column, DateTime, Integer, String, Table
 from sqlalchemy.exc import OperationalError
-from sqlalchemy.ext.declarative import DeclarativeMeta, as_declarative
+from sqlalchemy.ext.declarative import DeclarativeMeta
+from sqlalchemy.orm import Mapped, as_declarative, mapped_column
 
 import flexget
 from flexget.event import event
@@ -14,17 +16,22 @@ from flexget.utils.database import with_session
 from flexget.utils.sqlalchemy_utils import table_schema
 from flexget.utils.tools import get_current_flexget_version
 
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
+    from sqlalchemy import Table
+
 logger = logger.bind(name='schema')
 
 # Stores a mapping of {plugin: {'version': version, 'tables': ['table_names'])}
-plugin_schemas: Dict[str, Dict[str, Any]] = {}
+plugin_schemas: dict[str, dict[str, Any]] = {}
 
 
 class FlexgetVersion(Base):
     __tablename__ = 'flexget_version'
 
-    version = Column(String, primary_key=True)
-    created = Column(DateTime, default=datetime.now)
+    version: Mapped[str] = mapped_column(primary_key=True)
+    created: Mapped[datetime | None] = mapped_column(default=datetime.now)
 
     def __init__(self):
         self.version = get_current_flexget_version()
@@ -46,7 +53,7 @@ def set_flexget_db_version(manager=None) -> None:
             logger.debug('current flexget version already exist in db {}', db_version.version)
 
 
-def get_flexget_db_version() -> Optional[str]:
+def get_flexget_db_version() -> str | None:
     with Session() as session:
         version = session.query(FlexgetVersion).first()
         if version:
@@ -57,9 +64,9 @@ def get_flexget_db_version() -> Optional[str]:
 class PluginSchema(Base):
     __tablename__ = 'plugin_schema'
 
-    id = Column(Integer, primary_key=True)
-    plugin = Column(String)
-    version = Column(Integer)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    plugin: Mapped[str | None]
+    version: Mapped[int | None]
 
     def __init__(self, plugin: str, version: int = 0):
         self.plugin = plugin
@@ -70,13 +77,12 @@ class PluginSchema(Base):
 
 
 @with_session
-def get_version(plugin: str, session=None) -> Optional[int]:
+def get_version(plugin: str, session=None) -> int | None:
     schema = session.query(PluginSchema).filter(PluginSchema.plugin == plugin).first()
     if not schema:
         logger.debug('No schema version stored for {}', plugin)
         return None
-    else:
-        return schema.version
+    return schema.version
 
 
 @with_session
@@ -107,7 +113,7 @@ def set_version(plugin: str, version: int, session=None) -> None:
 
 @with_session
 def upgrade_required(session=None) -> bool:
-    """Returns true if an upgrade of the database is required."""
+    """Return true if an upgrade of the database is required."""
     old_schemas = session.query(PluginSchema).all()
     if len(old_schemas) < len(plugin_schemas):
         return True
@@ -121,14 +127,11 @@ def upgrade_required(session=None) -> bool:
 
 
 class UpgradeImpossible(Exception):
-    """
-    Exception to be thrown during a db upgrade function which will cause the old tables to be removed and recreated from
-    the new model.
-    """
+    """Exception to be thrown during a db upgrade function which will cause the old tables to be removed and recreated from the new model."""
 
 
 def upgrade(plugin: str) -> Callable:
-    """Used as a decorator to register a schema upgrade function.
+    """Use as a decorator to register a schema upgrade function.
 
     The wrapped function will be passed the current schema version and a session object.
     The function should return the new version of the schema after the upgrade.
@@ -139,12 +142,14 @@ def upgrade(plugin: str) -> Callable:
     Example::
 
       from flexget import schema
+
+
       @schema.upgrade('your_plugin')
       def upgrade(ver, session):
-           if ver == 2:
-               # upgrade
-               ver = 3
-           return ver
+          if ver == 2:
+              # upgrade
+              ver = 3
+          return ver
     """
 
     def upgrade_decorator(upgrade_func):
@@ -161,8 +166,8 @@ def upgrade(plugin: str) -> Callable:
                     )
                     reset_schema(plugin, session=session)
                     manager.db_upgraded = True
-                except Exception as e:
-                    logger.exception('Failed to upgrade database for plugin {}: {}', plugin, e)
+                except Exception:
+                    logger.exception('Failed to upgrade database for plugin {}', plugin)
                     session.rollback()
                     manager.shutdown(finish_queue=False)
                 else:
@@ -189,24 +194,22 @@ def upgrade(plugin: str) -> Callable:
 
 @with_session
 def reset_schema(plugin: str, session=None) -> None:
-    """
-    Removes all tables from given plugin from the database,
-    as well as removing current stored schema number.
+    """Remove all tables from given plugin from the database, as well as removing current stored schema number.
 
     :param plugin: The plugin whose schema should be reset
     """
     if plugin not in plugin_schemas:
-        raise ValueError('The plugin %s has no stored schema to reset.' % plugin)
+        raise ValueError(f'The plugin {plugin} has no stored schema to reset.')
     table_names = plugin_schemas[plugin].get('tables', [])
     tables = [table_schema(name, session) for name in table_names]
     # Remove the plugin's tables
     for table in tables:
         try:
-            table.drop()
+            table.drop(bind=session.bind)
         except OperationalError as e:
             if 'no such table' in str(e):
                 continue
-            raise e  # Remove the plugin from schema table
+            raise  # Remove the plugin from schema table
     session.query(PluginSchema).filter(PluginSchema.plugin == plugin).delete()
     # We need to commit our current changes to close the session before calling create_all
     session.commit()
@@ -217,37 +220,33 @@ def reset_schema(plugin: str, session=None) -> None:
 def register_plugin_table(tablename: str, plugin: str, version: int):
     plugin_schemas.setdefault(plugin, {'version': version, 'tables': []})
     if plugin_schemas[plugin]['version'] != version:
-        raise Exception('Two different schema versions received for plugin %s' % plugin)
+        raise RuntimeError(f'Two different schema versions received for plugin {plugin}')
     plugin_schemas[plugin]['tables'].append(tablename)
 
 
 class VersionedBaseMeta(DeclarativeMeta):
-    """Metaclass for objects returned by versioned_base factory"""
+    """Metaclass for objects returned by versioned_base factory."""
 
-    def __new__(mcs, metaname, bases, dict_):
-        """This gets called when a class that subclasses VersionedBase is defined."""
-        new_class = super().__new__(mcs, str(metaname), bases, dict_)
+    def __new__(cls, metaname, bases, dict_):
+        """Get called when a class that subclasses VersionedBase is defined."""
+        new_class = super().__new__(cls, str(metaname), bases, dict_)
         if metaname != 'VersionedBase':
             register_plugin_table(new_class.__tablename__, new_class._plugin, new_class._version)
         return new_class
 
-    def register_table(cls, table: Union[str, Table]) -> None:
-        """
-        This can be used if a plugin is declaring non-declarative sqlalchemy tables.
+    def register_table(self, table: str | Table) -> None:
+        """Can be used if a plugin is declaring non-declarative sqlalchemy tables.
 
         :param table: Can either be the name of the table, or an :class:`sqlalchemy.Table` instance.
         """
         if isinstance(table, str):
-            register_plugin_table(table, cls._plugin, cls._version)
+            register_plugin_table(table, self._plugin, self._version)
         else:
-            register_plugin_table(table.name, cls._plugin, cls._version)
+            register_plugin_table(table.name, self._plugin, self._version)
 
 
 def versioned_base(plugin: str, version: int) -> VersionedBaseMeta:
-    """
-    Returns a class which can be used like Base,
-    but automatically stores schema version when tables are created.
-    """
+    """Return a class which can be used like Base, but automatically stores schema version when tables are created."""
 
     @as_declarative(metaclass=VersionedBaseMeta, metadata=Base.metadata)
     class VersionedBase:
@@ -257,9 +256,9 @@ def versioned_base(plugin: str, version: int) -> VersionedBaseMeta:
     return VersionedBase
 
 
-@sqlalchemy.event.listens_for(Base.metadata, "after_create")
-def after_table_create(target, connection, tables: List[Table] = None, **kw) -> None:
-    """Sets the schema version to most recent for a plugin when it's tables are freshly created."""
+@sqlalchemy.event.listens_for(Base.metadata, 'after_create')
+def after_table_create(target, connection, tables: list[Table] | None = None, **kw) -> None:
+    """Set the schema version to most recent for a plugin when it's tables are freshly created."""
     if tables:
         # TODO: Detect if any database upgrading is needed and acquire the lock only in one place
         with flexget.manager.manager.acquire_lock(event=False):

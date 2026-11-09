@@ -8,10 +8,9 @@ logger = logger.bind(name='unique')
 
 
 class Unique:
-    """
-    Take action on entries with duplicate fields, except for the first item
+    """Take action on entries with duplicate fields, except for the first item.
 
-    Reject the second+ instance of every movie:
+    Reject the second+ instance of every movie::
 
       unique:
         field:
@@ -42,7 +41,7 @@ class Unique:
         return [entry[field] for field in field_names]
 
     def should_ignore(self, item, action):
-        return item.accepted and action == 'accept' or item.rejected and action == 'reject'
+        return (item.accepted and action == 'accept') or (item.rejected and action == 'reject')
 
     def on_task_filter(self, task, config):
         config = self.prepare_config(config)

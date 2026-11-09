@@ -1,7 +1,8 @@
 from datetime import datetime, timedelta
 
 from loguru import logger
-from sqlalchemy import Boolean, Column, DateTime, Integer, String, Unicode, select
+from sqlalchemy import select
+from sqlalchemy.orm import Mapped, mapped_column
 
 from flexget import db_schema
 from flexget.entry import Entry
@@ -18,7 +19,7 @@ Base = db_schema.versioned_base('pending_approval', 1)
 def upgrade(ver, session):
     if ver == 0:
         table = table_schema('pending_entries', session)
-        for row in session.execute(select([table.c.id, table.c.json])):
+        for row in session.execute(select(table.c.id, table.c.json)):
             if not row['json']:
                 # Seems there could be invalid data somehow. See #2590
                 continue
@@ -37,14 +38,14 @@ def upgrade(ver, session):
 class PendingEntry(Base):
     __tablename__ = 'pending_entries'
 
-    id = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
-    task_name = Column(Unicode)
-    title = Column(Unicode)
-    url = Column(String)
-    approved = Column(Boolean)
-    _json = Column('json', Unicode)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    task_name: Mapped[str | None]
+    title: Mapped[str | None]
+    url: Mapped[str | None]
+    approved: Mapped[bool | None]
+    _json: Mapped[str | None] = mapped_column('json')
     entry = entry_synonym('_json')
-    added = Column(DateTime, default=datetime.now)
+    added: Mapped[datetime] = mapped_column(default=datetime.now)
 
     def __init__(self, task_name, entry):
         self.task_name = task_name
@@ -54,9 +55,7 @@ class PendingEntry(Base):
         self.entry = entry
 
     def __repr__(self):
-        return '<PendingEntry(task_name={},title={},url={},approved={})>'.format(
-            self.task_name, self.title, self.url, self.approved
-        )
+        return f'<PendingEntry(task_name={self.task_name},title={self.title},url={self.url},approved={self.approved})>'
 
     def to_dict(self):
         return {
@@ -73,7 +72,8 @@ class PendingEntry(Base):
 def db_cleanup(manager, session):
     # Clean unapproved entries older than 1 year
     deleted = (
-        session.query(PendingEntry)
+        session
+        .query(PendingEntry)
         .filter(PendingEntry.added < datetime.now() - timedelta(days=365))
         .delete()
     )

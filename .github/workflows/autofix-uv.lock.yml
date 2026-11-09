@@ -1,0 +1,33 @@
+name: autofix.ci
+on:
+  push:
+    branches: [develop]
+    paths: &paths
+      - .github/workflows/autofix-uv.lock.yml
+      - pyproject.toml
+      - uv.lock
+  pull_request:
+    paths: *paths
+permissions: {}
+concurrency:
+  group: ${{ github.workflow_ref }}-${{ github.event.number || github.ref || github.run_id }}
+  cancel-in-progress: true
+env:
+  UV_VERSION: 0.13.7 # renovate: datasource=pypi depName=uv
+jobs:
+  uv-lock:
+    name: synchronize uv.lock
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Install uv and Python
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: ${{ env.UV_VERSION }}
+      - name: Run uv lock
+        run: uv lock
+      - name: Autofix
+        uses: autofix-ci/action@c5b2d67aa2274e7b5a18224e8171550871fc7e4a # v1

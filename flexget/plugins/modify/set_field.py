@@ -1,6 +1,9 @@
+import contextlib
+
 from loguru import logger
 
-from flexget import entry, plugin
+from flexget import plugin
+from flexget.entry import register_lazy_lookup
 from flexget.event import event
 from flexget.utils.template import RenderError
 
@@ -11,23 +14,23 @@ UNSET = '__unset__'
 
 
 class ModifySet:
-    """Allows adding information to a task entry for use later.
+    """Allow adding information to a task entry for use later.
 
-    Example:
+    Example::
 
-    set:
-      path: ~/download/path/
+        set:
+          path: ~/download/path/
     """
 
-    schema = {'type': 'object', "minProperties": 1}
+    schema = {'type': 'object', 'minProperties': 1}
 
     def on_task_metainfo(self, task, config):
-        """Adds the set dict to all accepted entries."""
+        """Add the set dict to all accepted entries."""
         for entry in task.all_entries:
             self.modify(entry, config)
 
     def modify(self, entry, config, errors=True):
-        """This can be called from a plugin to add set values to an entry"""
+        """Can be called from a plugin to add set values to an entry."""
         for field in config:
             # If this doesn't appear to be a jinja template, just set it right away.
             if not isinstance(config[field], str) or '{' not in config[field]:
@@ -36,10 +39,8 @@ class ModifySet:
             # themselves.
             else:
                 orig_value = entry.get(field, UNSET, eval_lazy=False)
-                try:
+                with contextlib.suppress(KeyError):
                     del entry[field]
-                except KeyError:
-                    pass
                 entry.add_lazy_fields(
                     self.lazy_set,
                     [field],
@@ -51,7 +52,7 @@ class ModifySet:
                     },
                 )
 
-    @entry.register_lazy_lookup('set_field')
+    @register_lazy_lookup('set_field')
     def lazy_set(self, entry, config, field, orig_field_value, errors=True):
         level = 'ERROR' if errors else 'DEBUG'
         if orig_field_value is not UNSET:

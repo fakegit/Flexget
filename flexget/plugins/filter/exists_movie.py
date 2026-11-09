@@ -11,9 +11,14 @@ from flexget.utils.tools import TimedDict
 logger = logger.bind(name='exists_movie')
 
 
+def merge_found_qualities(existing_qualities: dict[str, set], new_qualities: dict[str, set]):
+    """Merge the qualities from new_qualities dict into existing_qualities dict."""
+    for movie_id, quals in new_qualities.items():
+        existing_qualities.setdefault(movie_id, set()).update(quals)
+
+
 class FilterExistsMovie:
-    """
-    Reject existing movies.
+    """Reject existing movies.
 
     Syntax:
 
@@ -22,6 +27,7 @@ class FilterExistsMovie:
         [type: {dirs|files}]
         [allow_different_qualities: {better|yes|no}]
         [lookup: {imdb|no}]
+        [recursive: {yes|no}]
     """
 
     schema = {
@@ -37,6 +43,7 @@ class FilterExistsMovie:
                     },
                     'type': {'enum': ['files', 'dirs'], 'default': 'dirs'},
                     'lookup': {'enum': ['imdb', False], 'default': False},
+                    'recursive': {'type': 'boolean', 'default': False},
                 },
                 'required': ['path'],
                 'additionalProperties': False,
@@ -48,7 +55,7 @@ class FilterExistsMovie:
     file_pattern = re.compile(r'\.(avi|mkv|mp4|mpg|webm)$', re.IGNORECASE)
 
     def __init__(self):
-        self.cache = TimedDict(cache_time='1 hour')
+        self.cache: dict[Path, dict[str, set]] = TimedDict(cache_time='1 hour')
 
     def prepare_config(self, config):
         # if config is not a dict, assign value to 'path' key
@@ -77,8 +84,8 @@ class FilterExistsMovie:
         count_entries = 0
         count_files = 0
 
-        # list of imdb ids gathered from paths / cache
-        qualities = {}
+        # Maps movie identifier: set of found qualitites
+        existing_qualities: dict[str, set] = {}
 
         for folder in config['path']:
             folder = Path(folder).expanduser()
@@ -86,10 +93,10 @@ class FilterExistsMovie:
             cached_qualities = self.cache.get(folder, None)
             if cached_qualities:
                 logger.verbose('Using cached scan for {} ...', folder)
-                qualities.update(cached_qualities)
+                merge_found_qualities(existing_qualities, cached_qualities)
                 continue
 
-            path_ids = {}
+            path_qualities: dict[str, set] = {}
 
             if not folder.is_dir():
                 logger.critical('Path {} does not exist', folder)
@@ -103,7 +110,7 @@ class FilterExistsMovie:
 
             # scan through
             items = []
-            for p in folder.iterdir():
+            for p in folder.rglob('*') if config.get('recursive') else folder.iterdir():
                 if config.get('type') == 'dirs' and p.is_dir():
                     if self.dir_pattern.search(p.name):
                         continue
@@ -128,31 +135,27 @@ class FilterExistsMovie:
 
                 if config.get('lookup') == 'imdb':
                     try:
-                        imdb_id = imdb_lookup.imdb_id_lookup(
+                        movie_id = imdb_lookup.imdb_id_lookup(
                             movie_title=movie.name,
                             movie_year=movie.year,
                             raw_title=item,
                             session=task.session,
                         )
-                        if imdb_id in path_ids:
-                            logger.trace('duplicate {}', item)
-                            continue
-                        if imdb_id is not None:
-                            logger.trace('adding: {}', imdb_id)
-                            path_ids[imdb_id] = movie.quality
                     except plugin.PluginError as e:
                         logger.trace('{} lookup failed ({})', item, e.value)
                         incompatible_files += 1
+                        continue
                 else:
                     movie_id = movie.name
                     if movie.name is not None and movie.year is not None:
-                        movie_id = "%s %s" % (movie.name, movie.year)
-                    path_ids[movie_id] = movie.quality
+                        movie_id = f'{movie.name} {movie.year}'
+                if movie_id is not None:
+                    path_qualities.setdefault(movie_id, set()).add(movie.quality)
                     logger.trace('adding: {}', movie_id)
 
             # store to cache and extend to found list
-            self.cache[folder] = path_ids
-            qualities.update(path_ids)
+            self.cache[folder] = path_qualities
+            merge_found_qualities(existing_qualities, path_qualities)
 
         logger.debug('-- Start filtering entries ----------------------------------')
 
@@ -161,38 +164,37 @@ class FilterExistsMovie:
             count_entries += 1
             logger.debug('trying to parse entry {}', entry['title'])
             if config.get('lookup') == 'imdb':
-                key_imdb = 'imdb_id'
-                if not entry.get(key_imdb, eval_lazy=False):
+                if not entry.get('imdb_id', eval_lazy=False):
                     try:
                         imdb_lookup.lookup(entry)
                     except plugin.PluginError as e:
                         logger.trace('entry {} imdb failed ({})', entry['title'], e.value)
                         incompatible_entries += 1
                         continue
-                key = entry[key_imdb]
+                movie_id = entry['imdb_id']
             else:
-                key_name = 'movie_name'
-                key_year = 'movie_year'
-                if not entry.get(key_name, eval_lazy=False):
+                if not entry.get('movie_name', eval_lazy=False):
                     movie = plugin.get('parsing', self).parse_movie(entry['title'])
-                    entry[key_name] = movie.name
-                    entry[key_year] = movie.year
+                    entry['movie_name'] = movie.name
+                    entry['movie_year'] = movie.year
 
-                if entry.get(key_year, eval_lazy=False):
-                    key = "%s %s" % (entry[key_name], entry[key_year])
+                if entry.get('movie_year', eval_lazy=False):
+                    movie_id = f'{entry["movie_name"]} {entry["movie_year"]}'
                 else:
-                    key = entry[key_name]
+                    movie_id = entry['movie_name']
 
             # actual filtering
-            if key in qualities:
+            if movie_id in existing_qualities:
                 if config.get('allow_different_qualities') == 'better':
-                    if entry['quality'] > qualities[key]:
+                    if all(entry['quality'] > qual for qual in existing_qualities[movie_id]):
                         logger.trace('better quality')
                         continue
-                elif config.get('allow_different_qualities'):
-                    if entry['quality'] != qualities[key]:
-                        logger.trace('wrong quality')
-                        continue
+                elif (
+                    config.get('allow_different_qualities')
+                    and entry['quality'] not in existing_qualities[movie_id]
+                ):
+                    logger.trace('wrong quality')
+                    continue
 
                 entry.reject('movie exists')
 

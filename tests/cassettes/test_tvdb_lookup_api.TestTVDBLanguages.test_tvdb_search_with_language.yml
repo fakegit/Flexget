@@ -1,0 +1,111 @@
+interactions:
+- request:
+    body: '{"apikey": "4D297D8CFDE0E105"}'
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '30'
+      Content-Type:
+      - application/json
+      User-Agent:
+      - FlexGet/2.4.1.dev (www.flexget.com)
+    method: POST
+    uri: https://api.thetvdb.com/login
+  response:
+    body:
+      string: "{\n  \"token\": \"eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE0NzcwMzY5ODUsImlkIjoiRmxleEdldCIsIm9yaWdfaWF0IjoxNDc2OTUwNTg1fQ.QI2EdOx40-9TaITvyFLmtvVAtPIpMak5ScrZyWWdnq-8K3Es9SMQUR3SxS2BkJAfWmzGJMFKO3VHxjAeIwzRRcup85KI9zCgDsOng-T3jaJ71qQ8VKeK9FcZb50FWM9yvmwzcTsxdR5DgEMW3w3Z0vKwD16GQHvjYi-IkOqDd-iOG7OX8Kw1qCtG9CTufN-b6KkyAq2vhaEqAzjSWpgbjMHQyZTISre40ijICvBQMmH0BTTrerqQJbF8a_yRNYMUZclrkdAytQvd6FABrCFqJPxNddYWUjxNgFnFe5t1lmXbCY9NtQu-ll0niwuEosY1DmgNnIgs7pFn_IsPnTcsOA\"\n}"
+    headers:
+      cf-ray:
+      - 2f4af382fa252342-FRA
+      connection:
+      - keep-alive
+      content-encoding:
+      - gzip
+      content-type:
+      - application/json; charset=utf-8
+      date:
+      - Thu, 20 Oct 2016 08:03:05 GMT
+      server:
+      - cloudflare-nginx
+      set-cookie:
+      - __cfduid=d77e8c34802ba440438bc3e2e6a9baea71476950584; expires=Fri, 20-Oct-17
+        08:03:04 GMT; path=/; domain=.thetvdb.com; HttpOnly
+      vary:
+      - Accept-Language
+      x-powered-by:
+      - Thundar!
+      x-thetvdb-api-version:
+      - 2.1.1
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Accept-Language:
+      - nl
+      Authorization:
+      - Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE0NzcwMzY5ODUsImlkIjoiRmxleEdldCIsIm9yaWdfaWF0IjoxNDc2OTUwNTg1fQ.QI2EdOx40-9TaITvyFLmtvVAtPIpMak5ScrZyWWdnq-8K3Es9SMQUR3SxS2BkJAfWmzGJMFKO3VHxjAeIwzRRcup85KI9zCgDsOng-T3jaJ71qQ8VKeK9FcZb50FWM9yvmwzcTsxdR5DgEMW3w3Z0vKwD16GQHvjYi-IkOqDd-iOG7OX8Kw1qCtG9CTufN-b6KkyAq2vhaEqAzjSWpgbjMHQyZTISre40ijICvBQMmH0BTTrerqQJbF8a_yRNYMUZclrkdAytQvd6FABrCFqJPxNddYWUjxNgFnFe5t1lmXbCY9NtQu-ll0niwuEosY1DmgNnIgs7pFn_IsPnTcsOA
+      Connection:
+      - keep-alive
+      User-Agent:
+      - FlexGet/2.4.1.dev (www.flexget.com)
+    method: GET
+    uri: https://api.thetvdb.com/search/series?name=Tegenlicht
+  response:
+    body:
+      string: "{\n  \"data\": [\n    {\n      \"aliases\": [\n        \"VPRO Tegenlicht\"\n
+        \     ],\n      \"banner\": \"graphical/252712-g2.jpg\",\n      \"firstAired\":
+        \"2002-09-08\",\n      \"id\": 252712,\n      \"network\": \"VPRO\",\n      \"overview\":
+        \"Tegenlicht is de reeks informatieve programma's van VPRO Televisie, waarin
+        nieuwe idee\xEBn en trends worden onderzocht binnen de wereld van politiek,
+        economie, maatschappij en wetenschap. \\r\\nTegenlicht beschouwt zichzelf
+        nadrukkelijk als de eerste en enige future affairs-rubriek binnen het bestel.
+        Het programma nestelt zich daarmee aan de frontlinie, en zoekt zijn verhalen
+        op die plekken waar idee\xEBn worden ontwikkeld, getest en bekritiseerd. Via
+        niet voor de hand liggende, controversi\xEBle en tegelijkertijd gedegen analyses
+        wil Tegenlicht zijn kijk geven op de wereld; zowel op nationale als op internationale
+        ontwikkelingen die onze wereld in de 21ste eeuw vormgeven.\\r\\n\\r\\nTegenlicht
+        is een programma zonder een vast 'format'. Afhankelijk van het onderwerp wordt
+        steeds een passende vorm gekozen, waardoor langere reportages uit binnen-
+        en buitenland worden afgewisseld met debatten, en met uitzendingen waarbij
+        \xE9\xE9n persoon alle ruimte krijgt zijn of haar visie op een onderwerp te
+        geven.\",\n      \"seriesName\": \"Tegenlicht\",\n      \"status\": \"Continuing\"\n
+        \   }\n  ]\n}"
+    headers:
+      cache-control:
+      - private, max-age=600
+      cf-ray:
+      - 2f4af389792c27b0-FRA
+      connection:
+      - keep-alive
+      content-encoding:
+      - gzip
+      content-type:
+      - application/json; charset=utf-8
+      date:
+      - Thu, 20 Oct 2016 08:03:06 GMT
+      server:
+      - cloudflare-nginx
+      set-cookie:
+      - __cfduid=d1a060e4c6e241578cd66c0e96179825b1476950585; expires=Fri, 20-Oct-17
+        08:03:05 GMT; path=/; domain=.thetvdb.com; HttpOnly
+      vary:
+      - Accept-Language
+      x-powered-by:
+      - Thundar!
+      x-thetvdb-api-version:
+      - 2.1.1
+    status:
+      code: 200
+      message: OK
+version: 1

@@ -1,7 +1,8 @@
 """Plugin for json files."""
+
 from pathlib import Path
 
-import dateutil.parser as parser
+from dateutil import parser
 from loguru import logger
 
 from flexget import plugin
@@ -13,8 +14,7 @@ logger = logger.bind(name='json')
 
 
 class Json:
-    """
-    Return entries from a json file.
+    """Return entries from a json file.
 
     ::
 
@@ -24,7 +24,7 @@ class Json:
         - <entry field>: <corresponding JSON key>
 
     Note: each entry must have at least two fields, 'title' and 'url'. If not specified in the config,
-    this plugin asssumes that keys named 'title' and 'url' exist within the JSON.
+    this plugin assumes that keys named 'title' and 'url' exist within the JSON.
     'encoding' defaults to 'utf-8'
 
     Example::

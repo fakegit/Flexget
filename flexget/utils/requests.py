@@ -1,11 +1,14 @@
+from __future__ import annotations
+
 import abc
 import logging
 import time
+import types
 
 # Allow some request objects to be imported from here instead of requests
-import warnings
 from datetime import datetime, timedelta
-from typing import Dict, Optional, Union, TYPE_CHECKING
+from email.message import EmailMessage
+from typing import TYPE_CHECKING
 from urllib.parse import urlparse
 from urllib.request import urlopen
 
@@ -16,12 +19,17 @@ from requests import RequestException
 from flexget import __version__ as version
 from flexget.utils.tools import TimedDict, parse_timedelta
 
+try:
+    from warnings import deprecated
+except ImportError:
+    from typing_extensions import deprecated  # for python<=3.12
+
 # If we use just 'requests' here, we'll get the logger created by requests, rather than our own
 logger = logger.bind(name='utils.requests')
 
 # Don't emit info level urllib3 log messages or below
 logging.getLogger('requests.packages.urllib3').setLevel(logging.WARNING)
-# same as above, but for systems where urllib3 isn't part of the requests pacakge (i.e., Ubuntu)
+# same as above, but for systems where urllib3 isn't part of the requests package (i.e., Ubuntu)
 logging.getLogger('urllib3').setLevel(logging.WARNING)
 
 # Time to wait before trying an unresponsive site again
@@ -30,16 +38,16 @@ WAIT_TIME = timedelta(seconds=60)
 unresponsive_hosts = TimedDict(WAIT_TIME)
 
 if TYPE_CHECKING:
+    from collections.abc import Mapping
     from typing import TypedDict
 
-    StateCacheDict = TypedDict(
-        'StateCacheDict', {'tokens': Union[float, int], 'last_update': datetime}
-    )
+    class StateCacheDict(TypedDict):
+        tokens: float | int
+        last_update: datetime
 
 
 def is_unresponsive(url: str) -> bool:
-    """
-    Checks if host of given url has timed out within WAIT_TIME
+    """Check if host of given url has timed out within WAIT_TIME.
 
     :param url: The url to check
     :return: True if the host has timed out within WAIT_TIME
@@ -50,8 +58,7 @@ def is_unresponsive(url: str) -> bool:
 
 
 def set_unresponsive(url: str) -> None:
-    """
-    Marks the host of a given url as unresponsive
+    """Mark the host of a given url as unresponsive.
 
     :param url: The url that timed out
     """
@@ -68,28 +75,28 @@ class DomainLimiter(abc.ABC):
 
     @abc.abstractmethod
     def __call__(self) -> None:
-        """This method will be called once before every request to the domain."""
+        """Be called once before every request to the domain."""
 
 
 class TokenBucketLimiter(DomainLimiter):
-    """
-    A token bucket rate limiter for domains.
+    """A token bucket rate limiter for domains.
 
     New instances for the same domain will restore previous values.
     """
 
     # This is just an in memory cache right now, it works for the daemon, and across tasks in a single execution
     # but not for multiple executions via cron. Do we need to store this to db?
-    state_cache: Dict[str, 'StateCacheDict'] = {}
+    state_cache: dict[str, StateCacheDict] = {}
 
     def __init__(
         self,
         domain: str,
-        tokens: Union[float, int],
-        rate: Union[str, timedelta],
+        tokens: float,
+        rate: str | timedelta,
         wait: bool = True,
     ) -> None:
-        """
+        """Init a token bucket rate limiter.
+
         :param int tokens: Size of bucket
         :param rate: Amount of time to accrue 1 token. Either `timedelta` or interval string.
         :param bool wait: If true, will wait for a token to be available. If false, errors when token is not available.
@@ -104,11 +111,11 @@ class TokenBucketLimiter(DomainLimiter):
         )
 
     @property
-    def tokens(self) -> Union[float, int]:
+    def tokens(self) -> float | int:
         return min(self.max_tokens, self.state['tokens'])
 
     @tokens.setter
-    def tokens(self, value: Union[float, int]) -> None:
+    def tokens(self, value: float) -> None:
         self.state['tokens'] = value
 
     @property
@@ -126,13 +133,10 @@ class TokenBucketLimiter(DomainLimiter):
         self.last_update = datetime.now()
         if self.tokens < 1:
             if not self.wait:
-                raise RequestException('Requests to %s have exceeded their limit.' % self.domain)
+                raise RequestException(f'Requests to {self.domain} have exceeded their limit.')
             wait = self.rate.total_seconds() * (1 - self.tokens)
             # Don't spam console if wait is low
-            if wait < 4:
-                level = 'DEBUG'
-            else:
-                level = 'VERBOSE'
+            level = 'DEBUG' if wait < 4 else 'VERBOSE'
             logger.log(level, 'Waiting {:.2f} seconds until next request to {}', wait, self.domain)
             # Sleep until it is time for the next request
             time.sleep(wait)
@@ -142,13 +146,12 @@ class TokenBucketLimiter(DomainLimiter):
 class TimedLimiter(TokenBucketLimiter):
     """Enforces a minimum interval between requests to a given domain."""
 
-    def __init__(self, domain: str, interval: Union[str, timedelta]) -> None:
+    def __init__(self, domain: str, interval: str | timedelta) -> None:
         super().__init__(domain, 1, interval)
 
 
-def _wrap_urlopen(url: str, timeout: Optional[int] = None) -> requests.Response:
-    """
-    Handles alternate schemes using urllib, wraps the response in a requests.Response
+def _wrap_urlopen(url: str, timeout: int | None = None) -> requests.Response:
+    """Handle alternate schemes using urllib, wrap the response in a requests.Response.
 
     This is not installed as an adapter in requests, since urls without network locations
     (e.g. file:///somewhere) will cause errors
@@ -167,12 +170,17 @@ def _wrap_urlopen(url: str, timeout: Optional[int] = None) -> requests.Response:
     resp.raw.read = lambda size, **kwargs: orig_read(size)
     resp.status_code = raw.code or 200
     resp.headers = requests.structures.CaseInsensitiveDict(raw.headers)
+    if url.startswith('file://'):
+
+        def close(self):
+            self.raw.close()
+
+        resp.close = types.MethodType(close, resp)
     return resp
 
 
-def limit_domains(url: str, limit_dict: Dict[str, DomainLimiter]) -> None:
-    """
-    If this url matches a domain in `limit_dict`, run the limiter.
+def limit_domains(url: str, limit_dict: dict[str, DomainLimiter]) -> None:
+    """If this url matches a domain in `limit_dict`, run the limiter.
 
     This is separated in to its own function so that limits can be disabled during unit tests with VCR.
     """
@@ -182,64 +190,69 @@ def limit_domains(url: str, limit_dict: Dict[str, DomainLimiter]) -> None:
             break
 
 
-class Session(requests.Session):
-    """
-    Subclass of requests Session class which defines some of our own defaults, records unresponsive sites,
-    and raises errors by default.
+def parse_header(header: str) -> tuple[str, Mapping]:
+    """Parse a MIME header (such as Content-Type) into a main value and a dictionary of parameters.
 
+    Replaces function in the deprecated cgi stdlib module.
     """
+    msg = EmailMessage()
+    msg['content-type'] = header
+    return msg.get_content_type(), msg['content-type'].params
+
+
+class Session(requests.Session):
+    """Subclass of requests Session class which defines some of our own defaults, records unresponsive sites, and raises errors by default."""
 
     def __init__(self, timeout: int = 30, max_retries: int = 1, **kwargs) -> None:
         """Set some defaults for our session if not explicitly defined."""
         super().__init__()
         self.timeout = timeout
-        self.stream = True
-        self.adapters['http://'].max_retries = max_retries
+        # requests mounts separate adapters for http:// and https://
+        for adapter in self.adapters.values():
+            adapter.max_retries = max_retries
         # Stores min intervals between requests for certain sites
-        self.domain_limiters: Dict[str, DomainLimiter] = {}
-        self.headers.update({'User-Agent': 'FlexGet/%s (www.flexget.com)' % version})
+        self.domain_limiters: dict[str, DomainLimiter] = {}
+        self.headers.update({'User-Agent': f'FlexGet/{version} (www.flexget.com)'})
 
     def add_cookiejar(self, cookiejar):
-        """
-        Merges cookies from `cookiejar` into cookiejar for this session.
+        """Merge cookies from `cookiejar` into cookiejar for this session.
 
         :param cookiejar: CookieJar instance to add to the session.
         """
         for cookie in cookiejar:
             self.cookies.set_cookie(cookie)
 
+    @deprecated('set_domain_delay is deprecated, use add_domain_limiter')
     def set_domain_delay(self, domain, delay):
-        """
-        DEPRECATED, use `add_domain_limiter`
-        Registers a minimum interval between requests to `domain`
+        """Register a minimum interval between requests to `domain`.
 
         :param domain: The domain to set the interval on
         :param delay: The amount of time between requests, can be a timedelta or string like '3 seconds'
+
+        .. deprecated:: 1.2.460
+           Use :meth:`add_domain_limiter` instead.
         """
-        warnings.warn(
-            'set_domain_delay is deprecated, use add_domain_limiter',
-            DeprecationWarning,
-            stacklevel=2,
-        )
         self.domain_limiters[domain] = TimedLimiter(domain, delay)
 
-    def add_domain_limiter(self, limiter: DomainLimiter) -> None:
-        """
-        Add a limiter to throttle requests to a specific domain.
+    def add_domain_limiter(self, limiter: DomainLimiter, replace: bool = True) -> None:
+        """Add a limiter to throttle requests to a specific domain.
 
         :param DomainLimiter limiter: The `DomainLimiter` to add to the session.
+        :param replace: If `True`, an existing domain limiter for this domain will be replaced.
+            If `False`, no changes will be made.
         """
+        if limiter.domain in self.domain_limiters and not replace:
+            return
         self.domain_limiters[limiter.domain] = limiter
 
     def request(self, method: str, url: str, *args, **kwargs) -> requests.Response:
-        """
-        Does a request, but raises Timeout immediately if site is known to timeout, and records sites that timeout.
+        """Do a request, but raise Timeout immediately if site is known to timeout, and record sites that timeout.
+
         Also raises errors getting the content by default.
 
         :param bool raise_status: If True, non-success status code responses will be raised as errors (True by default)
         :param disable_limiters: If True, any limiters configured for this session will be ignored for this request.
         """
-
         # Raise Timeout right away if site is known to timeout
         if is_unresponsive(url):
             raise requests.Timeout(
@@ -260,7 +273,9 @@ class Session(requests.Session):
             return _wrap_urlopen(url, timeout=kwargs['timeout'])
 
         try:
-            logger.debug(f'{method.upper()}ing URL {url} with args {args} and kwargs {kwargs}')
+            logger.debug(
+                '{}ing URL {} with args {} and kwargs {}', method.upper(), url, args, kwargs
+            )
             result = super().request(method, url, *args, **kwargs)
         except requests.Timeout:
             # Mark this site in known unresponsive list
@@ -280,7 +295,7 @@ def request(method: str, url: str, **kwargs) -> requests.Response:
 
 
 def head(url: str, **kwargs) -> requests.Response:
-    """Sends a HEAD request. Returns :class:`Response` object.
+    """Send a HEAD request. Return :class:`Response` object.
 
     :param url: URL for the new :class:`Request` object.
     :param kwargs: Optional arguments that ``request`` takes.
@@ -290,7 +305,7 @@ def head(url: str, **kwargs) -> requests.Response:
 
 
 def get(url: str, **kwargs) -> requests.Response:
-    """Sends a GET request. Returns :class:`Response` object.
+    """Send a GET request. Return :class:`Response` object.
 
     :param url: URL for the new :class:`Request` object.
     :param kwargs: Optional arguments that ``request`` takes.
@@ -300,7 +315,7 @@ def get(url: str, **kwargs) -> requests.Response:
 
 
 def post(url: str, data=None, **kwargs) -> requests.Response:
-    """Sends a POST request. Returns :class:`Response` object.
+    """Send a POST request. Return :class:`Response` object.
 
     :param url: URL for the new :class:`Request` object.
     :param data: (optional) Dictionary or bytes to send in the body of the :class:`Request`.

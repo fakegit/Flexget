@@ -1,22 +1,22 @@
+from __future__ import annotations
+
 import json
-import os
 import re
 from collections import deque
 from contextlib import suppress
 from functools import partial, wraps
-from typing import Callable, List, Dict, Union, Mapping, Tuple, TYPE_CHECKING
+from pathlib import Path
+from typing import TYPE_CHECKING
 
-from jsonschema.exceptions import ValidationError as SchemaValidationError
-from flask import Flask, Response, jsonify, make_response, request, Request
+from flask import Flask, jsonify, make_response, request
 from flask_compress import Compress
 from flask_cors import CORS
 from flask_restx import Api as RestxAPI
-from flask_restx import Resource, Model
-from flask_restx.reqparse import RequestParser
-from jsonschema import RefResolutionError
+from flask_restx import Resource
 from loguru import logger
-from sqlalchemy.orm import Session
-from werkzeug.http import generate_etag
+from referencing.exceptions import Unresolvable
+from requests import HTTPError
+from werkzeug.http import generate_etag, quote_etag
 
 from flexget import manager
 from flexget.config_schema import format_checker, process_config
@@ -30,13 +30,21 @@ __version__ = '1.8.0'
 logger = logger.bind(name='api')
 
 if TYPE_CHECKING:
+    from collections.abc import Callable, Mapping
     from typing import TypedDict
 
-    _TypeDict = TypedDict('_TypeDict', {'type': str})
+    from flask import Request, Response
+    from flask_restx import Model
+    from flask_restx.reqparse import RequestParser
+    from jsonschema.exceptions import ValidationError as SchemaValidationError
+    from sqlalchemy.orm import Session
+
+    class _TypeDict(TypedDict):
+        type: str
 
     class MessageDict(_TypeDict):
-        properties: Dict[str, _TypeDict]
-        required: List[str]
+        properties: dict[str, _TypeDict]
+        required: list[str]
 
     PaginationHeaders = TypedDict(
         'PaginationHeaders', {'Link': str, 'Total-Count': int, 'Count': int}
@@ -44,8 +52,7 @@ if TYPE_CHECKING:
 
 
 class APIClient:
-    """
-    This is an client which can be used as a more pythonic interface to the rest api.
+    """A client which can be used as a more pythonic interface to the rest api.
 
     It skips http, and is only usable from within the running flexget process.
     """
@@ -53,20 +60,20 @@ class APIClient:
     def __init__(self) -> None:
         self.app = api_app.test_client()
 
-    def __getattr__(self, item: str) -> 'APIEndpoint':
+    def __getattr__(self, item: str) -> APIEndpoint:
         return APIEndpoint('/api/' + item, self.get_endpoint)
 
-    def get_endpoint(self, url: str, data=None, method: str = None):
+    def get_endpoint(self, url: str, data=None, method: str | None = None):
         if method is None:
             method = 'POST' if data is not None else 'GET'
-        auth_header = dict(Authorization='Token %s' % api_key())
+        auth_header = {'Authorization': f'Token {api_key()}'}
         response = self.app.open(
             url, data=data, follow_redirects=True, method=method, headers=auth_header
         )
         result = json.loads(response.get_data(as_text=True))
         # TODO: Proper exceptions
         if 200 > response.status_code >= 300:
-            raise Exception(result['error'])
+            raise HTTPError(result['error'])
         return result
 
 
@@ -80,12 +87,12 @@ class APIEndpoint:
 
     __getitem__ = __getattr__
 
-    def __call__(self, data=None, method: str = None):
+    def __call__(self, data=None, method: str | None = None):
         return self.caller(self.endpoint, data=data, method=method)
 
 
 def api_version(f: Callable[..., Response]):
-    """ Add the 'API-Version' header to all responses """
+    """Add the 'API-Version' header to all responses."""
 
     @wraps(f)
     def wrapped(*args, **kwargs):
@@ -107,21 +114,23 @@ class APIResource(Resource):
 
 
 class API(RestxAPI):
-    """
-    Extends a flask restx :class:`flask_restx.Api` with:
-      - methods to make using json schemas easier
-      - methods to auto document and handle :class:`ApiError` responses
+    """Subclass of RestxAPI.
+
+    Extend a flask restx :class:`flask_restx.Api` with:
+
+    - methods to make using json schemas easier
+    - methods to auto document and handle :class:`ApiError` responses
     """
 
     def validate(
         self,
         model: Model,
-        schema_override: Dict[str, List[Dict[str, str]]] = None,
+        schema_override: dict[str, list[dict[str, str]]] | None = None,
         description=None,
     ):
-        """
-        When a method is decorated with this, json data submitted to the endpoint will be validated with the given
-        `model`. This also auto-documents the expected model, as well as the possible :class:`ValidationError` response.
+        """When a method is decorated with this, json data submitted to the endpoint will be validated with the given `model`.
+
+        This also auto-documents the expected model, as well as the possible :class:`ValidationError` response.
         """
 
         def decorator(func):
@@ -131,12 +140,12 @@ class API(RestxAPI):
             def wrapper(*args, **kwargs):
                 payload = request.json
                 try:
-                    schema = schema_override if schema_override else model.__schema__
+                    schema = schema_override or model.__schema__
                     errors = process_config(config=payload, schema=schema, set_defaults=False)
 
                     if errors:
                         raise ValidationError(errors)
-                except RefResolutionError as e:
+                except Unresolvable as e:
                     raise APIError(str(e))
                 return func(*args, **kwargs)
 
@@ -145,9 +154,9 @@ class API(RestxAPI):
         return decorator
 
     def response(self, code_or_apierror, description: str = 'Success', model=None, **kwargs):
-        """
-        Extends :meth:`flask_restx.Api.response` to allow passing an :class:`ApiError` class instead of
-        response code. If an `ApiError` is used, the response code, and expected response model, is automatically
+        """Extend :meth:`flask_restx.Api.response` to allow passing an :class:`ApiError` class instead of response code.
+
+        If an `ApiError` is used, the response code, and expected response model, is automatically
         documented.
         """
         with suppress(TypeError):  # If first argument isn't a class this happens
@@ -167,12 +176,11 @@ class API(RestxAPI):
     def pagination_parser(
         self,
         parser: RequestParser = None,
-        sort_choices: List[str] = None,
-        default: str = None,
-        add_sort: bool = None,
+        sort_choices: list[str] | None = None,
+        default: str | None = None,
+        add_sort: bool | None = None,
     ) -> RequestParser:
-        """
-        Return a standardized pagination parser, to be used for any endpoint that has pagination.
+        """Return a standardized pagination parser, to be used for any endpoint that has pagination.
 
         :param RequestParser parser: Can extend a given parser or create a new one
         :param tuple sort_choices: A tuple of strings, to be used as server side attribute searches
@@ -199,10 +207,10 @@ class API(RestxAPI):
         return pagination
 
 
-api_app = Flask(__name__, template_folder=os.path.join(__path__[0], 'templates'))
+api_app = Flask(__name__, template_folder=Path(__path__[0]) / 'templates')
 api_app.config['REMEMBER_COOKIE_NAME'] = 'flexget.token'
 api_app.config['DEBUG'] = True
-api_app.config['ERROR_404_HELP'] = False
+api_app.config['RESTX_ERROR_404_HELP'] = False
 api_app.url_map.strict_slashes = False
 
 CORS(api_app, expose_headers='Link, Total-Count, Count, ETag')
@@ -210,14 +218,14 @@ Compress(api_app)
 
 api = API(
     api_app,
-    title='Flexget API v{}'.format(__version__),
+    title=f'Flexget API v{__version__}',
     version=__version__,
     description='View and manage flexget core operations and plugins. Open each endpoint view for usage information.'
     ' Navigate to http://flexget.com/API for more details.',
     format_checker=format_checker,
 )
 
-base_message: "MessageDict" = {
+base_message: MessageDict = {
     'type': 'object',
     'properties': {
         'status_code': {'type': 'integer'},
@@ -236,7 +244,7 @@ class APIError(Exception):
     status = 'Error'
     response_model = base_message_schema
 
-    def __init__(self, message: str = None, payload=None) -> None:
+    def __init__(self, message: str | None = None, payload=None) -> None:
         self.message = message
         self.payload = payload
 
@@ -327,15 +335,15 @@ class ValidationError(APIError):
     )
 
     def __init__(
-        self, validation_errors: List[SchemaValidationError], message: str = 'validation error'
+        self, validation_errors: list[SchemaValidationError], message: str = 'validation error'
     ) -> None:
         payload = {
             'validation_errors': [self._verror_to_dict(error) for error in validation_errors]
         }
         super().__init__(message, payload=payload)
 
-    def _verror_to_dict(self, error: SchemaValidationError) -> Mapping[str, Union[str, list]]:
-        error_dict: Dict[str, Union[str, list]] = {}
+    def _verror_to_dict(self, error: SchemaValidationError) -> Mapping[str, str | list]:
+        error_dict: dict[str, str | list] = {}
         for attr in self.verror_attrs:
             if isinstance(getattr(error, attr), deque):
                 error_dict[attr] = list(getattr(error, attr))
@@ -362,26 +370,23 @@ def success_response(message: str, status_code: int = 200, status: str = 'succes
 @api.errorhandler(Conflict)
 @api.errorhandler(NotModified)
 @api.errorhandler(PreconditionFailed)
-def api_errors(error: APIError) -> Tuple[dict, int]:
+def api_errors(error: APIError) -> tuple[dict, int]:
     return error.to_dict(), error.status_code
 
 
 @with_session
 def api_key(session: Session = None) -> str:
     logger.debug('fetching token for internal lookup')
-    return session.query(User).first().token  # type: ignore
+    return session.query(User).first().token
 
 
-def etag(method: Callable = None, cache_age: int = 0):
-    """
-    A decorator that add an ETag header to the response and checks for the "If-Match" and "If-Not-Match" headers to
-     return an appropriate response.
+def etag(method: Callable | None = None, cache_age: int = 0):
+    """Add an ETag header to the response and check for the "If-Match" and "If-Not-Match" headers to return an appropriate response.
 
     :param method: A GET or HEAD flask method to wrap
     :param cache_age: max-age cache age for the content
     :return: The method's response with the ETag and Cache-Control headers, raises a 412 error or returns a 304 response
     """
-
     # If called without method, we've been called with optional arguments.
     # We return a decorator with the optional arguments filled in.
     # Next time round we'll be decorating method.
@@ -402,8 +407,8 @@ def etag(method: Callable = None, cache_age: int = 0):
             + rv.headers.get('total-count', '')
         )
         data = (rv.get_data().decode() + content_headers).encode()
-        etag = generate_etag(data)
-        rv.headers['Cache-Control'] = 'max-age=%s' % cache_age
+        etag = quote_etag(generate_etag(data))
+        rv.headers['Cache-Control'] = f'max-age={cache_age}'
         rv.headers['ETag'] = etag
         if_match = request.headers.get('If-Match')
         if_none_match = request.headers.get('If-None-Match')
@@ -424,9 +429,8 @@ def etag(method: Callable = None, cache_age: int = 0):
 
 def pagination_headers(
     total_pages: int, total_items: int, page_count: int, request: Request
-) -> 'PaginationHeaders':
-    """
-    Creates the `Link`. 'Count' and  'Total-Count' headers, to be used for pagination traversing
+) -> PaginationHeaders:
+    """Create the `Link`. 'Count' and  'Total-Count' headers, to be used for pagination traversing.
 
     :param total_pages: Total number of pages
     :param total_items: Total number of items in all the pages
@@ -434,7 +438,6 @@ def pagination_headers(
     :param request: The flask request used, required to build other reoccurring vars like url and such.
     :return:
     """
-
     # Build constant variables from request data
     url = request.url_root + request.path.lstrip('/')
     per_page = request.args.get('per_page', 50)
@@ -444,8 +447,8 @@ def pagination_headers(
     link_with_params = f'<{url}?per_page={per_page}&'
 
     # Removed page and per_page from query string
-    query_string = re.sub(br'per_page=\d+', b'', request.query_string)
-    query_string = re.sub(br'page=\d+', b'', query_string)
+    query_string = re.sub(rb'per_page=\d+', b'', request.query_string)
+    query_string = re.sub(rb'page=\d+', b'', query_string)
     query_string = re.sub(b'&{2,}', b'&', query_string)
 
     # Add all original query params
@@ -454,9 +457,9 @@ def pagination_headers(
     link_string = ''
 
     if page > 1:
-        link_string += f'{link_with_params}&page={page-1}>; rel="prev", '
+        link_string += f'{link_with_params}&page={page - 1}>; rel="prev", '
     if page < total_pages:
-        link_string += f'{link_with_params}&page={page+1}>; rel="next", '
+        link_string += f'{link_with_params}&page={page + 1}>; rel="next", '
     link_string += f'{link_with_params}&page={total_pages}>; rel="last"'
 
     return {'Link': link_string, 'Total-Count': total_items, 'Count': page_count}

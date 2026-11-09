@@ -13,15 +13,16 @@ PER_RUN = 50
 
 
 class GenSeries:
-    """
-    Purely for debugging purposes. Not great quality :)
+    """Purely for debugging purposes. Not great quality :).
 
-    gen_series_data:
-        series: NUM
-        seasons: NUM
-        episodes: NUM
-        qualities:
-          - LIST
+    ::
+
+        gen_series_data:
+            series: NUM
+            seasons: NUM
+            episodes: NUM
+            qualities:
+              - LIST
 
     This will also auto configure series plugin for testing
     """
@@ -36,22 +37,19 @@ class GenSeries:
         logger.info('Generating test data ...')
         series = []
         for num in range(config['series']):
-            series.append('series %d name' % num)
+            series.append(f'series {num} name')
             for season in range(int(config['seasons'])):
                 for episode in range(int(config['episodes'])):
                     for quality in config['qualities']:
                         entry = Entry()
-                        entry['title'] = 'series %d name - S%02dE%02d - %s' % (
-                            num,
-                            season + 1,
-                            episode + 1,
-                            quality,
+                        entry['title'] = (
+                            f'series {num} name - S{season + 1:02d}E{episode + 1:02d} - {quality}'
                         )
-                        entry['url'] = 'http://localhost/mock/%s' % ''.join(
-                            [
+                        entry['url'] = 'http://localhost/mock/{}'.format(
+                            ''.join([
                                 random.choice(string.ascii_letters + string.digits)
                                 for x in range(1, 30)
-                            ]
+                            ])
                         )
                         self.entries.append(entry)
         logger.info('Generated {} entries', len(self.entries))

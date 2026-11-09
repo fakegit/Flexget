@@ -10,8 +10,7 @@ logger = logger.bind(name='urlrewrite')
 
 
 class UrlRewrite:
-    r"""
-    Generic configurable urlrewriter.
+    r"""Generic configurable urlrewriter.
 
     Example::
 
@@ -51,7 +50,7 @@ class UrlRewrite:
     def url_rewritable(self, task, entry):
         logger.trace('running url_rewritable')
         logger.trace(self.resolves)
-        for _, config in self.resolves.get(task.name, {}).items():
+        for config in self.resolves.get(task.name, {}).values():
             regexp = config['regexp_compiled']
             logger.trace('testing {}', config['regexp'])
             if regexp.search(entry['url']):
@@ -70,9 +69,7 @@ class UrlRewrite:
 
                 if regexp.match(entry['url']):
                     entry.fail('urlrewriting')
-                    raise UrlRewritingError(
-                        'Regexp %s result should NOT continue to match!' % name
-                    )
+                    raise UrlRewritingError(f'Regexp {name} result should NOT continue to match!')
                 return
 
 

@@ -13,8 +13,7 @@ RE_ARTICLES = r'^(the|a|an)\s'
 
 
 class PluginSortBy:
-    """
-    Sort task entries based on a field
+    """Sort task entries based on a field.
 
     Example::
 
@@ -32,24 +31,22 @@ class PluginSortBy:
         reverse: yes
     """
 
-    schema = one_or_more(
-        {
-            'oneOf': [
-                {'type': 'string'},
-                {
-                    'type': 'object',
-                    'properties': {
-                        'field': {'type': 'string'},
-                        'reverse': {'type': 'boolean'},
-                        'ignore_articles': {
-                            'oneOf': [{'type': 'boolean'}, {'type': 'string', 'format': 'regex'}]
-                        },
+    schema = one_or_more({
+        'oneOf': [
+            {'type': 'string'},
+            {
+                'type': 'object',
+                'properties': {
+                    'field': {'type': 'string'},
+                    'reverse': {'type': 'boolean'},
+                    'ignore_articles': {
+                        'oneOf': [{'type': 'boolean'}, {'type': 'string', 'format': 'regex'}]
                     },
-                    'additionalProperties': False,
                 },
-            ]
-        }
-    )
+                'additionalProperties': False,
+            },
+        ]
+    })
 
     @plugin.priority(plugin.PRIORITY_FIRST)
     def on_task_filter(self, task, config):
@@ -75,7 +72,7 @@ class PluginSortBy:
 
             re_articles = RE_ARTICLES if ignore_articles is True else ignore_articles
 
-            def sort_key(entry):
+            def sort_key(entry, field=field, re_articles=re_articles, reverse=reverse):
                 val = evaluate_expression(field, entry)
                 if isinstance(val, str) and re_articles:
                     val = re.sub(re_articles, '', val, flags=re.IGNORECASE)

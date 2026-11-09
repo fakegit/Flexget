@@ -8,13 +8,12 @@ logger = logger.bind(name='disable')
 
 
 def all_builtins():
-    """Helper function to return an iterator over all builtin plugins."""
+    """Return an iterator over all builtin plugins."""
     return (p for p in plugin.plugins.values() if p.builtin)
 
 
 class DisablePlugin:
-    """
-    Allows disabling built-ins, or plugins referenced by template/include plugin.
+    """Allows disabling built-ins, or plugins referenced by template/include plugin.
 
     Example::
 

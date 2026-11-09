@@ -1,0 +1,1494 @@
+interactions:
+- request:
+    body: '{"apikey": "4D297D8CFDE0E105"}'
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '30'
+      Content-Type:
+      - application/json
+      User-Agent:
+      - FlexGet/2.9.16.dev (www.flexget.com)
+    method: POST
+    uri: https://api.thetvdb.com/login
+  response:
+    body:
+      string: "{\n  \"token\": \"eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE0ODY2NzM4NDIsImlkIjoiRmxleEdldCIsIm9yaWdfaWF0IjoxNDg2NTg3NDQyfQ.FPPsyjyUMElXL5zk7_yEnVx3fEEWTOxMRiIU8WwwDOAr-XRU0TlFqUwFQNMrfGvl5f4twDl9JQBjtoaJHkK-ExZ_nZJJW8TAu0RN7qlybfNbVfQLPN2O8xmf6rYm-kSyl31tyOch9DRVGE9yg1r4zgdxj-vdsXoVcu3o3LqzVnZCZJcVsthRNDPdUo_X_t4PhVqUn0CA1nfTy4fne8LKYZgAvwl7Xe5WLemPmXA-Lwm1LyQkxfJ5cDj6sHXQSyYItbv0WhSMCgHg8lzIf2PnAKePtEd3AkyskMxAKJYQ_ZW_G5kSnk3UjaB4wftPURZ6RnktCebcm6ScHvIyUS68Zw\"\n}"
+    headers:
+      CF-RAY:
+      - 32e1fe5beec665e7-SYD
+      Connection:
+      - keep-alive
+      Content-Encoding:
+      - gzip
+      Content-Type:
+      - application/json; charset=utf-8
+      Date:
+      - Wed, 08 Feb 2017 20:57:22 GMT
+      Server:
+      - cloudflare-nginx
+      Set-Cookie:
+      - __cfduid=dd552187e0844688e4fa3bc8704807aa11486587442; expires=Thu, 08-Feb-18
+        20:57:22 GMT; path=/; domain=.thetvdb.com; HttpOnly
+      Vary:
+      - Accept-Language
+      X-Powered-By:
+      - Thundar!
+      X-Thetvdb-Api-Version:
+      - 2.1.2
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Authorization:
+      - Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE0ODY2NzM4NDIsImlkIjoiRmxleEdldCIsIm9yaWdfaWF0IjoxNDg2NTg3NDQyfQ.FPPsyjyUMElXL5zk7_yEnVx3fEEWTOxMRiIU8WwwDOAr-XRU0TlFqUwFQNMrfGvl5f4twDl9JQBjtoaJHkK-ExZ_nZJJW8TAu0RN7qlybfNbVfQLPN2O8xmf6rYm-kSyl31tyOch9DRVGE9yg1r4zgdxj-vdsXoVcu3o3LqzVnZCZJcVsthRNDPdUo_X_t4PhVqUn0CA1nfTy4fne8LKYZgAvwl7Xe5WLemPmXA-Lwm1LyQkxfJ5cDj6sHXQSyYItbv0WhSMCgHg8lzIf2PnAKePtEd3AkyskMxAKJYQ_ZW_G5kSnk3UjaB4wftPURZ6RnktCebcm6ScHvIyUS68Zw
+      Connection:
+      - keep-alive
+      User-Agent:
+      - FlexGet/2.9.16.dev (www.flexget.com)
+    method: GET
+    uri: https://api.thetvdb.com/search/series?name=House
+  response:
+    body:
+      string: "{\n  \"data\": [\n    {\n      \"aliases\": [],\n      \"banner\":
+        \"graphical/139341-g2.jpg\",\n      \"firstAired\": \"1980-11-09\",\n      \"id\":
+        139341,\n      \"network\": \"TVP SA\",\n      \"overview\": \"Although this
+        TV-series consisted of only 25 episodes it is the longest TV-series ever shot
+        in Poland. First seven episodes were made in 1979 and shown in 1980. Another
+        five episodes were filmed in 1982 but for political reasons were not broadcast
+        until 1987 when the 12th episode was also made and shown. In the middle of
+        1990 director Jan Lomnicki and his writer Andrzej Mularczyk came back to the
+        story of few Polish families living in an old house in Zlota Street in Warsaw.
+        Eight episodes were made between 1995 and 1997 and shown in 1999. That year
+        the last five episodes were shot and they were broadcast in 2000. Each time
+        \\\"Dom\\\" was on the first channel of Polish public television it reached
+        the very top of the most watched TV-shows.\",\n      \"seriesName\": \"The
+        House\",\n      \"status\": \"Ended\"\n    },\n    {\n      \"aliases\": [\n
+        \       \"House M.D.\",\n        \"House MD\"\n      ],\n      \"banner\":
+        \"graphical/73255-g7.jpg\",\n      \"firstAired\": \"2004-11-16\",\n      \"id\":
+        73255,\n      \"network\": \"FOX (US)\",\n      \"overview\": \"Go deeper
+        into the medical mysteries of House, TV's most compelling drama. Hugh Laurie
+        stars as the brilliant but sarcastic Dr. Gregory House, a maverick physician
+        who is devoid of bedside manner. While his behavior can border on antisocial,
+        Dr. House thrives on the challenge of solving the medical puzzles that other
+        doctors give up on. Together with his hand-picked team of young medical experts,
+        he'll do whatever it takes in the race against the clock to solve the case.\",\n
+        \     \"seriesName\": \"House\",\n      \"status\": \"Ended\"\n    },\n    {\n
+        \     \"aliases\": [],\n      \"banner\": \"\",\n      \"firstAired\": \"\",\n
+        \     \"id\": 287378,\n      \"network\": \"FYI\",\n      \"overview\": \"House
+        vs. House is a new home makeover competition series where amateur and experienced
+        renovation teams compete for the chance to win $10,000 by proving they can
+        create the better DIY projects in their home. From painting and decorating,
+        to one-of-a-kind, imaginative projects, each episode features two teams will
+        go head-to-head in grueling challenges. Tanya McQueen, a DIY design expert,
+        and David Brian Sanders, an architect and designer, will determine which team
+        completes the most impressive transformation and award the cash prize.\",\n
+        \     \"seriesName\": \"House vs. House\",\n      \"status\": \"\"\n    },\n
+        \   {\n      \"aliases\": [],\n      \"banner\": \"\",\n      \"firstAired\":
+        \"1994-05-01\",\n      \"id\": 70440,\n      \"network\": \"ITV1\",\n      \"overview\":
+        \"Topical sitcom focussed on the protocol and tradition-entrenched environs
+        of Buckingham Palace and the Royal Household.\",\n      \"seriesName\": \"The
+        House of Windsor\",\n      \"status\": \"Ended\"\n    },\n    {\n      \"aliases\":
+        [],\n      \"banner\": \"\",\n      \"firstAired\": \"2002-08-01\",\n      \"id\":
+        71121,\n      \"network\": \"BBC One\",\n      \"overview\": null,\n      \"seriesName\":
+        \"The House That Jack Built\",\n      \"status\": \"Ended\"\n    },\n    {\n
+        \     \"aliases\": [\n        \"House Rules 1998\"\n      ],\n      \"banner\":
+        \"\",\n      \"firstAired\": \"1998-03-01\",\n      \"id\": 73338,\n      \"network\":
+        \"NBC\",\n      \"overview\": \"Welcome to the House Rules guide at TV Tome.\\r\\nHere
+        is how NBC described the show:  \\\"A buddy comedy about three Gen Xers who
+        share a house in Denver: Friends meets Three's Company. The series chronicles
+        the adventures of three lifelong, ski-loving friends: Casey, a deputy district
+        attorney; McCusky, a medical student; and Riley, a reporter. We were meant
+        to find them charmingly irresponsible and free-spirited. We did not. In contrast
+        to the similarly themed triangle comedy Two Guys, a Girl and a Pizza Place,
+        this made delayed adolescence seem, well, childish.  \\\"The unique friendship
+        shared by a trio of childhood chums and roommates from Denver is the focus
+        of this half-hour comedy. Through romances, job problems and the trials and
+        tribulations of daily life, a woman and her two male roommates give modern
+        romance a decidedly comic spin.  \\\"'House Rules is about two men and a woman
+        in their mid-twenties who, after 20 years of growing up together, going\",\n
+        \     \"seriesName\": \"House Rules (1998)\",\n      \"status\": \"Ended\"\n
+        \   },\n    {\n      \"aliases\": [],\n      \"banner\": \"\",\n      \"firstAired\":
+        \"2004-04-01\",\n      \"id\": 75249,\n      \"network\": \"Court TV\",\n
+        \     \"overview\": \"Welcome to the House of Clues guide at TV Tome. In each
+        episode of House of Clues two amateur detectives try to discover enough clues
+        in someone's home to create an accurate profile of them.  Then they meet the
+        homeowner face to face and learn how accurate they were. There is no editor
+        for this show. If you would like to be the editor look here for details.\",\n
+        \     \"seriesName\": \"House of Clues\",\n      \"status\": \"Ended\"\n    },\n
+        \   {\n      \"aliases\": [],\n      \"banner\": \"\",\n      \"firstAired\":
+        \"1979-12-01\",\n      \"id\": 77572,\n      \"network\": \"CBS\",\n      \"overview\":
+        null,\n      \"seriesName\": \"House Calls\",\n      \"status\": \"Ended\"\n
+        \   },\n    {\n      \"aliases\": [],\n      \"banner\": \"graphical/82126-g.jpg\",\n
+        \     \"firstAired\": \"2008-05-19\",\n      \"id\": 82126,\n      \"network\":
+        \"ITV1\",\n      \"overview\": \"In this non-traditional game show, a pair
+        of hosts opens up their homes to four strangers who will judge them on their
+        hosting abilities. \",\n      \"seriesName\": \"House Guest\",\n      \"status\":
+        \"\"\n    },\n    {\n      \"aliases\": [],\n      \"banner\": \"\",\n      \"firstAired\":
+        \"\",\n      \"id\": 110461,\n      \"network\": \"\",\n      \"overview\":
+        null,\n      \"seriesName\": \"House of Jazmin\",\n      \"status\": \"\"\n
+        \   },\n    {\n      \"aliases\": [],\n      \"banner\": \"graphical/151451-g.jpg\",\n
+        \     \"firstAired\": \"2006-10-02\",\n      \"id\": 151451,\n      \"network\":
+        \"E!\",\n      \"overview\": \"Backstreet Boy Nick Carter tries to reunite
+        his family by living together in one house with his four younger siblings,
+        including pop star Aaron Carter, for the first time in years. After years
+        of separation and plenty of family trouble (including their parents' acrimonious
+        divorce, Nick's arrest\u2026 More for DUI, and Aaron's lawsuit against his
+        own mother), the five Carter kids try to reconnect as a family while pursuing
+        their own separate career and life goals.\",\n      \"seriesName\": \"House
+        of Carters\",\n      \"status\": \"Ended\"\n    },\n    {\n      \"aliases\":
+        [],\n      \"banner\": \"\",\n      \"firstAired\": \"2010-02-22\",\n      \"id\":
+        165081,\n      \"network\": \"BBC One\",\n      \"overview\": \"Laurence Llewelyn-Bowen
+        visits three houses per county, of all shapes and size, in the competition
+        to find Northern Ireland's House of the Year.\",\n      \"seriesName\": \"House
+        of the Year\",\n      \"status\": \"Ended\"\n    },\n    {\n      \"aliases\":
+        [],\n      \"banner\": \"\",\n      \"firstAired\": \"\",\n      \"id\": 99421,\n
+        \     \"network\": \"BBC One\",\n      \"overview\": \"House Swap sees members
+        of the public being given the chance to relocate to their dream property or
+        location by swapping their property with somebody else. \",\n      \"seriesName\":
+        \"House Swap\",\n      \"status\": \"Ended\"\n    },\n    {\n      \"aliases\":
+        [],\n      \"banner\": \"graphical/211481-g.jpg\",\n      \"firstAired\":
+        \"2010-10-05\",\n      \"id\": 211481,\n      \"network\": \"Oxygen\",\n      \"overview\":
+        \"B Lynn Group is one of the hottest image agencies in the entertainment business:
+        agents to the top fashion stylists, makeup artists and hairstylists around--with
+        Brandi Simpkins at the helm. The House of Glam docu-series features her and
+        her team.\\r\\n\\r\\nThese fashion stylists, makeup artists and hairstylists
+        to the stars specialize in cooking up original and unforgettable looks for
+        some of the biggest names in music and fashion--so they stand out in Hollywood
+        and beyond. And this show takes you through the chaotic days of trying to
+        please demanding clients, taking you behind the scenes of their magazine-glossy
+        world. But don't forget the drama! After all, this show is about more than
+        what to wear: The cast is not only comprised of colleagues, but also best
+        friends and fierce rivals. \",\n      \"seriesName\": \"House Of Glam\",\n
+        \     \"status\": \"Ended\"\n    },\n    {\n      \"aliases\": [],\n      \"banner\":
+        \"\",\n      \"firstAired\": \"2010-12-09\",\n      \"id\": 212181,\n      \"network\":
+        \"Channel 4\",\n      \"overview\": \"Famous figures take an emotional trip
+        back to meticulous recreations of the homes they were brought up in, exploring
+        how their past shaped who they are today.\",\n      \"seriesName\": \"The
+        House That Made Me\",\n      \"status\": \"Ended\"\n    },\n    {\n      \"aliases\":
+        [],\n      \"banner\": \"\",\n      \"firstAired\": \"\",\n      \"id\": 122951,\n
+        \     \"network\": \"\",\n      \"overview\": \"Three experts are challenged
+        to find the perfect item to complement a home on budgets of \xA31,000, \xA3300
+        and \xA380, before the owner decides which object to keep. \",\n      \"seriesName\":
+        \"House Gift\",\n      \"status\": \"\"\n    },\n    {\n      \"aliases\":
+        [],\n      \"banner\": \"\",\n      \"firstAired\": \"\",\n      \"id\": 252016,\n
+        \     \"network\": \"\",\n      \"overview\": \"New series. Documentary following
+        British estate agents hoping to sell families a dream life in south-west France,
+        showing prospective buyers around properties in an area renowned for its vineyards
+        and chateaux.\",\n      \"seriesName\": \"House Hunt in France\",\n      \"status\":
+        \"Continuing\"\n    },\n    {\n      \"aliases\": [],\n      \"banner\": \"\",\n
+        \     \"firstAired\": \"2009-01-12\",\n      \"id\": 168241,\n      \"network\":
+        \"ABC (US)\",\n      \"overview\": \"The House Of Windsor: A Royal Dynasty
+        is a new three-part series that follows the Royal family's life stories. They
+        are woven into a fascinating tapestry set against the major events of nine
+        decades. The narrative is built on remarkable - in some cases previously unseen
+        - archive film including rare 1930s colour footage of a Coronation, a Silver
+        Jubilee and a Royal tour of Canada.\\r\\n\\r\\nWitness the triumphs of the
+        crowned heads calmly steering their country through two world wars, their
+        moments of public splendour (the fireworks that saluted George V's Silver
+        Jubilee and the tide of love that swept Elizabeth II aloft on her Golden Jubilee),
+        their days of personal joy (Prince William's graduation day, Prince Harry's
+        passing-out parade) and their days of sorrow (the failed marriages and the
+        deaths of Princess Margaret and Princess Diana).\\r\\n\\r\\nThe Windsor dynasty
+        was born in 1917 during the darkest days of World War One. Criticised for
+        being a blood relation of the German enemy, the reigning Monarch, George V,
+        suddenly changed the family name from Saxe-Coburg to the resoundingly English,
+        Windsor.\",\n      \"seriesName\": \"The House Of Windsor: A Royal Dynasty\",\n
+        \     \"status\": \"Ended\"\n    },\n    {\n      \"aliases\": [],\n      \"banner\":
+        \"\",\n      \"firstAired\": \"2012-03-18\",\n      \"id\": 256439,\n      \"network\":
+        \"VH1\",\n      \"overview\": \"\u201CHouse of Consignment\u201D is a new
+        10 episode, half-hour reality series featuring Chicago entrepreneur and fashion
+        maven, Corri McFadden, and her mission to improve the way women shop. By working
+        with high-end clients at her sleek, Lincoln Park retail store, eDrop-Off,
+        Corri\u2019s consignment business turns luxury brand items into profit. What
+        began as Corri\u2019s senior project in fashion design school has turned her
+        into a young, successful business woman and owner of a booming multi-million
+        dollar company. Watch as Corri and her team of twenty-something fashionistas
+        change the face of the consignment world on a daily basis.\\r\\nThe show takes
+        the cliche about \u201COne man\u2019s trash being another man\u2019s treasure\u201D
+        and turns the trash, in this case Fendi bags and Jimmy Choos, into cash. Using
+        her innate sense of style and business savvy, Corri McFadden resells high-end
+        fashion items that have been rescued from her wealthy clients\u2019 overflowing
+        closets. Billed as \u201Cpart intervention, part fashion lesson\u201D, it\u2019s
+        also part interactive shopping experience, because viewers will be able to
+        bid on certain items seen the show throughout the season.\",\n      \"seriesName\":
+        \"House of Consignment\",\n      \"status\": \"Ended\"\n    },\n    {\n      \"aliases\":
+        [],\n      \"banner\": \"graphical/259774-g.jpg\",\n      \"firstAired\":
+        \"2012-06-07\",\n      \"id\": 259774,\n      \"network\": \"Channel 4\",\n
+        \     \"overview\": \"The science behind inventions that changed the way people
+        lived in the 1950s, transforming drab, black-and-white post-war Britain into
+        a Technicolor world of the future. Engineer Brendan Walker reconstructs a
+        house, demonstrating how each innovation for the home contributed to social
+        change in the wider world.\\r\\n\",\n      \"seriesName\": \"The House the
+        50s Built\",\n      \"status\": \"\"\n    },\n    {\n      \"aliases\": [],\n
+        \     \"banner\": \"graphical/258575-g.jpg\",\n      \"firstAired\": \"2012-04-30\",\n
+        \     \"id\": 258575,\n      \"network\": \"TVB\",\n      \"overview\": null,\n
+        \     \"seriesName\": \"House of Harmony \\u0026 Vengeance\",\n      \"status\":
+        \"Ended\"\n    },\n    {\n      \"aliases\": [],\n      \"banner\": \"graphical/259045-g.jpg\",\n
+        \     \"firstAired\": \"2012-04-30\",\n      \"id\": 259045,\n      \"network\":
+        \"TVB\",\n      \"overview\": \"The Tang Dynasty was one of imperial China
+        most prosperous periods, in which the arts flourished. The royal family particularly
+        enjoyed a good dance and music performance. Thus, a prestigious competition
+        was held to find talented individuals in the arts.  The winner will be granted
+        a title of Princess by the Emperor. The instructor who procured the winning
+        talent will be bestowed with imperial recognition and immense wealth. \\r\\nA
+        street muscian wanted for murder, Bobby Au Yeung, assumes the identity of
+        an Imperial Music Bureau official (Evergreen Mak) to preserve his safety.
+        Due to his partial amnesia, Evergreen forgot about his imperial post and instead,
+        finds a job as a kitchen chef.\\r\\n \\r\\nEnjoying his newfound wealth, Bobby
+        was afraid that he will soon be found out to be an imposter and lose his life.
+        One lie leads to another lie. Bobby sets out to break off his engagement with
+        Evergreen betrothed bride, Linda Chung, afraid that his identity will otherwise
+        be found out. \\r\\nHowever, Linda decides to join the Imperial Music Bureau
+        to train for the upcoming national music and dance competition in order to
+        get closer to her fiance, whom she mistakens to be Bobby Au Yeung. Linda befriends
+        Myolie Wu, a fellow dancer in the Imperial Music Bureau. The worn sisters
+        are also rivals in love and on court; will Bobby break the womens friendship
+        beyond repair?\\r\\n Due to Bobby assuming Evergreens identity, a confusing
+        love rectangle of unclear romantic relationships develop. Evergreen slowly
+        regains his memories, realizing who he truly is and Bobbys farce. The stakes
+        rise as the national music and dance competition draws close, in which the
+        foursome are eager to demonstrate their individual talents before the royal
+        family. Who will emerge as the final winner? Will they be able to all live
+        in harmony and find happiness?\",\n      \"seriesName\": \"House of Harmony
+        and Vengeance\",\n      \"status\": \"Ended\"\n    },\n    {\n      \"aliases\":
+        [],\n      \"banner\": \"\",\n      \"firstAired\": \"2003-03-27\",\n      \"id\":
+        263991,\n      \"network\": \"Nine Network\",\n      \"overview\": \"The House
+        Of Bulger is a mini soap style comedy that is shown within The Footy Show.
+        Because it is a show that has a plot, it has it's own guide. This year, The
+        House Of Bulger went into it's second season, and was renamed Bulger MD\",\n
+        \     \"seriesName\": \"The House Of Bulger\",\n      \"status\": \"Ended\"\n
+        \   },\n    {\n      \"aliases\": [],\n      \"banner\": \"graphical/71340-g.jpg\",\n
+        \     \"firstAired\": \"1991-08-31\",\n      \"id\": 71340,\n      \"network\":
+        \"BBC One\",\n      \"overview\": \"Set in London in the 1920's, this early
+        90's BBC drama is based around the pretty and ambitious sisters Evie and Beatrice
+        (Louise Lombard and Stella Gonet) as they duck and dive with schemes to succeed
+        in London's fashion industry in the 1920's. \",\n      \"seriesName\": \"The
+        House of Eliott\",\n      \"status\": \"Ended\"\n    },\n    {\n      \"aliases\":
+        [],\n      \"banner\": \"graphical/271248-g.jpg\",\n      \"firstAired\":
+        \"2013-06-13\",\n      \"id\": 271248,\n      \"network\": \"WE tv\",\n      \"overview\":
+        \"Kenyatta Jones, an Atlanta-based fashion designer who specializes in designing
+        clothes for plus-size women, is the CEO of clothing boutique Bella Ren\xE9,
+        named after her mother and main investor. Jones and her team, which includes
+        her two close friends from college and an assistant with attitude, go to great
+        lengths to expand the brand, but mishaps and in-house bickering hinder the
+        dream. The ultimate test comes when the team competes for recognition in one
+        of the world's top cities for fashion: New York.\",\n      \"seriesName\":
+        \"House of Curves\",\n      \"status\": \"Ended\"\n    },\n    {\n      \"aliases\":
+        [],\n      \"banner\": \"graphical/273405-g.jpg\",\n      \"firstAired\":
+        \"2013-07-18\",\n      \"id\": 273405,\n      \"network\": \"\",\n      \"overview\":
+        \"NUVOtv\u2019s new docu-series \\\"House of Joy\\\" invites viewers into
+        Grammy-winning producer Rodney \u201CDarkchild\u201D Jerkins\u2018 studio
+        and his always-busting Hollywood home, which he shares with pop star wife
+        Joy Enriquez, the couple\u2019s children and Joy\u2019s family.\\r\\n\\r\\nThe
+        pressure is on Rodney, the master musicologist behind worldwide hits by Jennifer
+        Lopez, Beyonce, Michael Jackson and Lady Gaga, to score a pop smash for his
+        talented wife. Meanwhile, Joy\u2019s mom and dad, Helena and Randy (right),
+        routinely check in to provide emotional support and dole out domestic advice
+        in an engaging and often very funny old school-meets-contemporary cool kind
+        of way. The insightful duo could easily have their own standup act if they
+        didn\u2019t already have a full-time gig helping to keep \u201CDarkchild\u201D
+        Manor in check as Rodney sets the stage for Joy to reignite her musical dream.\",\n
+        \     \"seriesName\": \"House of Joy\",\n      \"status\": \"Ended\"\n    },\n
+        \   {\n      \"aliases\": [],\n      \"banner\": \"graphical/253190-g.jpg\",\n
+        \     \"firstAired\": \"2009-10-01\",\n      \"id\": 253190,\n      \"network\":
+        \"\",\n      \"overview\": \"House Wreck Rescue has searched out the ordinary
+        people who have dared to turn their dream of developing a tumbledown barn
+        or romantic ruin into reality. There are over a million empty properties in
+        Britain, just waiting to be transformed into spectacular homes. In a property
+        market that leaves no room for error, trying to turn a wreck into a hot property
+        is anything but easy. For nearly three years, families, property developers
+        and first time buyers risk their relationships, businesses and a whole lot
+        of money attempting to rescue their wrecks. From trouble with builders to
+        bankers, they\u2019ll be up against it. Whether it\u2019s a dovecote, a windmill
+        or even a fishing trawler, House Wreck Rescue will see if they\u2019ve got
+        what it takes. And they won\u2019t be alone \u2013 our two property experts,
+        Zilpah and Gary are on hand to offer their advice and support a long the way.
+        With imagination and drive, almost any property can be transformed from a
+        wreck into a real gem.\",\n      \"seriesName\": \"House Wreck Rescue\",\n
+        \     \"status\": \"Ended\"\n    },\n    {\n      \"aliases\": [],\n      \"banner\":
+        \"graphical/273383-g.jpg\",\n      \"firstAired\": \"2013-09-18\",\n      \"id\":
+        273383,\n      \"network\": \"BBC Two\",\n      \"overview\": \"With house
+        prices out of the reach of many people and banks refusing to lend, buying
+        a home in the UK is becoming an impossible dream. So a few brave but ordinary
+        souls are trailblazing what could be the solution for all of us - trying to
+        build their own house from scratch.\\r\\n\\r\\nArchitectural journalist and
+        critic Kieran Long and award-winning architect Piers Taylor are following
+        self-builders as they take on the biggest gamble of their lives. Kieran and
+        Piers will try to help them create the house they've longed for. But all have
+        less than \xA3100k to spend, little or no experience and life savings on the
+        line - it won't be easy.\",\n      \"seriesName\": \"The House That \xA3100k
+        Built\",\n      \"status\": \"Continuing\"\n    },\n    {\n      \"aliases\":
+        [],\n      \"banner\": \"graphical/265487-g.jpg\",\n      \"firstAired\":
+        \"\",\n      \"id\": 265487,\n      \"network\": \"\",\n      \"overview\":
+        \"The adventures of a group of dead rock stars, sharing a house in the afterlife.\",\n
+        \     \"seriesName\": \"House of Rock\",\n      \"status\": \"Ended\"\n    },\n
+        \   {\n      \"aliases\": [],\n      \"banner\": \"\",\n      \"firstAired\":
+        \"2013-08-10\",\n      \"id\": 274386,\n      \"network\": \"\",\n      \"overview\":
+        \"Dr Nayna Patel runs a clinic in rural India that attracts childless couples
+        from all over the world. For a fee, they can pay for local women to act as
+        surrogates, spending their entire pregnancy away from home in dorms with up
+        to 80 other pregnant surrogates living alongside them.\\r\\n\\r\\nThere are
+        three babies delivered every month at the clinic, but that's not the end of
+        the story - Westerners can have to stay up to eight weeks in India after the
+        baby is born waiting for the paperwork they need to take their baby home and
+        many of them choose to have their surrogate look after and wet-nurse the baby
+        for them until then.\\r\\n\\r\\nWhile critics accuse Dr Patel of exploiting
+        the poor, she believes that she is empowering the local women with life-changing
+        amounts of money.\\r\\n\",\n      \"seriesName\": \"House of Surrogates\",\n
+        \     \"status\": \"Ended\"\n    },\n    {\n      \"aliases\": [\n        \"House
+        of Buggin\"\n      ],\n      \"banner\": \"graphical/77095-g.jpg\",\n      \"firstAired\":
+        \"1995-01-01\",\n      \"id\": 77095,\n      \"network\": \"FOX (US)\",\n
+        \     \"overview\": \"Welcome to the House of Buggin' guide at TV Tome. House
+        of Buggin' was a short-lived variety show. There is no editor for this show.
+        If you would like to be the editor look here for details.\",\n      \"seriesName\":
+        \"House of Buggin'\",\n      \"status\": \"Ended\"\n    },\n    {\n      \"aliases\":
+        [],\n      \"banner\": \"\",\n      \"firstAired\": \"2005-05-01\",\n      \"id\":
+        279080,\n      \"network\": \"BBC Three\",\n      \"overview\": \"Three sets
+        of young couples with babies, toddlers and young children are invited to The
+        House of Tiny Tearaways, a specially modified country residence where they
+        will learn the skills they need to turn their lives around.\\r\\n\\r\\nRegular
+        presenter Claudia Winkleman is joined by top child psychologists, who are
+        on hand to provide intensive therapy for these parents and their kids. They
+        observe how they operate and then intervene to help sort out their extreme
+        parenting problems.\\r\\n\\r\\nThe parents have to be prepared to stay in
+        the house for \\\"as long as it takes\\\". They can be there from anything
+        from two days to over a week depending on the extent of their parenting problems
+        and how long it takes to turn them around. Brace yourself for another round
+        of tears, tantrums and broken relationships...\",\n      \"seriesName\": \"The
+        House of Tiny Tearaways\",\n      \"status\": \"Ended\"\n    },\n    {\n      \"aliases\":
+        [],\n      \"banner\": \"\",\n      \"firstAired\": \"2012-10-16\",\n      \"id\":
+        263281,\n      \"network\": \"HGTV\",\n      \"overview\": null,\n      \"seriesName\":
+        \"House Hazards\",\n      \"status\": \"Ended\"\n    },\n    {\n      \"aliases\":
+        [],\n      \"banner\": \"graphical/108331-g.jpg\",\n      \"firstAired\":
+        \"2009-08-05\",\n      \"id\": 108331,\n      \"network\": \"DIY Network\",\n
+        \     \"overview\": \"HGTV and DIY Network build on the success of the hit
+        show Yard Crashers by taking this series inside. House Crashers is ambush
+        renovation at its best. Host and contractor Josh Temple stalks a big-box home
+        improvement store looking for unsuspecting weekend warriors, then follows
+        them home with a large crew of experts in tow. Watch as stunned homeowners
+        who journeyed into the store to fix a simple leaky faucet end up winning the
+        remodeling lottery with dramatic, eye-popping room transformations.\",\n      \"seriesName\":
+        \"House Crashers\",\n      \"status\": \"Continuing\"\n    },\n    {\n      \"aliases\":
+        [],\n      \"banner\": \"graphical/73395-g.jpg\",\n      \"firstAired\": \"2003-10-01\",\n
+        \     \"id\": 73395,\n      \"network\": \"TBS\",\n      \"overview\": \"Welcome
+        to the House Rules guide at TV Tome.  Home improvement gets competitive when
+        TBS Superstation pits three teams of amateur home remodelers against each
+        other in the new reality series House Rules, presented by Lowe's. The series,
+        which will result in one team winning the home they've renovated, is hosted
+        by Mark L. Walberg (Temptation Island) and premiered Friday, Oct. 10 at 8/7c,
+        on TBS Superstation.  The three teams chosen for the inaugural edition of
+        House Rules are;\\r\\nRed Team: Katie \\u0026 Adam, newlyweds who will spend
+        their honeymoon competing on the show. Blue Team: Cindy \\u0026 Bill, who
+        have been married for 11 years. Silver Team: Rebecca \\u0026 Joseph, who have
+        been in a long-distance relationship for nearly a year.  Each week, the teams
+        must compete to win their share of a remodeling allowance to be used to pay
+        for the renovations. Once a week, they will also have an opportunity to spy
+        on each other's progress as they each host weekly dinner par\",\n      \"seriesName\":
+        \"House Rules\",\n      \"status\": \"Ended\"\n    },\n    {\n      \"aliases\":
+        [],\n      \"banner\": \"graphical/253261-g.jpg\",\n      \"firstAired\":
+        \"2011-11-24\",\n      \"id\": 253261,\n      \"network\": \"bTV\",\n      \"overview\":
+        null,\n      \"seriesName\": \"House Arrest\",\n      \"status\": \"Ended\"\n
+        \   },\n    {\n      \"aliases\": [],\n      \"banner\": \"\",\n      \"firstAired\":
+        \"\",\n      \"id\": 251048,\n      \"network\": \"HGTV\",\n      \"overview\":
+        \"In this House Hunters spinoff series, HGTV gives lucky families the chance
+        to stay in an incredible vacation home for a week. In each half-hour episode,
+        we'll whisk away a family to a beautiful vacation destination to kick back,
+        relax and explore all of the area's activities. Once they arrive at their
+        destination, host Taniya Nayak takes the family to tour spectacular homes
+        chosen just for them. The question the family and viewers must answer: Which
+        home would they like to stay in for a week? It will be a tough decision, as
+        every property will offer incredible yet different features. \",\n      \"seriesName\":
+        \"House Hunters on Vacation\",\n      \"status\": \"\"\n    },\n    {\n      \"aliases\":
+        [],\n      \"banner\": \"graphical/262026-g.jpg\",\n      \"firstAired\":
+        \"2012-09-02\",\n      \"id\": 262026,\n      \"network\": \"Nine Network\",\n
+        \     \"overview\": \"House Husbands centres around four families with one
+        thing in common, the husbands stay home to raise the children.\",\n      \"seriesName\":
+        \"House Husbands\",\n      \"status\": \"Continuing\"\n    },\n    {\n      \"aliases\":
+        [],\n      \"banner\": \"graphical/287468-g.jpg\",\n      \"firstAired\":
+        \"2014-02-11\",\n      \"id\": 287468,\n      \"network\": \"E!\",\n      \"overview\":
+        \"The fashion megastar who created gorgeous prints and the sexy, figure-flattering
+        wrap dress worn by Kate Middleton, Michelle Obama and Madonna,  and who shines
+        as a beacon of power and independence to women everywhere has partnered with
+        E! to bring viewers unprecedented access to her latest fashion industry game
+        changer.  Diane von Furstenberg gives a group of ambitious young women extraordinary
+        entr\xE9e to her empire, for a weeks-long ultimate interview that will prepare
+        one of them to take on the world of fashion and ascend to the prized DVF Global
+        Brand Ambassador position.  \u201CHouse of DVF\u201D grants viewers exclusive
+        access inside Diane von Furstenberg\u2019s stylish world, showcasing the unique
+        skill set, intelligence and utter devotion it takes to become a DVF girl,
+        and E! will be there to film the entire process.\\r\\n\",\n      \"seriesName\":
+        \"House of DVF\",\n      \"status\": \"Continuing\"\n    },\n    {\n      \"aliases\":
+        [],\n      \"banner\": \"\",\n      \"firstAired\": \"2004-01-01\",\n      \"id\":
+        72438,\n      \"network\": \"A\\u0026E\",\n      \"overview\": null,\n      \"seriesName\":
+        \"House of Dreams\",\n      \"status\": \"Ended\"\n    },\n    {\n      \"aliases\":
+        [],\n      \"banner\": \"text/288520.jpg\",\n      \"firstAired\": \"2014-11-23\",\n
+        \     \"id\": 288520,\n      \"network\": \"Discovery MAX\",\n      \"overview\":
+        null,\n      \"seriesName\": \"House of Cars\",\n      \"status\": \"Continuing\"\n
+        \   },\n    {\n      \"aliases\": [],\n      \"banner\": \"graphical/82624-g6.jpg\",\n
+        \     \"firstAired\": \"2008-07-30\",\n      \"id\": 82624,\n      \"network\":
+        \"BBC\",\n      \"overview\": \"The intimate world of Saddam Hussein and his
+        closest inner circle is revealed in House Of Saddam \u2013 a gripping four-part
+        drama for BBC Two that charts the rise and fall of one of the most significant
+        political figures in recent history.\\r\\n\\r\\nHouse Of Saddam offers a fresh
+        perspective on the dictator, his relationships and his actions behind closed
+        doors, by retelling events from inside the very heart of the regime.\\r\\n\\r\\nBeginning
+        in 1979 when Saddam became president of Iraq, it follows the impact of his
+        political ambitions on his oldest advisors, closest friends, family members
+        \u2013 and on Saddam himself.\\r\\n\\r\\nWithin the walls of his opulent presidential
+        palace respect is interwoven with fear as Saddam exerts control over his allies,
+        his country and its people.\\r\\n\\r\\nAs he continues to reign for almost
+        25 years in the face of mounting internal and external pressures the Iraqi
+        President's ability to survive is revealed. Eventually, however, the House
+        of Saddam begins to crumble \u2013 and its leader becomes increasingly isolated
+        from both the international community, and his inner world. \",\n      \"seriesName\":
+        \"House of Saddam\",\n      \"status\": \"Ended\"\n    },\n    {\n      \"aliases\":
+        [\n        \"Disney's House of Mouse\",\n        \"Disneys House of Mouse\"\n
+        \     ],\n      \"banner\": \"graphical/74189-g3.jpg\",\n      \"firstAired\":
+        \"2001-01-12\",\n      \"id\": 74189,\n      \"network\": \"Disney Channel\",\n
+        \     \"overview\": \"House Of Mouse is the former but even better Mickey
+        Mouse Works. \\\"House of Mouse\\\" is a nightclub-type theater, where Mickey
+        himself emcees nightly. Stars of every Disney film ever made are seated in
+        the audience, often becoming part of the show themselves, as Mickey and his
+        friends entertain.\",\n      \"seriesName\": \"House of Mouse\",\n      \"status\":
+        \"Ended\"\n    },\n    {\n      \"aliases\": [],\n      \"banner\": \"graphical/73182-g3.jpg\",\n
+        \     \"firstAired\": \"1999-09-30\",\n      \"id\": 73182,\n      \"network\":
+        \"HGTV\",\n      \"overview\": \"House Hunters takes viewers behind the scenes
+        as individuals, couples and families learn what to look for and decide whether
+        or not a home is meant for them. Focusing on the emotional experience of finding
+        and purchasing a new home, each episode follows a prospective buyer and real
+        estate agent through the home-buying process, from start to finish.\",\n      \"seriesName\":
+        \"House Hunters\",\n      \"status\": \"Continuing\"\n    },\n    {\n      \"aliases\":
+        [],\n      \"banner\": \"\",\n      \"firstAired\": \"\",\n      \"id\": 291674,\n
+        \     \"network\": \"\",\n      \"overview\": null,\n      \"seriesName\":
+        \" House Hunters: Bachelor Pads\",\n      \"status\": \"\"\n    },\n    {\n
+        \     \"aliases\": [],\n      \"banner\": \"graphical/259372-g3.jpg\",\n      \"firstAired\":
+        \"2010-05-01\",\n      \"id\": 259372,\n      \"network\": \"HGTV Canada\",\n
+        \     \"overview\": \"Five years have passed since Bryan and Sarah built their
+        custom dream home in the city. Always up for a new challenge, Bryan and Sarah
+        are back at building again - But this time, they\u2019re uprooting their growing
+        family from the city to the gritty countryside. And breaking Bryan\u2019s
+        cardinal rule of home-building\u2013 Never, ever live on site during a renovation!\\r\\n\\r\\nWhile
+        they love their city home, it turns out Bryan has always dreamed of returning
+        to his small town roots to raise his kids in the vast, open spaces of the
+        country. His wife Sarah on the other hand, fashions herself a city girl. Watch
+        as Sarah and Bryan go head to head on their individual visions of their home,
+        and cope with a dramatic lifestyle change as they say goodbye to the comfortable
+        conveniences of city life.\",\n      \"seriesName\": \"House of Bryan\",\n
+        \     \"status\": \"Continuing\"\n    },\n    {\n      \"aliases\": [],\n
+        \     \"banner\": \"graphical/291815-g.jpg\",\n      \"firstAired\": \"2015-02-08\",\n
+        \     \"id\": 291815,\n      \"network\": \"Nine Network\",\n      \"overview\":
+        \"House of Hancock tells the epic true story of the Hancock dynasty and the
+        bizarre love triangle that emerged between Lang Hancock, his daughter Gina
+        Rinehart and his beautiful Filipina housekeeper Rose Lacson.\",\n      \"seriesName\":
+        \"House of Hancock\",\n      \"status\": \"Ended\"\n    },\n    {\n      \"aliases\":
+        [],\n      \"banner\": \"graphical/153311-g.jpg\",\n      \"firstAired\":
+        \"2011-06-11\",\n      \"id\": 153311,\n      \"network\": \"Nickelodeon\",\n
+        \     \"overview\": null,\n      \"seriesName\": \"House of Anubis (2009)\",\n
+        \     \"status\": \"Ended\"\n    },\n    {\n      \"aliases\": [],\n      \"banner\":
+        \"graphical/276173-g.jpg\",\n      \"firstAired\": \"2014-01-14\",\n      \"id\":
+        276173,\n      \"network\": \"BBC Two\",\n      \"overview\": \"Set in Bob
+        Mortimer\u2019s home, every episode of House Of Fools sees Bob frustrated
+        by his uninvited lodgers, visitors and guests who constantly fill his house.
+        Led by Vic - Beef, Bosh and Julie knit together each week to wreak havoc on
+        Bob.\\r\\n\\r\\nVic Reeves is the long term and mostly unwanted guest in Bob\u2019s
+        house, always treating the place like his own, with little regard for Bob\u2019s
+        wishes. Living alongside them is Bob\u2019s Norwegian son, Erik, who has absolutely
+        no time at all for his \u2018moron\u2019 father and next door is Julie, who
+        lives in a haze of imagined fantasies. Adding to the chaos is a constant stream
+        of unwelcome visitors to Vic and Bob\u2019s flat. Amongst them is Beef a lady-obsessed
+        lothario, not to be confused with Bosh, a Geordie ex-con, who has designs
+        on moving in as well.\",\n      \"seriesName\": \"House of Fools\",\n      \"status\":
+        \"Ended\"\n    },\n    {\n      \"aliases\": [],\n      \"banner\": \"graphical/278979-g.jpg\",\n
+        \     \"firstAired\": \"2014-01-27\",\n      \"id\": 278979,\n      \"network\":
+        \"SVT1\",\n      \"overview\": null,\n      \"seriesName\": \"House of Dreams
+        (2014)\",\n      \"status\": \"Continuing\"\n    },\n    {\n      \"aliases\":
+        [],\n      \"banner\": \"\",\n      \"firstAired\": \"\",\n      \"id\": 293351,\n
+        \     \"network\": \"\",\n      \"overview\": \"MTV's webseries reboot of
+        the iconic 90's MTV show House of Style.\",\n      \"seriesName\": \"House
+        of Style\",\n      \"status\": \"\"\n    },\n    {\n      \"aliases\": [],\n
+        \     \"banner\": \"graphical/84486-g.jpg\",\n      \"firstAired\": \"2005-01-30\",\n
+        \     \"id\": 84486,\n      \"network\": \"Channel 101\",\n      \"overview\":
+        \"A cautionary tale about cloning Bill Cosby. Sadly canceled by legal action
+        from Mr. Cosby himself.\",\n      \"seriesName\": \"House Of Cosbys\",\n      \"status\":
+        \"Ended\"\n    },\n    {\n      \"aliases\": [],\n      \"banner\": \"graphical/277170-g2.jpg\",\n
+        \     \"firstAired\": \"2014-03-31\",\n      \"id\": 277170,\n      \"network\":
+        \"MTV (US)\",\n      \"overview\": \"A drama-infused take on food TV where
+        a group of young aspiring chefs with no formal culinary training are put to
+        the ultimate challenge. The series combines the exciting real-life competitive
+        elements of culinary school with the dramatic setting of a house reality show.
+        The students have been chosen for their passion for cooking and food culture,
+        and their backgrounds are as varied as their personalities. With three of
+        the country\u2019s best chefs as their teachers and the city of Los Angeles
+        as their classroom, this determined group will live and learn together but
+        only one will win an apprenticeship of a lifetime. \",\n      \"seriesName\":
+        \"House of Food\",\n      \"status\": \"\"\n    },\n    {\n      \"aliases\":
+        [],\n      \"banner\": \"graphical/279540-g2.jpg\",\n      \"firstAired\":
+        \"2014-02-26\",\n      \"id\": 279540,\n      \"network\": \"Investigation
+        Discovery\",\n      \"overview\": \"HOUSE OF HORRORS: KIDNAPPED tells the
+        gripping stories of people who were kidnapped and lived to tell. Each episode
+        reveals one survivor\u2019s terrifying experience from the moment of abduction
+        to the hours, days, or months of captivity to the escape and recovery, as
+        told through their eyes.\",\n      \"seriesName\": \"House of Horrors: Kidnapped\",\n
+        \     \"status\": \"\"\n    },\n    {\n      \"aliases\": [],\n      \"banner\":
+        \"graphical/269795-g3.jpg\",\n      \"firstAired\": \"2013-05-14\",\n      \"id\":
+        269795,\n      \"network\": \"Seven Network\",\n      \"overview\": \"Six
+        Aussie teams put their homes on the line and their skills to the test in a
+        fight for renovation supremacy and a life-changing prize. Teams will travel
+        the country, hand over the keys to their homes and leave their competition
+        rivals to transform every room in their house any way they want! It's the
+        key to a whole new life. But will it open the door to their dreams or their
+        worst nightmare?\",\n      \"seriesName\": \"House Rules (AU)\",\n      \"status\":
+        \"Continuing\"\n    },\n    {\n      \"aliases\": [],\n      \"banner\": \"graphical/183411-g.jpg\",\n
+        \     \"firstAired\": \"2006-02-22\",\n      \"id\": 183411,\n      \"network\":
+        \"HGTV\",\n      \"overview\": \"This spinoff of the wildly popular HGTV House
+        Hunters globe trots from Sao Paolo to Prague. Home hunters and their real
+        estate agents check out all sorts of architectural styles and work through
+        the idiosyncrasies of buying real estate in other countries. In any language,
+        home buying is not an emotional experience.\",\n      \"seriesName\": \"House
+        Hunters International\",\n      \"status\": \"Continuing\"\n    },\n    {\n
+        \     \"aliases\": [],\n      \"banner\": \"\",\n      \"firstAired\": \"2015-06-14\",\n
+        \     \"id\": 296728,\n      \"network\": \"TV One (NZ)\",\n      \"overview\":
+        \"Is the Kiwi dream of owning your own home still a reality or just a fast
+        fading dream?\\r\\n\\r\\nHouse Hunt is a heartfelt new observational series
+        that follows the journeys of diverse couples, families and friends from all
+        walks of life as they struggle to achieve the near impossible \u2013 to buy
+        their first home in New Zealand\u2019s overheated property markets.\\r\\n\\r\\nHouse
+        Hunt chronicles the range of emotions that face New Zealand\u2019s first home
+        buyers; from desperate open home searches and multiple failed auctions, last
+        minute financial challenges and inevitable relationship conflict, to the exhaustion
+        and elation of home buying success, or the devastation of missing out.\\r\\n\\r\\nHome
+        affordability has never been such a topical issue, and with episodes filmed
+        up and down the country, House Hunt also looks at the varied issues facing
+        first home buyers in different regions.\",\n      \"seriesName\": \"House
+        Hunt\",\n      \"status\": \"Continuing\"\n    },\n    {\n      \"aliases\":
+        [],\n      \"banner\": \"graphical/101321-g.jpg\",\n      \"firstAired\":
+        \"2003-01-07\",\n      \"id\": 101321,\n      \"network\": \"Rede Globo\",\n
+        \     \"overview\": \"The greatest civil war Brazil ever faced by the point
+        of view of the seven women of the separatist leader's family.\",\n      \"seriesName\":
+        \"The House of the Seven Women\",\n      \"status\": \"Ended\"\n    },\n    {\n
+        \     \"aliases\": [\n        \"Okashi no Ie\"\n      ],\n      \"banner\":
+        \"graphical/301441-g.jpg\",\n      \"firstAired\": \"2015-10-21\",\n      \"id\":
+        301441,\n      \"network\": \"Tokyo Broadcasting System\",\n      \"overview\":
+        \"Sakurai Taro (Odagiri Joe) lost his parents early and has always lived with
+        his grandmother Akiko (Yachigusa Kaoru) in their little sweets store, Sakuraya
+        in old parts of Tokyo. They're struggling to keep it in business and Taro
+        idly spends most of his time with neighbourhood friend, Saegusa Hiroki (Katsuji
+        Ryo), who's an aspiring scriptwriter, and regular customers like bathhouse
+        manager Shimasaki Akira (Shimada Kyusaku). One Day Taro's childhood friend
+        Kimura Reiko (Ono Machiko), who is now a single mother, comes back to the
+        neighbourhood after a divorce...\",\n      \"seriesName\": \"House of Sweets\",\n
+        \     \"status\": \"Ended\"\n    },\n    {\n      \"aliases\": [],\n      \"banner\":
+        \"\",\n      \"firstAired\": \"2015-09-07\",\n      \"id\": 301510,\n      \"network\":
+        \"BBC One\",\n      \"overview\": \"Following the staff at Belfast's Charles
+        Hurst dealership, the largest car lot in Europe, as they attempt to hit their
+        sales targets\",\n      \"seriesName\": \"House of Cars (2015)\",\n      \"status\":
+        \"Ended\"\n    },\n    {\n      \"aliases\": [],\n      \"banner\": \"graphical/219621-g.jpg\",\n
+        \     \"firstAired\": \"2011-01-01\",\n      \"id\": 219621,\n      \"network\":
+        \"Nickelodeon\",\n      \"overview\": \"The hit series known around the world
+        comes to US television. At an exclusive boarding school in England a girl
+        named Joy goes missing. And taking her place is American named Nina. Patricia,
+        who now has to share a room with Nina thunks Nina has something to do with
+        it. But, there are more secrets to be uncovered in House of Anubis.\",\n      \"seriesName\":
+        \"House of Anubis\",\n      \"status\": \"Ended\"\n    },\n    {\n      \"aliases\":
+        [],\n      \"banner\": \"graphical/97051-g2.jpg\",\n      \"firstAired\":
+        \"2006-09-26\",\n      \"id\": 97051,\n      \"network\": \"Nickelodeon\",\n
+        \     \"overview\": \"In a building dating from 1900, currently serving as
+        a boarding school, eight young people live together under the leadership of
+        the strict landlord, Victor. When newcomer Nienke moves into the house, another
+        resident, Joyce, suddenly disappears. Joyce's best friend, Patricia doesn't
+        trust Nienke and forces her to spend a night in the attic.There, Nienke makes
+        a bizarre discovery: the recorded diary of a young girl, Sarah, who lived
+        in the house, many years before. Sarah's parents were archaeologists in Egypt
+        who mysteriously died. On the tapes, it is revealed the house has a secret
+        history, a mystery that nobody knows anything about. She decides to investigate,
+        together with fellow resident Fabian and her roommate, Amber. Meanwhile, Patricia
+        searches for answers about Joyce's disappearance, while other residents have
+        their own problems to deal with.\\r\\nWhile each resident has their own way
+        of dealing with school, friends, love and growing up, the teens bond together
+        to search for the treasure hidden within Het Huis Anubis (The House of Anubis)
+        .\",\n      \"seriesName\": \"House of Anubis (NL)\",\n      \"status\": \"Ended\"\n
+        \   },\n    {\n      \"aliases\": [\n        \"The Final Cut\",\n        \"To
+        Play the King\"\n      ],\n      \"banner\": \"graphical/79861-g.jpg\",\n
+        \     \"firstAired\": \"1990-11-18\",\n      \"id\": 79861,\n      \"network\":
+        \"BBC One\",\n      \"overview\": \"The PM made a deadly mistake when he passed
+        over Francis Urquhart. With his recent dire performance in the general election,
+        he's going to need all the friends he can get. But Urquhart won't be ignored
+        by anyone and now he's out for revenge. As the trusted Chief Whip, he has
+        his hands on every grubby little secret in politics, and with innocent journalist
+        Mattie Storin unwittingly drawn into his web, he'll stop at nothing to get
+        what he wants.\\r\\nA black tale of greed, corruption and burning ambition.
+        Based on the best selling novel by Michael Dobbs, a former aide to Margaret
+        Thatcher.\",\n      \"seriesName\": \"House of Cards\",\n      \"status\":
+        \"Ended\"\n    },\n    {\n      \"aliases\": [],\n      \"banner\": \"graphical/247909-g4.jpg\",\n
+        \     \"firstAired\": \"2012-01-08\",\n      \"id\": 247909,\n      \"network\":
+        \"Showtime\",\n      \"overview\": \"Charming, fast talking Marty Kaan and
+        his crack team of management consultants know how to play the corporate game
+        better than anyone, by using every dirty trick in the book to woo powerful
+        CEOs and close huge deals. In the board rooms, barrooms and bedrooms of the
+        power elite, corruption is business as usual and everyone's out for themselves
+        first. Nothing is sacred in this scathing, irreverent satire of corporate
+        America today. Outrageous, subversive and wildly funny, HOUSE OF LIES stars
+        Academy Award\xAE nominee Don Cheadle and Kristen Bell.\",\n      \"seriesName\":
+        \"House of Lies\",\n      \"status\": \"Ended\"\n    },\n    {\n      \"aliases\":
+        [],\n      \"banner\": \"graphical/313557-g2.jpg\",\n      \"firstAired\":
+        \"2016-06-27\",\n      \"id\": 313557,\n      \"network\": \"TVB\",\n      \"overview\":
+        \"When Po Foon (Bobby Au-yeung) finds his heart broken father Po Luk dead
+        while waiting for his grown children to come over for dinner, Foon makes a
+        promise to fulfill his father's last wish of mending his bickering family
+        together. As requested on Po Luk's will, all four of the Po siblings must
+        live together in his rundown home for nine months before they can sell it.
+        At first, none of Foon's siblings, Po Yan (Joyce Tang), Anthony Po (Jonathan
+        Cheung) and Po Yi (Bob Cheung) agree to live together, but after discovering
+        the property's worth in the market all move in without hesitation.\",\n      \"seriesName\":
+        \"House of Spirits\",\n      \"status\": \"Ended\"\n    },\n    {\n      \"aliases\":
+        [\n        \"Sarai-ya Goy\u014D\",\n        \"Sarai-ya Goyou\",\n        \"Saraiya
+        Goy\u014D\"\n      ],\n      \"banner\": \"graphical/156821-g.jpg\",\n      \"firstAired\":
+        \"2010-04-16\",\n      \"id\": 156821,\n      \"network\": \"Fuji TV\",\n
+        \     \"overview\": \"* Adaptation of Ono Natsume's House of Five Leaves (Sarai-ya
+        Goyou) manga.\\r\\n\\r\\nAkitsu Masanosuke is a timid ronin on his way to
+        Edo from the countryside when he accidentally encounters a playboy named Yaichi,
+        who asks him to be his bodyguard. But it turns out that Yaichi is actually
+        the leader of a group of bandits called the \\\"Five Leaves,\\\" and he's
+        hoping that Masanosuke will join them. Masanosuke is reluctant to help them,
+        but as grows closer to his eccentric new companions, he learns to relate to
+        them and grow as a person in the process.\",\n      \"seriesName\": \"House
+        of Five Leaves\",\n      \"status\": \"Ended\"\n    },\n    {\n      \"aliases\":
+        [\n        \"House of Cards (2013)\"\n      ],\n      \"banner\": \"graphical/262980-g5.jpg\",\n
+        \     \"firstAired\": \"2013-02-01\",\n      \"id\": 262980,\n      \"network\":
+        \"Netflix\",\n      \"overview\": \"Ruthless and cunning, Congressman Francis
+        Underwood and his wife Claire stop at nothing to conquer everything. This
+        wicked political drama penetrates the shadowy world of greed, sex and corruption
+        in modern D.C.\",\n      \"seriesName\": \"House of Cards (US)\",\n      \"status\":
+        \"Continuing\"\n    },\n    {\n      \"aliases\": [],\n      \"banner\": \"\",\n
+        \     \"firstAired\": \"2017-01-02\",\n      \"id\": 322031,\n      \"network\":
+        \"\",\n      \"overview\": null,\n      \"seriesName\": \"House Hunters International
+        Collection\",\n      \"status\": \"Continuing\"\n    },\n    {\n      \"aliases\":
+        [],\n      \"banner\": \"graphical/262643-g.jpg\",\n      \"firstAired\":
+        \"2012-09-23\",\n      \"id\": 262643,\n      \"network\": \"HGTV\",\n      \"overview\":
+        \"In this new weekly series, HGTV's House Hunters Renovation follows potential
+        home buyers as they tour three for-sale homes and choose the one that is the
+        perfect fixer-upper. In a House Hunters first, HGTV cameras also capture what
+        happens after the home is purchased and the renovation project begins. Each
+        episode features the new homeowners as they renovate and then reveal their
+        new space.\",\n      \"seriesName\": \"House Hunters Renovation\",\n      \"status\":
+        \"Continuing\"\n    },\n    {\n      \"aliases\": [],\n      \"banner\": \"\",\n
+        \     \"firstAired\": \"\",\n      \"id\": 323580,\n      \"network\": \"\",\n
+        \     \"overview\": null,\n      \"seriesName\": \"House Hunters International
+        Best of France\",\n      \"status\": \"\"\n    },\n    {\n      \"aliases\":
+        [],\n      \"banner\": \"\",\n      \"firstAired\": \"\",\n      \"id\": 323581,\n
+        \     \"network\": \"\",\n      \"overview\": null,\n      \"seriesName\":
+        \"House Hunters International: Best of Australia\",\n      \"status\": \"\"\n
+        \   },\n    {\n      \"aliases\": [],\n      \"banner\": \"\",\n      \"firstAired\":
+        \"\",\n      \"id\": 323582,\n      \"network\": \"\",\n      \"overview\":
+        null,\n      \"seriesName\": \"House Hunters International: Best of Italy\",\n
+        \     \"status\": \"Ended\"\n    },\n    {\n      \"aliases\": [\n        \"House
+        Maids\",\n        \"Servants\"\n      ],\n      \"banner\": \"graphical/288553-g2.jpg\",\n
+        \     \"firstAired\": \"2014-12-12\",\n      \"id\": 288553,\n      \"network\":
+        \"jTBC\",\n      \"overview\": \"In Yeob (Jung Yoo Mi) is a beautiful noblewoman
+        who becomes a servant overnight when her father is framed and labeled a traitor.
+        She ends up falling in love with a fellow servant, Moo Myung (Oh Ji Ho) who
+        is the most attractive servant and skilled warrior in Hanyang. He is also
+        a mysterious man who hides his real identity and pretends to be a servant.
+        Meanwhile, Eun Gi (Kim Dong Wook) is a man who has everything from intelligence
+        to looks. He is the chosen groom for In Yeob and will forms a rivalry with
+        Moo Myung. \",\n      \"seriesName\": \"Maids\",\n      \"status\": \"Ended\"\n
+        \   },\n    {\n      \"aliases\": [\n        \"Blue Bird's House\",\n        \"House
+        of Bluebird\"\n      ],\n      \"banner\": \"graphical/292452-g4.jpg\",\n
+        \     \"firstAired\": \"2015-02-21\",\n      \"id\": 292452,\n      \"network\":
+        \"KBS TV2\",\n      \"overview\": \"Needless to say, life as a fresh college
+        graduate is difficult, especially for millenials. Caught in the crosshairs
+        of their parents' conservative perspectives on work and duty, a group of young
+        professionals \u2014 Kim Ji Wan (Lee Joon Hyuk), Han Eun Soo (Chae Soo Bin),
+        Jang Hyun Do (Lee Sang Yeob), and Kang Young Joo (Kyung Soo Jin) \u2014 live
+        together and support one another as they vie for meaningful and well-paid
+        positions, but find it hard to balance their individual hopes, dreams and
+        desires.\",\n      \"seriesName\": \"Bluebird's House\",\n      \"status\":
+        \"Ended\"\n    },\n    {\n      \"aliases\": [],\n      \"banner\": \"graphical/308164-g.jpg\",\n
+        \     \"firstAired\": \"2016-02-25\",\n      \"id\": 308164,\n      \"network\":
+        \"Channel 4\",\n      \"overview\": \"George Clarke presents a series which
+        proves that even the ugliest houses can with help from some of the country's
+        leading architects be transformed with next to no budget.\\r\\n\",\n      \"seriesName\":
+        \"Ugly House to Lovely House with George Clarke\",\n      \"status\": \"Continuing\"\n
+        \   },\n    {\n      \"aliases\": [\n        \"Noels House Party\"\n      ],\n
+        \     \"banner\": \"graphical/71268-g.jpg\",\n      \"firstAired\": \"1991-11-01\",\n
+        \     \"id\": 71268,\n      \"network\": \"BBC One\",\n      \"overview\":
+        null,\n      \"seriesName\": \"Noel's House Party\",\n      \"status\": \"Ended\"\n
+        \   },\n    {\n      \"aliases\": [],\n      \"banner\": \"graphical/71754-g2.jpg\",\n
+        \     \"firstAired\": \"1997-01-01\",\n      \"id\": 71754,\n      \"network\":
+        \"BBC One\",\n      \"overview\": null,\n      \"seriesName\": \"The Wild
+        House\",\n      \"status\": \"Ended\"\n    },\n    {\n      \"aliases\": [\n
+        \       \"The Big House 2004\"\n      ],\n      \"banner\": \"graphical/72294-g.jpg\",\n
+        \     \"firstAired\": \"2004-04-01\",\n      \"id\": 72294,\n      \"network\":
+        \"ABC (US)\",\n      \"overview\": null,\n      \"seriesName\": \"The Big
+        House (2004)\",\n      \"status\": \"Ended\"\n    },\n    {\n      \"aliases\":
+        [],\n      \"banner\": \"graphical/72507-g.jpg\",\n      \"firstAired\": \"2003-04-28\",\n
+        \     \"id\": 72507,\n      \"network\": \"PBS\",\n      \"overview\": \"Manor
+        House also known as 'The Edwardian Country House' was an acclaimed British
+        mini-series in the reality tv genre, produced by Channel 4.\\r\\n\\r\\nIt
+        was first aired in the UK in April 2002 and was later broadcast in the U.S.
+        on various PBS stations in 2003 as Manor House, where extra footage was added.\\r\\n\\r\\nIn
+        the series the Olliff-Cooper family are given the identities of turn-of-the-century
+        aristocrats and housed in Manderston, an opulent Scottish country house, where
+        they live for three months in the Edwardian style. Mr. and Dr. Olliff-Cooper
+        become Sir John Olliff-Cooper, Bt, and Lady Olliff-Cooper.\\r\\n\\r\\nInterest
+        and conflict is provided by the 14 servants, portrayed by individuals from
+        several walks of life. Chief among these was Hugh Edgar, an architect from
+        Surrey, who was cast in the role of the butler.\\r\\n\\r\\nParticipants received
+        instruction and a set of rules by which they were expected to abide for the
+        duration of the experiment. Most of the \u2018upstairs\u2019 participants
+        enjoy their time in the house, which is meant to represent the years 1905-1914.
+        Those \u2018below stairs\u2019 have a different experience; for those in the
+        lowest ranks, particularly the successive scullery maids, life appears to
+        be intolerable.\",\n      \"seriesName\": \"Manor House\",\n      \"status\":
+        \"Ended\"\n    },\n    {\n      \"aliases\": [],\n      \"banner\": \"graphical/72838-g2.jpg\",\n
+        \     \"firstAired\": \"2003-06-01\",\n      \"id\": 72838,\n      \"network\":
+        \"Discovery\",\n      \"overview\": \"Monster House revolves around foreman
+        Steve Watson  finding a crew of 5 builders to redesign a home. The homeowners
+        get to choose the theme, but the building and design of the house has to be
+        left up to Steve and his crew. If the building team completes the job by midnight
+        Friday they win power tools. The theme and crew of each house vary from week
+        to week.\",\n      \"seriesName\": \"Monster House\",\n      \"status\": \"\"\n
+        \   },\n    {\n      \"aliases\": [\n        \"Art Linkletters House Party\"\n
+        \     ],\n      \"banner\": \"\",\n      \"firstAired\": \"1952-09-01\",\n
+        \     \"id\": 73121,\n      \"network\": \"CBS\",\n      \"overview\": \"Welcome
+        to the Art Linkletter's House Party guide at TV Tome. A popular daytime variety
+        show that began on CBS radio on January 15, 1945. 7 years later on September
+        1, 1952, The Television portion debuted on CBS-TV. The show features A few
+        jokes with Art at the audience and then a woman will answer a simple quiz.
+        He interview an guest expert and later they got gifts. Then A regular Pop
+        band and later Rock 'N' Roll to be appeared at that time. Then the Comedy
+        Spot for funny people. The Big Feature on the show is \\\"Kids Say the Darndest
+        Things\\\" that present schoolchildren ages 5 to 10 to ask priceless questions
+        that answered non-generally. In 1964, There's added features included bloopers
+        from CBS-TV Shows, Bonnie Prudden's exercise tip for women and talked to ex-movie
+        stars. On January 15, 1965, Art Linkletter's House Party celebrating its 20th
+        Anniversary on-the-air between radio and Television and Guest Host Ralph Edwards
+        from This is Your Life makes an tribute of him and the show\",\n      \"seriesName\":
+        \"Art Linkletter's House Party\",\n      \"status\": \"Ended\"\n    },\n    {\n
+        \     \"aliases\": [],\n      \"banner\": \"\",\n      \"firstAired\": \"1970-09-01\",\n
+        \     \"id\": 73931,\n      \"network\": \"ITV1\",\n      \"overview\": \"Welcome
+        to the On the House guide at TV Tome. There is no editor for this show. If
+        you would like to be the editor look here for details.\",\n      \"seriesName\":
+        \"On the House\",\n      \"status\": \"Ended\"\n    },\n    {\n      \"aliases\":
+        [],\n      \"banner\": \"\",\n      \"firstAired\": \"1989-08-01\",\n      \"id\":
+        74127,\n      \"network\": \"FOX (US)\",\n      \"overview\": \"Welcome to
+        the Open House guide at TV Tome.\\r\\nThis series is a revamped and retitled
+        version of the series Duet.\",\n      \"seriesName\": \"Open House\",\n      \"status\":
+        \"Ended\"\n    },\n    {\n      \"aliases\": [],\n      \"banner\": \"\",\n
+        \     \"firstAired\": \"1967-05-01\",\n      \"id\": 74193,\n      \"network\":
+        \"BBC One\",\n      \"overview\": null,\n      \"seriesName\": \"Champion
+        House\",\n      \"status\": \"Ended\"\n    },\n    {\n      \"aliases\": [],\n
+        \     \"banner\": \"graphical/74515-g.jpg\",\n      \"firstAired\": \"2000-06-01\",\n
+        \     \"id\": 74515,\n      \"network\": \"PBS\",\n      \"overview\": \"One
+        family gets to have the ultimate adventure, traveling back in time from the
+        Information Age to the Victorian Era. The series follows the Bowler family,
+        hand-picked out of thousands of applicants, to live for three months inside
+        a completely restored Victorian-era house. They are allowed no modern-day
+        comforts, not even electricity (it was too expensive for a family of their
+        class!). Watch as they do everyday tasks we take for granted: cooking, cleaning,
+        even at-home entertainment, with the things they had available in 1900 Britain.
+        \\\"The 1900 House\\\" is commonly referred to as Season One of PBS's \\\"House\\\"
+        series. Others include Manor House, 1940s House, Colonial House, and Frontier
+        House.\",\n      \"seriesName\": \"The 1900 House\",\n      \"status\": \"Ended\"\n
+        \   },\n    {\n      \"aliases\": [],\n      \"banner\": \"graphical/75311-g.jpg\",\n
+        \     \"firstAired\": \"2004-11-03\",\n      \"id\": 75311,\n      \"network\":
+        \"PBS\",\n      \"overview\": \"In the tradition of The 1900 House, Manor
+        House, Frontier House and Colonial House, PBS presents Regency House Party,
+        a series of four episodes in which 10 modern-day men and women get in on the
+        romantic action and the way of life that typified the Regency era. Regency
+        House Party aired on PBS Wednesdays from November 3 to November 24, 2004.
+        Originally premiered February 14, 2004 as an eight part series in the UK on
+        Channel 4 and aired Saturdays at 9:05pm. A hardcover companion book to the
+        series by Lucy Jago is also available and can purchased at Amazon.com in the
+        US and Amazon.co.uk in the UK. A 2-disc DVD set of the series became available
+        November 23 (Region 1).\",\n      \"seriesName\": \"Regency House Party\",\n
+        \     \"status\": \"Ended\"\n    },\n    {\n      \"aliases\": [],\n      \"banner\":
+        \"\",\n      \"firstAired\": \"1999-05-01\",\n      \"id\": 75399,\n      \"network\":
+        \"Five\",\n      \"overview\": null,\n      \"seriesName\": \"Open House with
+        Gloria Hunniford\",\n      \"status\": \"Ended\"\n    },\n    {\n      \"aliases\":
+        [],\n      \"banner\": \"\",\n      \"firstAired\": \"1979-01-01\",\n      \"id\":
+        76112,\n      \"network\": \"ABC (US)\",\n      \"overview\": \"Pranks, boos,
+        and parties are the norm at this house. Otter, D-day, and Blutto make up the
+        leaders of the Frat and constantly serve as the thorns in the paw of Dean
+        Wormer and the rest of campus fraternities and sororities. This short lived
+        series is the television sequel/spin off to the comedy movie classic ANIMAL
+        HOUSE. with a mostly new cast to make up the classic characters Given its
+        short run, it was obvious that his show lacked the draw that its movie version
+        had.\",\n      \"seriesName\": \"Delta House\",\n      \"status\": \"Ended\"\n
+        \   },\n    {\n      \"aliases\": [],\n      \"banner\": \"\",\n      \"firstAired\":
+        \"1985-03-01\",\n      \"id\": 76768,\n      \"network\": \"CBS\",\n      \"overview\":
+        null,\n      \"seriesName\": \"Detective in the House\",\n      \"status\":
+        \"Ended\"\n    },\n    {\n      \"aliases\": [\n        \"MTVs The 70s House\"\n
+        \     ],\n      \"banner\": \"text/38881.jpg\",\n      \"firstAired\": \"2005-07-05\",\n
+        \     \"id\": 78843,\n      \"network\": \"MTV (US)\",\n      \"overview\":
+        \"MTV takes 12 kids of the new millennium and forces them to live as if they
+        were in the 1970's.  That's right, no iPods, cell phones, or laptops!  Say
+        goodbye to modern day conveniences and say hello to 8-tracks and rotary dial
+        phones!  How groovy!\",\n      \"seriesName\": \"MTV's The '70s House\",\n
+        \     \"status\": \"Ended\"\n    },\n    {\n      \"aliases\": [],\n      \"banner\":
+        \"graphical/79558-g.jpg\",\n      \"firstAired\": \"2002-04-29\",\n      \"id\":
+        79558,\n      \"network\": \"PBS\",\n      \"overview\": \"From the executive
+        producer that brought The 1900 House and The 1940s House, and later Manor
+        House and Colonial House is Frontier House about three modern families living
+        the life of the 1883 American west. They have to work very hard for five months
+        building cabins, planting crops, churning butter, chopping wood, harvesting
+        hay, and preparing for winter in the Montana wilderness. It's sort of a mix
+        of Little House on the Prairie and Survivor.\",\n      \"seriesName\": \"Frontier
+        House\",\n      \"status\": \"Ended\"\n    },\n    {\n      \"aliases\": [],\n
+        \     \"banner\": \"graphical/79189-g.jpg\",\n      \"firstAired\": \"2002-04-30\",\n
+        \     \"id\": 79189,\n      \"network\": \"Fashion\",\n      \"overview\":
+        \"Naked in the House is a one-hour yearly Special based on the annual Toronto
+        photography competition. Twelve photographers set up in an un-inhabited mansion.
+        Each has only one camera, one lens and one roll of film. They each have one
+        half-hour to shoot the same nude model. What happens? What does it take to
+        win? Find out in this FashionTelevisionChannel Original Production.\",\n      \"seriesName\":
+        \"Naked in the House\",\n      \"status\": \"\"\n    },\n    {\n      \"aliases\":
+        [],\n      \"banner\": \"graphical/82565-g.jpg\",\n      \"firstAired\": \"2006-05-01\",\n
+        \     \"id\": 82565,\n      \"network\": \"PBS\",\n      \"overview\": \"The
+        latest installment in PBS\u2019s popular \u201CHouse\u201D group of history
+        series is Texas Ranch House. Texas Ranch House sends a family back in time
+        to post-Civil War Texas where they experience the hardships and joys of running
+        a cattle ranch. The family\u2019s objective over the three month course of
+        the project is to round up the 200 head of cattle and sell them at auction
+        for a profit to keep the ranch afloat. In addition to the Cooke family \u2013
+        Bill and Lisa, and their three daughters Vienna, Lacey, and Hannah \u2013
+        there are a maid, six cowboys, and their foreman..\",\n      \"seriesName\":
+        \"Texas Ranch House\",\n      \"status\": \"Ended\"\n    },\n    {\n      \"aliases\":
+        [\n        \"The White House  Behind Closed Doors\"\n      ],\n      \"banner\":
+        \"graphical/83886-g.jpg\",\n      \"firstAired\": \"2008-11-26\",\n      \"id\":
+        83886,\n      \"network\": \"\",\n      \"overview\": \"The White House: It's
+        a museum where tourists come to see our country's history, a place of business
+        where some of the greatest decisions of democracy have been made and, to the
+        families of 41 presidents, it has also been a home. The White House is perhaps
+        the most photographed location in the United States but those images rarely
+        get beyond the exterior. Now, President and Mrs. Bush invite viewers to join
+        them on the first in-depth televised tour of this grand residence since Jacqueline
+        Kennedy invited cameras inside in 1962. President and Mrs. Bush share their
+        own personal insights into what it has been like to live in this historic
+        house. Special guests, the brothers Leslie and Leigh Keno, well known from
+        television's Antiques Roadshow, join Mrs. Bush to offer their engaging insights
+        to the journey.\\r\\n\\r\\n\",\n      \"seriesName\": \"The White House -
+        Behind Closed Doors\",\n      \"status\": \"Ended\"\n    },\n    {\n      \"aliases\":
+        [\n        \"Big Daddys House\"\n      ],\n      \"banner\": \"\",\n      \"firstAired\":
+        \"2008-08-10\",\n      \"id\": 84091,\n      \"network\": \"Food Network\",\n
+        \     \"overview\": \"Watch out Big Daddy is in the house and ready to cook!
+        The Next Food Network Star's Season 4 winner, Aaron McCargo, Jr., shares his
+        passion for big, bold flavors and fun, family cooking on his new daytime series,
+        Big Daddy's House. Aaron brings a down-to-earth vibe and a warm smile to the
+        kitchen while whipping up mouth-watering recipes inspired by many years of
+        culinary experience and his fun-loving family. Expect big food and big fun
+        on Big Daddy's House.\",\n      \"seriesName\": \"Big Daddy's House\",\n      \"status\":
+        \"Ended\"\n    },\n    {\n      \"aliases\": [],\n      \"banner\": \"graphical/84079-g2.jpg\",\n
+        \     \"firstAired\": \"2008-12-09\",\n      \"id\": 84079,\n      \"network\":
+        \"Channel 4\",\n      \"overview\": \"This new reality series takes the old
+        Ramsay's Kitchen Nightmares format and applies it the stately homes of England,\",\n
+        \     \"seriesName\": \"Country House Rescue\",\n      \"status\": \"Ended\"\n
+        \   },\n    {\n      \"aliases\": [],\n      \"banner\": \"graphical/84228-g3.jpg\",\n
+        \     \"firstAired\": \"2008-12-22\",\n      \"id\": 84228,\n      \"network\":
+        \"BBC Four\",\n      \"overview\": \"A ghost story about a cursed house. The
+        cursed house - Geap Manor - weaves together three ghost stories set during
+        Georgian times, the 1920s and the present day.\",\n      \"seriesName\": \"Crooked
+        House\",\n      \"status\": \"Ended\"\n    },\n    {\n      \"aliases\": [],\n
+        \     \"banner\": \"text/103531.jpg\",\n      \"firstAired\": \"2009-07-10\",\n
+        \     \"id\": 103531,\n      \"network\": \"Channel 4\",\n      \"overview\":
+        \"Details of splendour and charm from the Edwardian era - presented by cook
+        and Edwardian enthusiast Hugh Fearnley-Whittingshall, Treats from the Edwardian
+        Country House is a companion series to The Edwardian Country House. \",\n
+        \     \"seriesName\": \"Treats from the Edwardian Country House\",\n      \"status\":
+        \"Ended\"\n    },\n    {\n      \"aliases\": [\n        \"1900 House UK\"\n
+        \     ],\n      \"banner\": \"graphical/84193-g.jpg\",\n      \"firstAired\":
+        \"\",\n      \"id\": 84193,\n      \"network\": \"Channel 4\",\n      \"overview\":
+        \"The Bowlers, a thoroughly modern family of six, were selected from over
+        400 families around the UK, to embark on a unique time travel journey to 1900.
+        For three months they swap the luxury of 1999 for a life of urban Victorian
+        domesticity.\",\n      \"seriesName\": \"1900 House (UK)\",\n      \"status\":
+        \"\"\n    },\n    {\n      \"aliases\": [],\n      \"banner\": \"graphical/122361-g.jpg\",\n
+        \     \"firstAired\": \"\",\n      \"id\": 122361,\n      \"network\": \"BBC
+        One\",\n      \"overview\": \"This living history series transports three
+        families back to the South Wales coalfields of the 1920s. The families swap
+        their modern luxuries for the harsh reality of daily life as a coalmining
+        family.\\r\\n\\r\\nLiving in coalminer's cottages without heating, running
+        water, washing machines, TV and computers, the families experience extreme
+        poverty and the struggle to survive that faced coalminers a years after the
+        General Strike in 1926.\\r\\nFor the men and boys over 14 there are long days
+        down the mine working in dire, cramped conditions while the women face the
+        relentless daily grind of household chores and looking after the family.\",\n
+        \     \"seriesName\": \"Coal House\",\n      \"status\": \"Ended\"\n    }\n
+        \ ]\n}"
+    headers:
+      CF-RAY:
+      - 32e1fe5d9d7865cf-SYD
+      Cache-Control:
+      - private, max-age=600
+      Connection:
+      - keep-alive
+      Content-Encoding:
+      - gzip
+      Content-Type:
+      - application/json; charset=utf-8
+      Date:
+      - Wed, 08 Feb 2017 20:57:23 GMT
+      Server:
+      - cloudflare-nginx
+      Set-Cookie:
+      - __cfduid=dcb4d6513a16a4717a283341545fc8d501486587442; expires=Thu, 08-Feb-18
+        20:57:22 GMT; path=/; domain=.thetvdb.com; HttpOnly
+      Vary:
+      - Accept-Language
+      X-Powered-By:
+      - Thundar!
+      X-Thetvdb-Api-Version:
+      - 2.1.2
+    status:
+      code: 200
+      message: OK
+- request:
+    body: '{"apikey": "4D297D8CFDE0E105"}'
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '30'
+      Content-Type:
+      - application/json
+      User-Agent:
+      - FlexGet/2.9.16.dev (www.flexget.com)
+    method: POST
+    uri: https://api.thetvdb.com/login
+  response:
+    body:
+      string: "{\n  \"token\": \"eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE0ODY2NzM4NDMsImlkIjoiRmxleEdldCIsIm9yaWdfaWF0IjoxNDg2NTg3NDQzfQ.OR0QGRPkkD_npU628Ja4o5t8O127Wb5cCLHH9Q-Vp7mXSCDRlCdbgu231Z-QFVCkypVHuITwb-TRmGw41zaoaTH_nxcuBZ0h2gBHo3hUvclB88D1UgGsNd-iylajAqwTZP80N42ivD-fVe_udbTDVxdnUmPf5A1EdwD-3QfujTCLCIOo2q3cUpTJR4HFuWqn1eMek-YmGcF1Jxtn1nK9U-RoW8gHsFSCCeph-f7hK-gkcOvPWYfXSkwZOLojWY3YJtCqhx5vsAfGAIV55Ehp1PfJQPHHOca81by3BrJ8a3rGkhUnT8UfH8srE7dCeCOaTi1ug44kobAi1Xuu-wqrrQ\"\n}"
+    headers:
+      CF-RAY:
+      - 32e1fe62da2c0b08-SYD
+      Connection:
+      - keep-alive
+      Content-Encoding:
+      - gzip
+      Content-Type:
+      - application/json; charset=utf-8
+      Date:
+      - Wed, 08 Feb 2017 20:57:23 GMT
+      Server:
+      - cloudflare-nginx
+      Set-Cookie:
+      - __cfduid=d8e3bfaed4252f573b6dd80e97f3337501486587443; expires=Thu, 08-Feb-18
+        20:57:23 GMT; path=/; domain=.thetvdb.com; HttpOnly
+      Vary:
+      - Accept-Language
+      X-Powered-By:
+      - Thundar!
+      X-Thetvdb-Api-Version:
+      - 2.1.2
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Authorization:
+      - Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE0ODY2NzM4NDMsImlkIjoiRmxleEdldCIsIm9yaWdfaWF0IjoxNDg2NTg3NDQzfQ.OR0QGRPkkD_npU628Ja4o5t8O127Wb5cCLHH9Q-Vp7mXSCDRlCdbgu231Z-QFVCkypVHuITwb-TRmGw41zaoaTH_nxcuBZ0h2gBHo3hUvclB88D1UgGsNd-iylajAqwTZP80N42ivD-fVe_udbTDVxdnUmPf5A1EdwD-3QfujTCLCIOo2q3cUpTJR4HFuWqn1eMek-YmGcF1Jxtn1nK9U-RoW8gHsFSCCeph-f7hK-gkcOvPWYfXSkwZOLojWY3YJtCqhx5vsAfGAIV55Ehp1PfJQPHHOca81by3BrJ8a3rGkhUnT8UfH8srE7dCeCOaTi1ug44kobAi1Xuu-wqrrQ
+      Connection:
+      - keep-alive
+      User-Agent:
+      - FlexGet/2.9.16.dev (www.flexget.com)
+    method: GET
+    uri: https://api.thetvdb.com/series/73255
+  response:
+    body:
+      string: "{\n  \"data\": {\n    \"id\": 73255,\n    \"seriesName\": \"House\",\n
+        \   \"aliases\": [\n      \"House M.D.\",\n      \"House MD\"\n    ],\n    \"banner\":
+        \"graphical/73255-g7.jpg\",\n    \"seriesId\": \"22374\",\n    \"status\":
+        \"Ended\",\n    \"firstAired\": \"2004-11-16\",\n    \"network\": \"FOX (US)\",\n
+        \   \"networkId\": \"\",\n    \"runtime\": \"45\",\n    \"genre\": [\n      \"Drama\",\n
+        \     \"Mystery\"\n    ],\n    \"overview\": \"Go deeper into the medical
+        mysteries of House, TV's most compelling drama. Hugh Laurie stars as the brilliant
+        but sarcastic Dr. Gregory House, a maverick physician who is devoid of bedside
+        manner. While his behavior can border on antisocial, Dr. House thrives on
+        the challenge of solving the medical puzzles that other doctors give up on.
+        Together with his hand-picked team of young medical experts, he'll do whatever
+        it takes in the race against the clock to solve the case.\",\n    \"lastUpdated\":
+        1486236157,\n    \"airsDayOfWeek\": \"\",\n    \"airsTime\": \"\",\n    \"rating\":
+        \"TV-14\",\n    \"imdbId\": \"tt0412142\",\n    \"zap2itId\": \"EP00688359\",\n
+        \   \"added\": \"\",\n    \"addedBy\": null,\n    \"siteRating\": 9.1,\n    \"siteRatingCount\":
+        1293\n  }\n}"
+    headers:
+      CF-RAY:
+      - 32e1fe646d3019bc-SYD
+      Cache-Control:
+      - private, max-age=600
+      Connection:
+      - keep-alive
+      Content-Encoding:
+      - gzip
+      Content-Type:
+      - application/json; charset=utf-8
+      Date:
+      - Wed, 08 Feb 2017 20:57:24 GMT
+      Last-Modified:
+      - Sat, 04 Feb 2017 19:22:37 GMT
+      Server:
+      - cloudflare-nginx
+      Set-Cookie:
+      - __cfduid=d0079a4ab9fd3a21a99bdb4cda77f42681486587443; expires=Thu, 08-Feb-18
+        20:57:23 GMT; path=/; domain=.thetvdb.com; HttpOnly
+      Vary:
+      - Accept-Language
+      X-Powered-By:
+      - Thundar!
+      X-Thetvdb-Api-Version:
+      - 2.1.2
+    status:
+      code: 200
+      message: OK
+- request:
+    body: '{"apikey": "4D297D8CFDE0E105"}'
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '30'
+      Content-Type:
+      - application/json
+      User-Agent:
+      - FlexGet/2.9.16.dev (www.flexget.com)
+    method: POST
+    uri: https://api.thetvdb.com/login
+  response:
+    body:
+      string: "{\n  \"token\": \"eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE0ODY2NzM4NDQsImlkIjoiRmxleEdldCIsIm9yaWdfaWF0IjoxNDg2NTg3NDQ0fQ.vm9-F_JJkW7jrVMIJ32BSNzJ2EQb5-hvXHeOR3_LLDk-kNMs5WRvtCgIYoiuuVI5_0pq63pJbYnzB7y0DGjtiUmXNgyvBCQXnCkLWEuiiuHo5vDdzSkvCzFVZdE2aLMz2vA0X_nGLuQcg54eT3P9NtrtFnJHa85JhhzYSDPGRIoBHEnc1VFwplOCDd5x0Rvas7nwc5LrdfiOps5aHsJQ-REERLbAp73o0S6y0m9YjETBb1tp6Lp50ji3Zfc6M2jDv-Ub82PxLCHkZ3rGXi94wub9-WS7_EeLblAGc6RWA_L9pqhJXazCR5PSc3deIvCd56aohMpKToS-s0sRkSb6bQ\"\n}"
+    headers:
+      CF-RAY:
+      - 32e1fe663ad70b08-SYD
+      Connection:
+      - keep-alive
+      Content-Encoding:
+      - gzip
+      Content-Type:
+      - application/json; charset=utf-8
+      Date:
+      - Wed, 08 Feb 2017 20:57:24 GMT
+      Server:
+      - cloudflare-nginx
+      Set-Cookie:
+      - __cfduid=de271cd60beabf34cd4b0bdb49fb742e01486587444; expires=Thu, 08-Feb-18
+        20:57:24 GMT; path=/; domain=.thetvdb.com; HttpOnly
+      Vary:
+      - Accept-Language
+      X-Powered-By:
+      - Thundar!
+      X-Thetvdb-Api-Version:
+      - 2.1.2
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Accept-Language:
+      - en
+      Authorization:
+      - Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE0ODY2NzM4NDQsImlkIjoiRmxleEdldCIsIm9yaWdfaWF0IjoxNDg2NTg3NDQ0fQ.vm9-F_JJkW7jrVMIJ32BSNzJ2EQb5-hvXHeOR3_LLDk-kNMs5WRvtCgIYoiuuVI5_0pq63pJbYnzB7y0DGjtiUmXNgyvBCQXnCkLWEuiiuHo5vDdzSkvCzFVZdE2aLMz2vA0X_nGLuQcg54eT3P9NtrtFnJHa85JhhzYSDPGRIoBHEnc1VFwplOCDd5x0Rvas7nwc5LrdfiOps5aHsJQ-REERLbAp73o0S6y0m9YjETBb1tp6Lp50ji3Zfc6M2jDv-Ub82PxLCHkZ3rGXi94wub9-WS7_EeLblAGc6RWA_L9pqhJXazCR5PSc3deIvCd56aohMpKToS-s0sRkSb6bQ
+      Connection:
+      - keep-alive
+      User-Agent:
+      - FlexGet/2.9.16.dev (www.flexget.com)
+    method: GET
+    uri: https://api.thetvdb.com/series/73255/episodes/query?airedEpisode=2&airedSeason=2
+  response:
+    body:
+      string: "{\n  \"links\": {\n    \"first\": 1,\n    \"last\": 1,\n    \"next\":
+        null,\n    \"prev\": null\n  },\n  \"data\": [\n    {\n      \"absoluteNumber\":
+        25,\n      \"airedEpisodeNumber\": 2,\n      \"airedSeason\": 2,\n      \"airedSeasonID\":
+        5537,\n      \"dvdEpisodeNumber\": 2,\n      \"dvdSeason\": 2,\n      \"episodeName\":
+        \"Autopsy\",\n      \"firstAired\": \"2005-09-20\",\n      \"id\": 306190,\n
+        \     \"language\": {\n        \"episodeName\": \"en\",\n        \"overview\":
+        \"en\"\n      },\n      \"lastUpdated\": 1323877442,\n      \"overview\":
+        \"Dr. Wilson convinces House to take the case of one of his patients, a young
+        girl with terminal cancer who starts suffering from hallucinations.\\r\\n\"\n
+        \   }\n  ]\n}"
+    headers:
+      CF-RAY:
+      - 32e1fe67faaf6569-SYD
+      Cache-Control:
+      - private, max-age=600
+      Connection:
+      - keep-alive
+      Content-Encoding:
+      - gzip
+      Content-Type:
+      - application/json; charset=utf-8
+      Date:
+      - Wed, 08 Feb 2017 20:57:24 GMT
+      Server:
+      - cloudflare-nginx
+      Set-Cookie:
+      - __cfduid=d793a0f21371a293c06e67bd345978ab51486587444; expires=Thu, 08-Feb-18
+        20:57:24 GMT; path=/; domain=.thetvdb.com; HttpOnly
+      Vary:
+      - Accept-Language
+      X-Powered-By:
+      - Thundar!
+      X-Thetvdb-Api-Version:
+      - 2.1.2
+    status:
+      code: 200
+      message: OK
+- request:
+    body: '{"apikey": "4D297D8CFDE0E105"}'
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '30'
+      Content-Type:
+      - application/json
+      User-Agent:
+      - FlexGet/2.9.16.dev (www.flexget.com)
+    method: POST
+    uri: https://api.thetvdb.com/login
+  response:
+    body:
+      string: "{\n  \"token\": \"eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE0ODY2NzM4NDQsImlkIjoiRmxleEdldCIsIm9yaWdfaWF0IjoxNDg2NTg3NDQ0fQ.vm9-F_JJkW7jrVMIJ32BSNzJ2EQb5-hvXHeOR3_LLDk-kNMs5WRvtCgIYoiuuVI5_0pq63pJbYnzB7y0DGjtiUmXNgyvBCQXnCkLWEuiiuHo5vDdzSkvCzFVZdE2aLMz2vA0X_nGLuQcg54eT3P9NtrtFnJHa85JhhzYSDPGRIoBHEnc1VFwplOCDd5x0Rvas7nwc5LrdfiOps5aHsJQ-REERLbAp73o0S6y0m9YjETBb1tp6Lp50ji3Zfc6M2jDv-Ub82PxLCHkZ3rGXi94wub9-WS7_EeLblAGc6RWA_L9pqhJXazCR5PSc3deIvCd56aohMpKToS-s0sRkSb6bQ\"\n}"
+    headers:
+      CF-RAY:
+      - 32e1fe69cb456581-SYD
+      Connection:
+      - keep-alive
+      Content-Encoding:
+      - gzip
+      Content-Type:
+      - application/json; charset=utf-8
+      Date:
+      - Wed, 08 Feb 2017 20:57:24 GMT
+      Server:
+      - cloudflare-nginx
+      Set-Cookie:
+      - __cfduid=d3900599f1addf2c14f7dc857e3f213e71486587444; expires=Thu, 08-Feb-18
+        20:57:24 GMT; path=/; domain=.thetvdb.com; HttpOnly
+      Vary:
+      - Accept-Language
+      X-Powered-By:
+      - Thundar!
+      X-Thetvdb-Api-Version:
+      - 2.1.2
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Accept-Language:
+      - en
+      Authorization:
+      - Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE0ODY2NzM4NDQsImlkIjoiRmxleEdldCIsIm9yaWdfaWF0IjoxNDg2NTg3NDQ0fQ.vm9-F_JJkW7jrVMIJ32BSNzJ2EQb5-hvXHeOR3_LLDk-kNMs5WRvtCgIYoiuuVI5_0pq63pJbYnzB7y0DGjtiUmXNgyvBCQXnCkLWEuiiuHo5vDdzSkvCzFVZdE2aLMz2vA0X_nGLuQcg54eT3P9NtrtFnJHa85JhhzYSDPGRIoBHEnc1VFwplOCDd5x0Rvas7nwc5LrdfiOps5aHsJQ-REERLbAp73o0S6y0m9YjETBb1tp6Lp50ji3Zfc6M2jDv-Ub82PxLCHkZ3rGXi94wub9-WS7_EeLblAGc6RWA_L9pqhJXazCR5PSc3deIvCd56aohMpKToS-s0sRkSb6bQ
+      Connection:
+      - keep-alive
+      User-Agent:
+      - FlexGet/2.9.16.dev (www.flexget.com)
+    method: GET
+    uri: https://api.thetvdb.com/episodes/306190
+  response:
+    body:
+      string: "{\n  \"data\": {\n    \"id\": 306190,\n    \"airedSeason\": 2,\n    \"airedSeasonID\":
+        5537,\n    \"airedEpisodeNumber\": 2,\n    \"episodeName\": \"Autopsy\",\n
+        \   \"firstAired\": \"2005-09-20\",\n    \"guestStars\": [\n      \"Hira Ambrosino\",\n
+        \     \"Gwen Holloway\",\n      \"Jewel Christian\",\n      \"Randall Park\",\n
+        \     \"William Jones\",\n      \"Eamon Hunt\",\n      \"Sasha Embeth Pieterse\",\n
+        \     \"Jonathan Fraser\"\n    ],\n    \"director\": \"Deran Sarafian\",\n
+        \   \"directors\": [\n      \"Deran Sarafian\"\n    ],\n    \"writers\": [\n
+        \     \"Lawrence Kaplow\"\n    ],\n    \"overview\": \"Dr. Wilson convinces
+        House to take the case of one of his patients, a young girl with terminal
+        cancer who starts suffering from hallucinations.\\r\\n\",\n    \"language\":
+        {\n      \"episodeName\": \"en\",\n      \"overview\": \"en\"\n    },\n    \"productionCode\":
+        \"HOU-202\",\n    \"showUrl\": \"http://www.tv.com/episode/467768/summary.html\",\n
+        \   \"lastUpdated\": 1323877442,\n    \"dvdDiscid\": \"\",\n    \"dvdSeason\":
+        2,\n    \"dvdEpisodeNumber\": 2,\n    \"dvdChapter\": null,\n    \"absoluteNumber\":
+        25,\n    \"filename\": \"episodes/73255/306190.jpg\",\n    \"seriesId\": 73255,\n
+        \   \"lastUpdatedBy\": 342615,\n    \"airsAfterSeason\": null,\n    \"airsBeforeSeason\":
+        null,\n    \"airsBeforeEpisode\": null,\n    \"thumbAuthor\": 437,\n    \"thumbAdded\":
+        \"\",\n    \"thumbWidth\": \"400\",\n    \"thumbHeight\": \"225\",\n    \"imdbId\":
+        \"tt0606012\",\n    \"siteRating\": 8,\n    \"siteRatingCount\": 65\n  }\n}"
+    headers:
+      CF-RAY:
+      - 32e1fe6b4ff465cf-SYD
+      Cache-Control:
+      - private, max-age=600
+      Connection:
+      - keep-alive
+      Content-Encoding:
+      - gzip
+      Content-Type:
+      - application/json; charset=utf-8
+      Date:
+      - Wed, 08 Feb 2017 20:57:25 GMT
+      Last-Modified:
+      - Wed, 14 Dec 2011 15:44:02 GMT
+      Server:
+      - cloudflare-nginx
+      Set-Cookie:
+      - __cfduid=d8583ac1a5d6d9302498657ea3a3b09971486587445; expires=Thu, 08-Feb-18
+        20:57:25 GMT; path=/; domain=.thetvdb.com; HttpOnly
+      Vary:
+      - Accept-Language
+      X-Powered-By:
+      - Thundar!
+      X-Thetvdb-Api-Version:
+      - 2.1.2
+    status:
+      code: 200
+      message: OK
+- request:
+    body: '{"apikey": "4D297D8CFDE0E105"}'
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '30'
+      Content-Type:
+      - application/json
+      User-Agent:
+      - FlexGet/2.9.16.dev (www.flexget.com)
+    method: POST
+    uri: https://api.thetvdb.com/login
+  response:
+    body:
+      string: "{\n  \"token\": \"eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE0ODY2NzM4NDUsImlkIjoiRmxleEdldCIsIm9yaWdfaWF0IjoxNDg2NTg3NDQ1fQ.ly57qKRalOI9I9aXWMQhgAhntyulp16ZNb5Z3EvTCPpgZJihlio8QBVvBUxvKwjCAlLHJpwG2QxZorzZkvLpFl0jPKItPqGdEBbYupXj_7zwbivMIiZcB2M-Ny74mnVxc23fxwlgg7l04q-XdHYLp5nqEO9tMF3BfRkEVqrjqMVpWOYk0_BBcrwTkkuLuPkv_3vRJUBYVyGaYHu4M2Vp6x7dOP369HssOFbJnZulUkg8ZWXkrHjRAr5RSmxm7B_yw617F10lYe17wzB31ZrVJyhFpUowWS23o5r1ocKqAcX9cnVsd9gqQ-AmDchSd52MlyFpAcCHdcSzLAV3uiyJ_A\"\n}"
+    headers:
+      CF-RAY:
+      - 32e1fe6dabb66581-SYD
+      Connection:
+      - keep-alive
+      Content-Encoding:
+      - gzip
+      Content-Type:
+      - application/json; charset=utf-8
+      Date:
+      - Wed, 08 Feb 2017 20:57:25 GMT
+      Server:
+      - cloudflare-nginx
+      Set-Cookie:
+      - __cfduid=dd7660c4876f36d6c120ba2357ecd7abb1486587445; expires=Thu, 08-Feb-18
+        20:57:25 GMT; path=/; domain=.thetvdb.com; HttpOnly
+      Vary:
+      - Accept-Language
+      X-Powered-By:
+      - Thundar!
+      X-Thetvdb-Api-Version:
+      - 2.1.2
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Authorization:
+      - Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE0ODY2NzM4NDUsImlkIjoiRmxleEdldCIsIm9yaWdfaWF0IjoxNDg2NTg3NDQ1fQ.ly57qKRalOI9I9aXWMQhgAhntyulp16ZNb5Z3EvTCPpgZJihlio8QBVvBUxvKwjCAlLHJpwG2QxZorzZkvLpFl0jPKItPqGdEBbYupXj_7zwbivMIiZcB2M-Ny74mnVxc23fxwlgg7l04q-XdHYLp5nqEO9tMF3BfRkEVqrjqMVpWOYk0_BBcrwTkkuLuPkv_3vRJUBYVyGaYHu4M2Vp6x7dOP369HssOFbJnZulUkg8ZWXkrHjRAr5RSmxm7B_yw617F10lYe17wzB31ZrVJyhFpUowWS23o5r1ocKqAcX9cnVsd9gqQ-AmDchSd52MlyFpAcCHdcSzLAV3uiyJ_A
+      Connection:
+      - keep-alive
+      User-Agent:
+      - FlexGet/2.9.16.dev (www.flexget.com)
+    method: GET
+    uri: https://api.thetvdb.com/series/73255
+  response:
+    body:
+      string: "{\n  \"data\": {\n    \"id\": 73255,\n    \"seriesName\": \"House\",\n
+        \   \"aliases\": [\n      \"House M.D.\",\n      \"House MD\"\n    ],\n    \"banner\":
+        \"graphical/73255-g7.jpg\",\n    \"seriesId\": \"22374\",\n    \"status\":
+        \"Ended\",\n    \"firstAired\": \"2004-11-16\",\n    \"network\": \"FOX (US)\",\n
+        \   \"networkId\": \"\",\n    \"runtime\": \"45\",\n    \"genre\": [\n      \"Drama\",\n
+        \     \"Mystery\"\n    ],\n    \"overview\": \"Go deeper into the medical
+        mysteries of House, TV's most compelling drama. Hugh Laurie stars as the brilliant
+        but sarcastic Dr. Gregory House, a maverick physician who is devoid of bedside
+        manner. While his behavior can border on antisocial, Dr. House thrives on
+        the challenge of solving the medical puzzles that other doctors give up on.
+        Together with his hand-picked team of young medical experts, he'll do whatever
+        it takes in the race against the clock to solve the case.\",\n    \"lastUpdated\":
+        1486236157,\n    \"airsDayOfWeek\": \"\",\n    \"airsTime\": \"\",\n    \"rating\":
+        \"TV-14\",\n    \"imdbId\": \"tt0412142\",\n    \"zap2itId\": \"EP00688359\",\n
+        \   \"added\": \"\",\n    \"addedBy\": null,\n    \"siteRating\": 9.1,\n    \"siteRatingCount\":
+        1293\n  }\n}"
+    headers:
+      CF-RAY:
+      - 32e1fe6f3f0e654b-SYD
+      Cache-Control:
+      - private, max-age=600
+      Connection:
+      - keep-alive
+      Content-Encoding:
+      - gzip
+      Content-Type:
+      - application/json; charset=utf-8
+      Date:
+      - Wed, 08 Feb 2017 20:57:25 GMT
+      Last-Modified:
+      - Sat, 04 Feb 2017 19:22:37 GMT
+      Server:
+      - cloudflare-nginx
+      Set-Cookie:
+      - __cfduid=d5ed0eb43fcbf7e34bb3a0ed8598805031486587445; expires=Thu, 08-Feb-18
+        20:57:25 GMT; path=/; domain=.thetvdb.com; HttpOnly
+      Vary:
+      - Accept-Language
+      X-Powered-By:
+      - Thundar!
+      X-Thetvdb-Api-Version:
+      - 2.1.2
+    status:
+      code: 200
+      message: OK
+- request:
+    body: '{"apikey": "4D297D8CFDE0E105"}'
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '30'
+      Content-Type:
+      - application/json
+      User-Agent:
+      - FlexGet/2.9.16.dev (www.flexget.com)
+    method: POST
+    uri: https://api.thetvdb.com/login
+  response:
+    body:
+      string: "{\n  \"token\": \"eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE0ODY2NzM4NDUsImlkIjoiRmxleEdldCIsIm9yaWdfaWF0IjoxNDg2NTg3NDQ1fQ.ly57qKRalOI9I9aXWMQhgAhntyulp16ZNb5Z3EvTCPpgZJihlio8QBVvBUxvKwjCAlLHJpwG2QxZorzZkvLpFl0jPKItPqGdEBbYupXj_7zwbivMIiZcB2M-Ny74mnVxc23fxwlgg7l04q-XdHYLp5nqEO9tMF3BfRkEVqrjqMVpWOYk0_BBcrwTkkuLuPkv_3vRJUBYVyGaYHu4M2Vp6x7dOP369HssOFbJnZulUkg8ZWXkrHjRAr5RSmxm7B_yw617F10lYe17wzB31ZrVJyhFpUowWS23o5r1ocKqAcX9cnVsd9gqQ-AmDchSd52MlyFpAcCHdcSzLAV3uiyJ_A\"\n}"
+    headers:
+      CF-RAY:
+      - 32e1fe70dc346599-SYD
+      Connection:
+      - keep-alive
+      Content-Encoding:
+      - gzip
+      Content-Type:
+      - application/json; charset=utf-8
+      Date:
+      - Wed, 08 Feb 2017 20:57:26 GMT
+      Server:
+      - cloudflare-nginx
+      Set-Cookie:
+      - __cfduid=d92f33ff2cf558ab2ad3f8132e4b9d61d1486587445; expires=Thu, 08-Feb-18
+        20:57:25 GMT; path=/; domain=.thetvdb.com; HttpOnly
+      Vary:
+      - Accept-Language
+      X-Powered-By:
+      - Thundar!
+      X-Thetvdb-Api-Version:
+      - 2.1.2
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Authorization:
+      - Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE0ODY2NzM4NDUsImlkIjoiRmxleEdldCIsIm9yaWdfaWF0IjoxNDg2NTg3NDQ1fQ.ly57qKRalOI9I9aXWMQhgAhntyulp16ZNb5Z3EvTCPpgZJihlio8QBVvBUxvKwjCAlLHJpwG2QxZorzZkvLpFl0jPKItPqGdEBbYupXj_7zwbivMIiZcB2M-Ny74mnVxc23fxwlgg7l04q-XdHYLp5nqEO9tMF3BfRkEVqrjqMVpWOYk0_BBcrwTkkuLuPkv_3vRJUBYVyGaYHu4M2Vp6x7dOP369HssOFbJnZulUkg8ZWXkrHjRAr5RSmxm7B_yw617F10lYe17wzB31ZrVJyhFpUowWS23o5r1ocKqAcX9cnVsd9gqQ-AmDchSd52MlyFpAcCHdcSzLAV3uiyJ_A
+      Connection:
+      - keep-alive
+      User-Agent:
+      - FlexGet/2.9.16.dev (www.flexget.com)
+    method: GET
+    uri: https://api.thetvdb.com/episodes/306190
+  response:
+    body:
+      string: "{\n  \"data\": {\n    \"id\": 306190,\n    \"airedSeason\": 2,\n    \"airedSeasonID\":
+        5537,\n    \"airedEpisodeNumber\": 2,\n    \"episodeName\": \"Autopsy\",\n
+        \   \"firstAired\": \"2005-09-20\",\n    \"guestStars\": [\n      \"Hira Ambrosino\",\n
+        \     \"Gwen Holloway\",\n      \"Jewel Christian\",\n      \"Randall Park\",\n
+        \     \"William Jones\",\n      \"Eamon Hunt\",\n      \"Sasha Embeth Pieterse\",\n
+        \     \"Jonathan Fraser\"\n    ],\n    \"director\": \"Deran Sarafian\",\n
+        \   \"directors\": [\n      \"Deran Sarafian\"\n    ],\n    \"writers\": [\n
+        \     \"Lawrence Kaplow\"\n    ],\n    \"overview\": \"Dr. Wilson convinces
+        House to take the case of one of his patients, a young girl with terminal
+        cancer who starts suffering from hallucinations.\\r\\n\",\n    \"language\":
+        {\n      \"episodeName\": \"en\",\n      \"overview\": \"en\"\n    },\n    \"productionCode\":
+        \"HOU-202\",\n    \"showUrl\": \"http://www.tv.com/episode/467768/summary.html\",\n
+        \   \"lastUpdated\": 1323877442,\n    \"dvdDiscid\": \"\",\n    \"dvdSeason\":
+        2,\n    \"dvdEpisodeNumber\": 2,\n    \"dvdChapter\": null,\n    \"absoluteNumber\":
+        25,\n    \"filename\": \"episodes/73255/306190.jpg\",\n    \"seriesId\": 73255,\n
+        \   \"lastUpdatedBy\": 342615,\n    \"airsAfterSeason\": null,\n    \"airsBeforeSeason\":
+        null,\n    \"airsBeforeEpisode\": null,\n    \"thumbAuthor\": 437,\n    \"thumbAdded\":
+        \"\",\n    \"thumbWidth\": \"400\",\n    \"thumbHeight\": \"225\",\n    \"imdbId\":
+        \"tt0606012\",\n    \"siteRating\": 8,\n    \"siteRatingCount\": 65\n  }\n}"
+    headers:
+      CF-RAY:
+      - 32e1fe725c2565b1-SYD
+      Cache-Control:
+      - private, max-age=600
+      Connection:
+      - keep-alive
+      Content-Encoding:
+      - gzip
+      Content-Type:
+      - application/json; charset=utf-8
+      Date:
+      - Wed, 08 Feb 2017 20:57:26 GMT
+      Last-Modified:
+      - Wed, 14 Dec 2011 15:44:02 GMT
+      Server:
+      - cloudflare-nginx
+      Set-Cookie:
+      - __cfduid=d1e46acd563dfe685a0a70eb2ebc5fed91486587446; expires=Thu, 08-Feb-18
+        20:57:26 GMT; path=/; domain=.thetvdb.com; HttpOnly
+      Vary:
+      - Accept-Language
+      X-Powered-By:
+      - Thundar!
+      X-Thetvdb-Api-Version:
+      - 2.1.2
+    status:
+      code: 200
+      message: OK
+version: 1

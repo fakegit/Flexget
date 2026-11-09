@@ -9,8 +9,7 @@ logger = logger.bind(name='modify_torrents')
 
 
 class AddTrackers:
-    """
-    Adds tracker URL to torrent files.
+    """Adds tracker URL to torrent files.
 
     Configuration example:
 
@@ -35,8 +34,7 @@ class AddTrackers:
 
 
 class RemoveTrackers:
-    """
-    Removes trackers from torrent files using regexp matching.
+    """Removes trackers from torrent files using regexp matching.
 
     Configuration example:
 
@@ -54,7 +52,7 @@ class RemoveTrackers:
             if 'torrent' in entry:
                 for tracker in entry['torrent'].trackers:
                     for regexp in config or []:
-                        if re.search(regexp, tracker, re.IGNORECASE | re.UNICODE):
+                        if re.search(regexp, tracker, re.IGNORECASE):
                             logger.debug(
                                 'remove_trackers removing {} because of {}', tracker, regexp
                             )
@@ -64,13 +62,12 @@ class RemoveTrackers:
             if entry['url'].startswith('magnet:'):
                 for regexp in config:
                     # Replace any tracker strings that match the regexp with nothing
-                    tr_search = r'&tr=([^&]*%s[^&]*)' % regexp
-                    entry['url'] = re.sub(tr_search, '', entry['url'], re.IGNORECASE | re.UNICODE)
+                    tr_search = rf'&tr=([^&]*{regexp}[^&]*)'
+                    entry['url'] = re.sub(tr_search, '', entry['url'], flags=re.IGNORECASE)
 
 
 class ModifyTrackers:
-    """
-    Modify tracker URL to torrent files.
+    """Modify tracker URL to torrent files.
 
     Configuration example::
 

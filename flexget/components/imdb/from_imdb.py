@@ -1,6 +1,5 @@
 from collections.abc import Iterable
 
-from jsonschema.compat import str_types
 from loguru import logger
 
 from flexget import plugin
@@ -13,25 +12,30 @@ logger = logger.bind(name='from_imdb')
 
 
 class FromIMDB:
-    """
-    This plugin enables generating entries based on an entity, an entity being a person, character or company.
+    """Enable generating entries based on an entity, an entity being a person, character or company.
+
     It's based on IMDBpy which is required (pip install imdbpy). The basic config required just an IMDB ID of the
     required entity.
 
-    For example:
+    For example::
 
         from_imdb: ch0001354
 
     Schema description:
     Other than ID, all other properties are meant to filter the full list that the entity generates.
 
-    id: string that relates to a supported entity type. For example: 'nm0000375'. Required.
-    job_types: a string or list with job types from job_types. Default is 'actor'.
-    content_types: A string or list with content types from content_types. Default is 'movie'.
-    max_entries: The maximum number of entries that can return. This value's purpose is basically flood protection
-        against unruly configurations that will return too many results. Default is 200.
+    ==============   ==============================================================================================
+    Option           Description
+    ==============   ==============================================================================================
+    id               string that relates to a supported entity type. For example: 'nm0000375'. Required.
+    job_types        a string or list with job types from job_types. Default is 'actor'.
+    content_types    A string or list with content types from content_types. Default is 'movie'.
+    max_entries      The maximum number of entries that can return. This value's purpose is basically flood
+                     protection against unruly configurations that will return too many results. Default is 200.
+    ==============   ==============================================================================================
 
-    Advanced config example:
+    Advanced config example::
+
         dynamic_movie_queue:
             from_imdb:
               id: co0051941
@@ -41,7 +45,6 @@ class FromIMDB:
               content_types: tv series
             accept_all: yes
             movie_queue: add
-
     """
 
     job_types = [
@@ -128,10 +131,7 @@ class FromIMDB:
     }
 
     def prepare_config(self, config):
-        """
-        Converts config to dict form and sets defaults if needed
-        """
-        config = config
+        """Convert config to dict form and sets defaults if needed."""
         if isinstance(config, str):
             config = {'id': [config]}
         elif isinstance(config, list):
@@ -144,11 +144,11 @@ class FromIMDB:
         config.setdefault('max_entries', 200)
         config.setdefault('match_type', 'strict')
 
-        if isinstance(config.get('content_types'), str_types):
+        if isinstance(config.get('content_types'), str):
             logger.debug('Converted content type from string to list.')
             config['content_types'] = [config['content_types']]
 
-        if isinstance(config['job_types'], str_types):
+        if isinstance(config['job_types'], str):
             logger.debug('Converted job type from string to list.')
             config['job_types'] = [config['job_types']]
         # Special case in case user meant to add actress instead of actor (different job types in IMDB)
@@ -180,8 +180,8 @@ class FromIMDB:
         return set(items)
 
     def get_entity_type_and_object(self, imdb_id):
-        """
-        Return a tuple of entity type and entity object
+        """Return a tuple of entity type and entity object.
+
         :param imdb_id: string which contains IMDB id
         :return: entity type, entity object (person, company, etc.)
         """
@@ -189,38 +189,35 @@ class FromIMDB:
             person = self.ia.get_person(imdb_id[2:])
             logger.info('Starting to retrieve items for person: {}', person)
             return 'Person', person
-        elif imdb_id.startswith('co'):
+        if imdb_id.startswith('co'):
             company = self.ia.get_company(imdb_id[2:])
             logger.info('Starting to retrieve items for company: {}', company)
             return 'Company', company
-        elif imdb_id.startswith('ch'):
+        if imdb_id.startswith('ch'):
             character = self.ia.get_character(imdb_id[2:])
             logger.info('Starting to retrieve items for Character: {}', character)
             return 'Character', character
+        return None
 
     def get_items_by_entity(
         self, entity_type, entity_object, content_types, job_types, match_type
     ):
-        """
-        Gets entity object and return movie list using relevant method
-        """
+        """Get entity object and return movie list using relevant method."""
         if entity_type == 'Company':
             return self.items_by_company(entity_object)
 
         if entity_type == 'Character':
             return self.items_by_character(entity_object, content_types, match_type)
 
-        elif entity_type == 'Person':
+        if entity_type == 'Person':
             return self.items_by_person(entity_object, job_types, content_types, match_type)
+        return None
 
     def flatten_list(self, _list):
-        """
-        Gets a list of lists and returns a flat list
-        """
+        """Get a list of lists and return a flat list."""
         for el in _list:
             if isinstance(el, Iterable) and not isinstance(el, str):
-                for sub in self.flatten_list(el):
-                    yield sub
+                yield from self.flatten_list(el)
             else:
                 yield el
 
@@ -252,9 +249,7 @@ class FromIMDB:
         return items
 
     def items_by_person(self, person, job_types, content_types, match_type):
-        """
-        Return item list for a person object
-        """
+        """Return item list for a person object."""
         unfiltered_items = self.flat_list(
             [self.items_by_job_type(person, job_type, content_types) for job_type in job_types],
             remove_none=True,
@@ -274,19 +269,21 @@ class FromIMDB:
             person.get(job_type, [])
             if job_type in self.jobs_without_content_type
             else [
-                person.get(job_type + ' ' + 'documentary', [])
-                and person.get(job_type + ' ' + 'short', [])
-                and self.items_by_content_type(person, job_type, content_type)
-                if content_type == 'movie'
-                else self.items_by_content_type(person, job_type, content_type)
+                (
+                    person.get(job_type + ' ' + 'documentary', [])
+                    and person.get(job_type + ' ' + 'short', [])
+                    and self.items_by_content_type(person, job_type, content_type)
+                    if content_type == 'movie'
+                    else self.items_by_content_type(person, job_type, content_type)
+                )
                 for content_type in content_types
             ]
         )
         return [_f for _f in items if _f]
 
     def items_by_character(self, character, content_types, match_type):
-        """
-        Return items list for a character object
+        """Return items list for a character object.
+
         :param character: character object
         :param content_types: content types as defined in config
         :return:
@@ -302,8 +299,8 @@ class FromIMDB:
         return self.filtered_items(unfiltered_items, content_types, match_type)
 
     def items_by_company(self, company):
-        """
-        Return items list for a company object
+        """Return items list for a company object.
+
         :param company: company object
         :return: company items list
         """
@@ -319,14 +316,14 @@ class FromIMDB:
             logger.error(
                 'IMDBPY is required for this plugin. Please install using "pip install imdbpy"'
             )
-            return
+            return None
 
         entries = []
         config = self.prepare_config(config)
         items = self.get_items(config)
         if not items:
             logger.error('Could not get IMDB item list, check your configuration.')
-            return
+            return None
         for item in items:
             entry = Entry(
                 title=item['title'],
@@ -339,21 +336,20 @@ class FromIMDB:
                 if entry not in entries:
                     entries.append(entry)
                     if entry and task.options.test:
-                        logger.info("Test mode. Entry includes:")
+                        logger.info('Test mode. Entry includes:')
                         for key, value in list(entry.items()):
                             logger.info('     {}: {}', key.capitalize(), value)
             else:
                 logger.error('Invalid entry created? {}', entry)
         if len(entries) <= config.get('max_entries'):
             return entries
-        else:
-            logger.warning(
-                'Number of entries ({}) exceeds maximum allowed value {}. '
-                'Edit your filters or raise the maximum value by entering a higher "max_entries"',
-                len(entries),
-                config.get('max_entries'),
-            )
-            return
+        logger.warning(
+            'Number of entries ({}) exceeds maximum allowed value {}. '
+            'Edit your filters or raise the maximum value by entering a higher "max_entries"',
+            len(entries),
+            config.get('max_entries'),
+        )
+        return None
 
 
 @event('plugin.register')

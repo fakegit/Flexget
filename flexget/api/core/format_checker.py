@@ -1,8 +1,13 @@
-from flask import Response
-from sqlalchemy.orm import Session
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
 
 from flexget.api import APIResource, api
 from flexget.api.app import base_message_schema, success_response
+
+if TYPE_CHECKING:
+    from flask import Response
+    from sqlalchemy.orm import Session
 
 schema_api = api.namespace(
     'format_check', description='Test Flexget custom schema format validations'
@@ -37,6 +42,6 @@ class SchemaTest(APIResource):
     @api.validate(format_checker_schema)
     @api.response(200, model=base_message_schema)
     def post(self, session: Session = None) -> Response:
-        """ Validate flexget custom schema"""
+        """Validate flexget custom schema."""
         # If validation passed, all is well
         return success_response('payload is valid')

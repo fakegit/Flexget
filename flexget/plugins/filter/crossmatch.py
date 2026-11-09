@@ -8,8 +8,7 @@ logger = logger.bind(name='crossmatch')
 
 
 class CrossMatch:
-    """
-    Perform action based on item on current task and other inputs.
+    """Perform action based on item on current task and other inputs.
 
     Example::
 
@@ -38,7 +37,6 @@ class CrossMatch:
     }
 
     def on_task_filter(self, task, config):
-
         fields = config['fields']
         action = config['action']
         all_fields = config['all_fields']
@@ -61,7 +59,7 @@ class CrossMatch:
                     config.get('case_sensitive'),
                 )
                 if common and (not all_fields or len(common) == len(fields)):
-                    msg = 'intersects with %s on field(s) %s' % (
+                    msg = 'intersects with {} on field(s) {}'.format(
                         generated_entry['title'],
                         ', '.join(common),
                     )
@@ -74,13 +72,12 @@ class CrossMatch:
                         entry.accept(msg)
 
     def entry_intersects(self, e1, e2, fields=None, exact=True, case_sensitive=True):
-        """
+        """Return list of field names in common.
+
         :param e1: First :class:`flexget.entry.Entry`
         :param e2: Second :class:`flexget.entry.Entry`
         :param fields: List of fields which are checked
-        :return: List of field names in common
         """
-
         if fields is None:
             fields = []
 
@@ -102,7 +99,7 @@ class CrossMatch:
                 v2 = e2[field]
 
             try:
-                if v1 == v2 or not exact and (v2 in v1 or v1 in v2):
+                if v1 == v2 or (not exact and (v2 in v1 or v1 in v2)):
                     common_fields.append(field)
                 else:
                     logger.trace('not matching')

@@ -10,19 +10,17 @@ logger = logger.bind(name='try_regexp')
 
 
 class PluginTryRegexp:
-    """
-    This plugin allows user to test regexps for a task.
-    """
+    """Allows user to test regexps for a task."""
 
     def __init__(self):
         self.abort = False
 
     def matches(self, entry, regexp):
-        """Return True if any of the entry string fields match given regexp"""
+        """Return True if any of the entry string fields match given regexp."""
         for field, value in entry.items():
             if not isinstance(value, str):
                 continue
-            if re.search(regexp, value, re.IGNORECASE | re.UNICODE):
+            if re.search(regexp, value, re.IGNORECASE):
                 return (True, field)
         return (False, None)
 
@@ -35,18 +33,17 @@ class PluginTryRegexp:
         console('-' * 79)
         console('Hi there, welcome to try regexps in realtime!')
         console(
-            'Press ^D or type \'exit\' to continue. Type \'continue\' to continue non-interactive execution.'
+            "Press ^D or type 'exit' to continue. Type 'continue' to continue non-interactive execution."
         )
         console(
-            'Task \'%s\' has %s entries, enter regexp to see what matches it.'
-            % (task.name, len(task.entries))
+            f"Task '{task.name}' has {len(task.entries)} entries, enter regexp to see what matches it."
         )
         while True:
             try:
                 s = input('--> ')
                 if s == 'exit':
                     break
-                if s == 'abort' or s == 'continue':
+                if s in ('abort', 'continue'):
                     self.abort = True
                     break
             except EOFError:
@@ -58,14 +55,15 @@ class PluginTryRegexp:
                     match, field = self.matches(entry, s)
                     if match:
                         console(
-                            'Title: %-40s URL: %-30s From: %s'
-                            % (entry['title'], entry['url'], field)
+                            'Title: {:40s} URL: {:30s} From: {}'.format(
+                                entry['title'], entry['url'], field
+                            )
                         )
                         count += 1
                 except re.error:
                     console('Invalid regular expression')
                     break
-            console('%s of %s entries matched' % (count, len(task.entries)))
+            console(f'{count} of {len(task.entries)} entries matched')
         console('Bye!')
 
 

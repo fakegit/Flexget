@@ -1,14 +1,14 @@
+from __future__ import annotations
+
 import argparse
-import cgi
 import copy
 from datetime import datetime, timedelta
 from json import JSONEncoder
 from queue import Empty, Queue
-from typing import Dict, TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any
 
 from flask import Response, jsonify, request
 from flask_restx import inputs
-from sqlalchemy.orm import Session
 
 from flexget.api import APIResource, api
 from flexget.api.app import (
@@ -29,6 +29,10 @@ from flexget.task import task_phases
 from flexget.terminal import capture_console
 from flexget.utils import json, requests
 from flexget.utils.lazy_dict import LazyLookup
+from flexget.utils.requests import parse_header
+
+if TYPE_CHECKING:
+    from sqlalchemy.orm import Session
 
 # Tasks API
 tasks_api = api.namespace('tasks', description='Manage Tasks')
@@ -199,10 +203,9 @@ tasks_parser.add_argument(
 class TasksAPI(APIResource):
     @etag
     @api.response(200, model=tasks_list_schema)
-    @api.doc(parser=tasks_parser)
+    @api.doc(expect=[tasks_parser])
     def get(self, session: Session = None) -> Response:
-        """ List all tasks """
-
+        """List all tasks."""
         active_tasks = {
             task: task_data
             for task, task_data in self.manager.user_config.get('tasks', {}).items()
@@ -221,7 +224,7 @@ class TasksAPI(APIResource):
     @api.response(Conflict)
     @api.response(APIError)
     def post(self, session: Session = None) -> Response:
-        """ Add new task """
+        """Add new task."""
         data = request.json
 
         task_name = data['name']
@@ -260,7 +263,7 @@ class TaskAPI(APIResource):
     @api.response(200, model=task_return_schema)
     @api.response(NotFoundError, description='task not found')
     def get(self, task, session: Session = None) -> Response:
-        """ Get task config """
+        """Get task config."""
         if task not in self.manager.user_config.get('tasks', {}):
             raise NotFoundError(f'task `{task}` not found')
 
@@ -271,7 +274,7 @@ class TaskAPI(APIResource):
     @api.response(NotFoundError)
     @api.response(BadRequest)
     def put(self, task, session: Session = None) -> Response:
-        """ Update tasks config """
+        """Update tasks config."""
         data = request.json
 
         new_task_name = data['name']
@@ -307,16 +310,17 @@ class TaskAPI(APIResource):
         self.manager.save_config()
         self.manager.config_changed()
 
-        rsp = jsonify(
-            {'name': new_task_name, 'config': self.manager.user_config['tasks'][new_task_name]}
-        )
+        rsp = jsonify({
+            'name': new_task_name,
+            'config': self.manager.user_config['tasks'][new_task_name],
+        })
         rsp.status_code = 200
         return rsp
 
     @api.response(200, model=base_message_schema, description='deleted task')
     @api.response(NotFoundError)
     def delete(self, task, session: Session = None) -> Response:
-        """ Delete a task """
+        """Delete a task."""
         try:
             self.manager.config['tasks'].pop(task)
             self.manager.user_config['tasks'].pop(task)
@@ -345,12 +349,12 @@ status_parser.add_argument(
     'start_date',
     type=inputs.datetime_from_iso8601,
     default=default_start_date,
-    help='Filter by minimal start date. Example: \'2012-01-01\'',
+    help="Filter by minimal start date. Example: '2012-01-01'",
 )
 status_parser.add_argument(
     'end_date',
     type=inputs.datetime_from_iso8601,
-    help='Filter by maximal end date. Example: \'2012-01-01\'',
+    help="Filter by maximal end date. Example: '2012-01-01'",
 )
 status_parser.add_argument(
     'limit',
@@ -373,7 +377,7 @@ def _task_info_dict(task):
 class TaskQueueAPI(APIResource):
     @api.response(200, model=task_api_queue_schema)
     def get(self, session: Session = None) -> Response:
-        """ List task(s) in queue for execution """
+        """List task(s) in queue for execution."""
         tasks = [_task_info_dict(task) for task in self.manager.task_queue.run_queue.queue]
 
         if self.manager.task_queue.current_task:
@@ -383,7 +387,7 @@ class TaskQueueAPI(APIResource):
 
 
 class ExecuteLog(Queue):
-    """ Supports task log streaming by acting like a file object """
+    """Support task log streaming by acting like a file object."""
 
     def write(self, s):
         self.put(json.dumps({'log': s}))
@@ -392,10 +396,12 @@ class ExecuteLog(Queue):
 if TYPE_CHECKING:
     from typing import TypedDict
 
-    StreamTaskDict = TypedDict(
-        'StreamTaskDict', {'queue': ExecuteLog, 'last_update': datetime, 'args': Dict[str, Any]}
-    )
-    _streams: Dict[str, StreamTaskDict]
+    class StreamTaskDict(TypedDict):
+        queue: ExecuteLog
+        last_update: datetime
+        args: dict[str, Any]
+
+    _streams: dict[str, StreamTaskDict]
 _streams = {}
 
 # Another namespace for the same endpoint
@@ -409,7 +415,7 @@ class TaskExecutionParams(APIResource):
     @etag(cache_age=3600)
     @api.response(200, model=task_execution_params)
     def get(self, session: Session = None) -> Response:
-        """ Execute payload parameters """
+        """Execute payload parameters."""
         return jsonify(ObjectsContainer.task_execution_input)
 
 
@@ -422,24 +428,20 @@ class TaskExecutionAPI(APIResource):
     @api.response(200, model=task_api_execute_schema)
     @api.validate(task_execution_schema)
     def post(self, session: Session = None) -> Response:
-        """ Execute task and stream results """
+        """Execute task and stream results."""
         data = request.json
         for task in data.get('tasks'):
-            if task.lower() not in [
-                t.lower() for t in self.manager.user_config.get('tasks', {}).keys()
-            ]:
+            if task.lower() not in [t.lower() for t in self.manager.user_config.get('tasks', {})]:
                 raise NotFoundError(f'task {task} does not exist')
 
         queue = ExecuteLog()
         output = queue if data.get('loglevel') else None
-        stream = (
-            True
-            if any(
+        stream = bool(
+            any(
                 arg[0] in ['progress', 'summary', 'loglevel', 'entry_dump']
                 for arg in data.items()
                 if arg[1]
             )
-            else False
         )
         loglevel = data.pop('loglevel', None)
 
@@ -453,8 +455,7 @@ class TaskExecutionAPI(APIResource):
             'allow_manual': True,
         }
 
-        for option, value in data.items():
-            options[option] = value
+        options.update(data)
 
         if data.get('inject'):
             entries = []
@@ -463,13 +464,13 @@ class TaskExecutionAPI(APIResource):
                 entry['url'] = item['url']
                 if not item.get('title'):
                     try:
-                        value, params = cgi.parse_header(
+                        value, params = parse_header(
                             requests.head(item['url']).headers['Content-Disposition']
                         )
                         entry['title'] = params['filename']
                     except KeyError:
                         raise BadRequest(
-                            'No title given, and couldn\'t get one from the URL\'s HTTP response'
+                            "No title given, and couldn't get one from the URL's HTTP response"
                         )
 
                 else:
@@ -497,16 +498,19 @@ class TaskExecutionAPI(APIResource):
             _streams[task_id] = {'queue': queue, 'last_update': datetime.now(), 'args': data}
 
         if not stream:
-            return jsonify(
-                {'tasks': [{'id': task['id'], 'name': task['name']} for task in tasks_queued]}
-            )
+            return jsonify({
+                'tasks': [{'id': task['id'], 'name': task['name']} for task in tasks_queued]
+            })
 
         def stream_response():
             # First return the tasks to execute
             yield '{"stream": ['
-            yield json.dumps(
-                {'tasks': [{'id': task['id'], 'name': task['name']} for task in tasks_queued]}
-            ) + ',\n'
+            yield (
+                json.dumps({
+                    'tasks': [{'id': task['id'], 'name': task['name']} for task in tasks_queued]
+                })
+                + ',\n'
+            )
 
             while True:
                 try:
@@ -515,7 +519,7 @@ class TaskExecutionAPI(APIResource):
                 except Empty:
                     pass
 
-                if queue.empty() and all([task['event'].is_set() for task in tasks_queued]):
+                if queue.empty() and all(task['event'].is_set() for task in tasks_queued):
                     for task in tasks_queued:
                         del _streams[task['id']]
                     break
@@ -532,7 +536,7 @@ def setup_params(mgr):
         # Ignore list for irrelevant actions
         ignore = ['help', 'verbose', 'silent', 'try-regexp', 'dump-config', 'dump']
 
-        name = action.option_strings[-1].strip('--')
+        name = action.option_strings[-1].strip('-')
         if name in ignore or action.help == '==SUPPRESS==':
             continue
 
@@ -616,19 +620,17 @@ def finish_task(task):
 
         if task.stream['args'].get('summary'):
             task.stream['queue'].put(
-                json.dumps(
-                    {
-                        'summary': {
-                            'accepted': len(task.accepted),
-                            'rejected': len(task.rejected),
-                            'failed': len(task.failed),
-                            'undecided': len(task.undecided),
-                            'aborted': task.aborted,
-                            'abort_reason': task.abort_reason,
-                        },
-                        'task_id': task.id,
-                    }
-                )
+                json.dumps({
+                    'summary': {
+                        'accepted': len(task.accepted),
+                        'rejected': len(task.rejected),
+                        'failed': len(task.failed),
+                        'undecided': len(task.undecided),
+                        'aborted': task.aborted,
+                        'abort_reason': task.abort_reason,
+                    },
+                    'task_id': task.id,
+                })
             )
 
 

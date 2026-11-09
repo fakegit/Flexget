@@ -1,0 +1,398 @@
+interactions:
+- request:
+    body: '{"apikey": "4D297D8CFDE0E105", "username": "flexget2", "userkey": "D3405F10B200C4DB"}'
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '85'
+      Content-Type:
+      - application/json
+      User-Agent:
+      - FlexGet/2.21.8.dev (www.flexget.com)
+    method: POST
+    uri: https://api.thetvdb.com/login
+  response:
+    body:
+      string: '{"token":"eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE1NjAzNzA2MDQsImlkIjoiRmxleEdldCIsIm9yaWdfaWF0IjoxNTYwMjg0MjA0LCJ1c2VyaWQiOjQ2MDQzNywidXNlcm5hbWUiOiJmbGV4Z2V0MiJ9.K7KacPYrHlDKeDlxy0JNc2qMCFiZ2xxvc6unbjZ4BTV5GuRHIt9K3UskrdlvzShyu9XyvlZiaeonDu58tKX_T0Ji8AA11zBz1FZVRUThC0YpJkuFEFLG2v6VBaVB109xsecslwpXMFIzatptpMJX-lrI8FZ4fVQ9U5BwbJCWY49fg_qUi29BD-Pl3_HWKDWHYniI9eiRd6rRRZIdpHV2u2pTN-ZT1YbW_x5GDoGiLjOEw66bOzSHqtQZve5bRQCQQ7eOyOnFwMXGBw4LzmRQxBqihcwCjLLvzDQgwckqUNSBbp5pBRwuBKJKeIkrX-RsnrPw1KYI6ep4GBG-F3p6Yg"}'
+    headers:
+      CF-RAY:
+      - 4e5643b3eaeab73f-PIT
+      Connection:
+      - keep-alive
+      Content-Encoding:
+      - gzip
+      Content-Type:
+      - application/json; charset=utf-8
+      Date:
+      - Tue, 11 Jun 2019 20:16:44 GMT
+      Expect-CT:
+      - max-age=604800, report-uri="https://report-uri.cloudflare.com/cdn-cgi/beacon/expect-ct"
+      Server:
+      - cloudflare
+      Set-Cookie:
+      - __cfduid=d8165ab312dc6d291d32fbf738e1f28de1560284204; expires=Wed, 10-Jun-20
+        20:16:44 GMT; path=/; domain=.thetvdb.com; HttpOnly
+      Vary:
+      - Accept-Language
+      X-Powered-By:
+      - Thundar!
+      X-Thetvdb-Api-Version:
+      - 2.2.0
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Accept-Language:
+      - en
+      Authorization:
+      - Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE1NjAzNzA2MDQsImlkIjoiRmxleEdldCIsIm9yaWdfaWF0IjoxNTYwMjg0MjA0LCJ1c2VyaWQiOjQ2MDQzNywidXNlcm5hbWUiOiJmbGV4Z2V0MiJ9.K7KacPYrHlDKeDlxy0JNc2qMCFiZ2xxvc6unbjZ4BTV5GuRHIt9K3UskrdlvzShyu9XyvlZiaeonDu58tKX_T0Ji8AA11zBz1FZVRUThC0YpJkuFEFLG2v6VBaVB109xsecslwpXMFIzatptpMJX-lrI8FZ4fVQ9U5BwbJCWY49fg_qUi29BD-Pl3_HWKDWHYniI9eiRd6rRRZIdpHV2u2pTN-ZT1YbW_x5GDoGiLjOEw66bOzSHqtQZve5bRQCQQ7eOyOnFwMXGBw4LzmRQxBqihcwCjLLvzDQgwckqUNSBbp5pBRwuBKJKeIkrX-RsnrPw1KYI6ep4GBG-F3p6Yg
+      Connection:
+      - keep-alive
+      User-Agent:
+      - FlexGet/2.21.8.dev (www.flexget.com)
+    method: GET
+    uri: https://api.thetvdb.com/user/favorites
+  response:
+    body:
+      string: '{"data":{"favorites":["281662"]}}'
+    headers:
+      CF-RAY:
+      - 4e5643b53b39a403-PIT
+      Cache-Control:
+      - private, max-age=0
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '33'
+      Content-Type:
+      - application/json; charset=utf-8
+      Date:
+      - Tue, 11 Jun 2019 20:16:44 GMT
+      Expect-CT:
+      - max-age=604800, report-uri="https://report-uri.cloudflare.com/cdn-cgi/beacon/expect-ct"
+      Server:
+      - cloudflare
+      Set-Cookie:
+      - __cfduid=d219f099dac99d3dda0a017665797af401560284204; expires=Wed, 10-Jun-20
+        20:16:44 GMT; path=/; domain=.thetvdb.com; HttpOnly
+      Vary:
+      - Accept-Language
+      X-Powered-By:
+      - Thundar!
+      X-Thetvdb-Api-Version:
+      - 2.2.0
+    status:
+      code: 200
+      message: OK
+- request:
+    body: '{"apikey": "4D297D8CFDE0E105"}'
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '30'
+      Content-Type:
+      - application/json
+      User-Agent:
+      - FlexGet/2.21.8.dev (www.flexget.com)
+    method: POST
+    uri: https://api.thetvdb.com/login
+  response:
+    body:
+      string: '{"token":"eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE1NjAzNzA2MDQsImlkIjoiRmxleEdldCIsIm9yaWdfaWF0IjoxNTYwMjg0MjA0fQ.QMtlOVTEImrtvlXXgWVVNuDsy7zTGo6KOWs5etLi40gn-i5mfNYogRZRBPoec_GEDUXwy8EEg8o76lCT0uaju-lndIEgGlij7K-MHZYPlM5Ljs-T7kKYH9vFHkNV9peWDOjE00Ao3fh_4qsgrMTAyg8CCvXltuJPGQohVqHgbyvksNr7Yy3ZdhDJydFwabeC_B-vOpQmEV_pz7mL_2gdVAFXcWAMHiOOEDUVe7o-eX-QGgrKG7PV6dsdWpOaK5hKG3JUbyTj4gjij1DJbNlmMt6sK2bZScfL4sWPV1-Pu-6HKTwq2NKIBHAapsXFTjOgc13phqxrv25jv61VDDcxeQ"}'
+    headers:
+      CF-RAY:
+      - 4e5643b66d30b73f-PIT
+      Connection:
+      - keep-alive
+      Content-Encoding:
+      - gzip
+      Content-Type:
+      - application/json; charset=utf-8
+      Date:
+      - Tue, 11 Jun 2019 20:16:44 GMT
+      Expect-CT:
+      - max-age=604800, report-uri="https://report-uri.cloudflare.com/cdn-cgi/beacon/expect-ct"
+      Server:
+      - cloudflare
+      Set-Cookie:
+      - __cfduid=d8165ab312dc6d291d32fbf738e1f28de1560284204; expires=Wed, 10-Jun-20
+        20:16:44 GMT; path=/; domain=.thetvdb.com; HttpOnly
+      Vary:
+      - Accept-Language
+      X-Powered-By:
+      - Thundar!
+      X-Thetvdb-Api-Version:
+      - 2.2.0
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Authorization:
+      - Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE1NjAzNzA2MDQsImlkIjoiRmxleEdldCIsIm9yaWdfaWF0IjoxNTYwMjg0MjA0fQ.QMtlOVTEImrtvlXXgWVVNuDsy7zTGo6KOWs5etLi40gn-i5mfNYogRZRBPoec_GEDUXwy8EEg8o76lCT0uaju-lndIEgGlij7K-MHZYPlM5Ljs-T7kKYH9vFHkNV9peWDOjE00Ao3fh_4qsgrMTAyg8CCvXltuJPGQohVqHgbyvksNr7Yy3ZdhDJydFwabeC_B-vOpQmEV_pz7mL_2gdVAFXcWAMHiOOEDUVe7o-eX-QGgrKG7PV6dsdWpOaK5hKG3JUbyTj4gjij1DJbNlmMt6sK2bZScfL4sWPV1-Pu-6HKTwq2NKIBHAapsXFTjOgc13phqxrv25jv61VDDcxeQ
+      Connection:
+      - keep-alive
+      User-Agent:
+      - FlexGet/2.21.8.dev (www.flexget.com)
+    method: GET
+    uri: https://api.thetvdb.com/series/281662
+  response:
+    body:
+      string: '{"data":{"id":281662,"seriesName":"Marvel''s Daredevil","aliases":["Daredevil"],"banner":"graphical/281662-g3.jpg","seriesId":"195188","status":"Ended","firstAired":"2015-04-10","network":"Netflix","networkId":"","runtime":"55","genre":["Action","Adventure","Crime","Drama"],"overview":"Matt
+        Murdock, with his other senses superhumanly enhanced, fights crime as a blind
+        lawyer by day, and vigilante by night.","lastUpdated":1560003129,"airsDayOfWeek":"Friday","airsTime":"3:00
+        AM","rating":"TV-MA","imdbId":"tt3322312","zap2itId":"EP02104223","added":"2014-05-13
+        07:21:40","addedBy":372816,"siteRating":8.8,"siteRatingCount":596,"slug":"marvels-daredevil"}}'
+    headers:
+      CF-RAY:
+      - 4e5643b79a16a3df-PIT
+      Cache-Control:
+      - private, max-age=600
+      Connection:
+      - keep-alive
+      Content-Encoding:
+      - gzip
+      Content-Type:
+      - application/json; charset=utf-8
+      Date:
+      - Tue, 11 Jun 2019 20:16:44 GMT
+      Expect-CT:
+      - max-age=604800, report-uri="https://report-uri.cloudflare.com/cdn-cgi/beacon/expect-ct"
+      Last-Modified:
+      - Sat, 08 Jun 2019 14:12:09 GMT
+      Server:
+      - cloudflare
+      Set-Cookie:
+      - __cfduid=d2ee7b1c9abf2f742505cd074251f23751560284204; expires=Wed, 10-Jun-20
+        20:16:44 GMT; path=/; domain=.thetvdb.com; HttpOnly
+      Vary:
+      - Accept-Language
+      X-Powered-By:
+      - Thundar!
+      X-Thetvdb-Api-Version:
+      - 2.2.0
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Accept-Language:
+      - en
+      Authorization:
+      - Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE1NjAzNzA2MDQsImlkIjoiRmxleEdldCIsIm9yaWdfaWF0IjoxNTYwMjg0MjA0LCJ1c2VyaWQiOjQ2MDQzNywidXNlcm5hbWUiOiJmbGV4Z2V0MiJ9.K7KacPYrHlDKeDlxy0JNc2qMCFiZ2xxvc6unbjZ4BTV5GuRHIt9K3UskrdlvzShyu9XyvlZiaeonDu58tKX_T0Ji8AA11zBz1FZVRUThC0YpJkuFEFLG2v6VBaVB109xsecslwpXMFIzatptpMJX-lrI8FZ4fVQ9U5BwbJCWY49fg_qUi29BD-Pl3_HWKDWHYniI9eiRd6rRRZIdpHV2u2pTN-ZT1YbW_x5GDoGiLjOEw66bOzSHqtQZve5bRQCQQ7eOyOnFwMXGBw4LzmRQxBqihcwCjLLvzDQgwckqUNSBbp5pBRwuBKJKeIkrX-RsnrPw1KYI6ep4GBG-F3p6Yg
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '0'
+      User-Agent:
+      - FlexGet/2.21.8.dev (www.flexget.com)
+    method: DELETE
+    uri: https://api.thetvdb.com/user/favorites/281662
+  response:
+    body:
+      string: '{"data":{"favorites":[""]}}'
+    headers:
+      CF-RAY:
+      - 4e5643b8cbabb739-PIT
+      Cache-Control:
+      - private, max-age=0
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '27'
+      Content-Type:
+      - application/json; charset=utf-8
+      Date:
+      - Tue, 11 Jun 2019 20:16:45 GMT
+      Expect-CT:
+      - max-age=604800, report-uri="https://report-uri.cloudflare.com/cdn-cgi/beacon/expect-ct"
+      Server:
+      - cloudflare
+      Set-Cookie:
+      - __cfduid=d7b8d9dcc5ac4dacfccee1ff9177bf5bf1560284204; expires=Wed, 10-Jun-20
+        20:16:44 GMT; path=/; domain=.thetvdb.com; HttpOnly
+      Vary:
+      - Accept-Language
+      X-Powered-By:
+      - Thundar!
+      X-Thetvdb-Api-Version:
+      - 2.2.0
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Accept-Language:
+      - en
+      Authorization:
+      - Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE1NjAzNzA2MDQsImlkIjoiRmxleEdldCIsIm9yaWdfaWF0IjoxNTYwMjg0MjA0LCJ1c2VyaWQiOjQ2MDQzNywidXNlcm5hbWUiOiJmbGV4Z2V0MiJ9.K7KacPYrHlDKeDlxy0JNc2qMCFiZ2xxvc6unbjZ4BTV5GuRHIt9K3UskrdlvzShyu9XyvlZiaeonDu58tKX_T0Ji8AA11zBz1FZVRUThC0YpJkuFEFLG2v6VBaVB109xsecslwpXMFIzatptpMJX-lrI8FZ4fVQ9U5BwbJCWY49fg_qUi29BD-Pl3_HWKDWHYniI9eiRd6rRRZIdpHV2u2pTN-ZT1YbW_x5GDoGiLjOEw66bOzSHqtQZve5bRQCQQ7eOyOnFwMXGBw4LzmRQxBqihcwCjLLvzDQgwckqUNSBbp5pBRwuBKJKeIkrX-RsnrPw1KYI6ep4GBG-F3p6Yg
+      Connection:
+      - keep-alive
+      User-Agent:
+      - FlexGet/2.21.8.dev (www.flexget.com)
+    method: GET
+    uri: https://api.thetvdb.com/user/favorites
+  response:
+    body:
+      string: '{"data":{"favorites":[""]}}'
+    headers:
+      CF-RAY:
+      - 4e5643ba0c27a3df-PIT
+      Cache-Control:
+      - private, max-age=0
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '27'
+      Content-Type:
+      - application/json; charset=utf-8
+      Date:
+      - Tue, 11 Jun 2019 20:16:45 GMT
+      Expect-CT:
+      - max-age=604800, report-uri="https://report-uri.cloudflare.com/cdn-cgi/beacon/expect-ct"
+      Server:
+      - cloudflare
+      Set-Cookie:
+      - __cfduid=d62f8efd4860bde098d0793b510fa78961560284205; expires=Wed, 10-Jun-20
+        20:16:45 GMT; path=/; domain=.thetvdb.com; HttpOnly
+      Vary:
+      - Accept-Language
+      X-Powered-By:
+      - Thundar!
+      X-Thetvdb-Api-Version:
+      - 2.2.0
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Accept-Language:
+      - en
+      Authorization:
+      - Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE1NjAzNzA2MDQsImlkIjoiRmxleEdldCIsIm9yaWdfaWF0IjoxNTYwMjg0MjA0LCJ1c2VyaWQiOjQ2MDQzNywidXNlcm5hbWUiOiJmbGV4Z2V0MiJ9.K7KacPYrHlDKeDlxy0JNc2qMCFiZ2xxvc6unbjZ4BTV5GuRHIt9K3UskrdlvzShyu9XyvlZiaeonDu58tKX_T0Ji8AA11zBz1FZVRUThC0YpJkuFEFLG2v6VBaVB109xsecslwpXMFIzatptpMJX-lrI8FZ4fVQ9U5BwbJCWY49fg_qUi29BD-Pl3_HWKDWHYniI9eiRd6rRRZIdpHV2u2pTN-ZT1YbW_x5GDoGiLjOEw66bOzSHqtQZve5bRQCQQ7eOyOnFwMXGBw4LzmRQxBqihcwCjLLvzDQgwckqUNSBbp5pBRwuBKJKeIkrX-RsnrPw1KYI6ep4GBG-F3p6Yg
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '0'
+      User-Agent:
+      - FlexGet/2.21.8.dev (www.flexget.com)
+    method: PUT
+    uri: https://api.thetvdb.com/user/favorites/281662
+  response:
+    body:
+      string: '{"data":{"favorites":["281662"]}}'
+    headers:
+      CF-RAY:
+      - 4e5643bb2b18a3f7-PIT
+      Cache-Control:
+      - private, max-age=0
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '33'
+      Content-Type:
+      - application/json; charset=utf-8
+      Date:
+      - Tue, 11 Jun 2019 20:16:45 GMT
+      Expect-CT:
+      - max-age=604800, report-uri="https://report-uri.cloudflare.com/cdn-cgi/beacon/expect-ct"
+      Server:
+      - cloudflare
+      Set-Cookie:
+      - __cfduid=d23c2d9885711719f0ab537629fc1cc7e1560284205; expires=Wed, 10-Jun-20
+        20:16:45 GMT; path=/; domain=.thetvdb.com; HttpOnly
+      Vary:
+      - Accept-Language
+      X-Powered-By:
+      - Thundar!
+      X-Thetvdb-Api-Version:
+      - 2.2.0
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Accept-Language:
+      - en
+      Authorization:
+      - Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE1NjAzNzA2MDQsImlkIjoiRmxleEdldCIsIm9yaWdfaWF0IjoxNTYwMjg0MjA0LCJ1c2VyaWQiOjQ2MDQzNywidXNlcm5hbWUiOiJmbGV4Z2V0MiJ9.K7KacPYrHlDKeDlxy0JNc2qMCFiZ2xxvc6unbjZ4BTV5GuRHIt9K3UskrdlvzShyu9XyvlZiaeonDu58tKX_T0Ji8AA11zBz1FZVRUThC0YpJkuFEFLG2v6VBaVB109xsecslwpXMFIzatptpMJX-lrI8FZ4fVQ9U5BwbJCWY49fg_qUi29BD-Pl3_HWKDWHYniI9eiRd6rRRZIdpHV2u2pTN-ZT1YbW_x5GDoGiLjOEw66bOzSHqtQZve5bRQCQQ7eOyOnFwMXGBw4LzmRQxBqihcwCjLLvzDQgwckqUNSBbp5pBRwuBKJKeIkrX-RsnrPw1KYI6ep4GBG-F3p6Yg
+      Connection:
+      - keep-alive
+      User-Agent:
+      - FlexGet/2.21.8.dev (www.flexget.com)
+    method: GET
+    uri: https://api.thetvdb.com/user/favorites
+  response:
+    body:
+      string: '{"data":{"favorites":["281662"]}}'
+    headers:
+      CF-RAY:
+      - 4e5643c89acdb739-PIT
+      Cache-Control:
+      - private, max-age=0
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '33'
+      Content-Type:
+      - application/json; charset=utf-8
+      Date:
+      - Tue, 11 Jun 2019 20:16:47 GMT
+      Expect-CT:
+      - max-age=604800, report-uri="https://report-uri.cloudflare.com/cdn-cgi/beacon/expect-ct"
+      Server:
+      - cloudflare
+      Set-Cookie:
+      - __cfduid=d00bdf374f3404c0039865dea852999111560284207; expires=Wed, 10-Jun-20
+        20:16:47 GMT; path=/; domain=.thetvdb.com; HttpOnly
+      Vary:
+      - Accept-Language
+      X-Powered-By:
+      - Thundar!
+      X-Thetvdb-Api-Version:
+      - 2.2.0
+    status:
+      code: 200
+      message: OK
+version: 1

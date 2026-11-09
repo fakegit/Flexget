@@ -1,5 +1,6 @@
 import os
 import xml.etree.ElementTree as ET
+from pathlib import Path
 
 from loguru import logger
 
@@ -17,8 +18,7 @@ logger = logger.bind(name='nfo_lookup')
 
 
 class NfoLookup:
-    """
-    Retrieves information from a local '.nfo' info file.
+    """Retrieves information from a local '.nfo' info file.
 
     The read metadata will be add as 'nfo_something' in the entry. Also, if an 'id' is found in the '.nfo' file then the
     'imdb_id' field will be set to its value. This means that if the imdb_lookup plugin is used in addition to this
@@ -35,6 +35,7 @@ class NfoLookup:
     https://docs.python.org/3/library/xml.html#xml-vulnerabilities
 
     Use this only with nfo files you have created yourself.
+
     """
 
     schema = {'type': 'boolean'}
@@ -61,16 +62,15 @@ class NfoLookup:
                     "Entry {} didn't come from the filesystem plugin", entry.get('title')
                 )
                 continue
-            else:
-                # This will be None if there is no nfo file
-                nfo_filename = self.get_nfo_filename(entry)
-                if nfo_filename is None:
-                    logger.warning(
-                        'Entry {} has no corresponding {} file',
-                        entry.get('title'),
-                        self.nfo_file_extension,
-                    )
-                    continue
+            # This will be None if there is no nfo file
+            nfo_filename = self.get_nfo_filename(entry)
+            if nfo_filename is None:
+                logger.warning(
+                    'Entry {} has no corresponding {} file',
+                    entry.get('title'),
+                    self.nfo_file_extension,
+                )
+                continue
 
             # Populate the fields from the information in the .nfo file Note that at this point `nfo_filename` has the
             # name of an existing '.nfo' file
@@ -111,32 +111,34 @@ class NfoLookup:
                 )
 
     def get_nfo_filename(self, entry):
-        """
-        Get the filename of the nfo file from the 'location' in the entry.
+        """Get the filename of the nfo file from the 'location' in the entry.
 
         Returns
         -------
         str
             The file name of the 'nfo' file, or None it there is no 'nfo' file.
+
         """
-        location = entry.get('location')
-        nfo_full_filename = os.path.splitext(location)[0] + self.nfo_file_extension
+        location = Path(entry.get('location'))
+        nfo_full_filename = str(location.parent / location.stem) + self.nfo_file_extension
 
         if os.path.isfile(nfo_full_filename):
             return nfo_full_filename
 
+        movie_nfo_filename = os.path.join(
+            os.path.dirname(location), 'movie' + self.nfo_file_extension
+        )
+        if os.path.isfile(movie_nfo_filename):
+            return movie_nfo_filename
+        return None
+
 
 class BadXmlFile(Exception):
-    """
-    Exception that is raised if the nfo file can't be parsed due to some invalid nfo file.
-    """
-
-    pass
+    """Exception that is raised if the nfo file can't be parsed due to some invalid nfo file."""
 
 
 class NfoReader:
-    """
-    Class in charge of parsing the '.nfo' file and getting a dictionary of fields.
+    """Class in charge of parsing the '.nfo' file and getting a dictionary of fields.
 
     The '.nfo' file is an XML file. Some fields can only appear once, such as 'title', 'id', 'plot', etc., while other
     fields can appear multiple times (with different values), such as 'thumb', 'genre', etc. These fields are listed in
@@ -148,13 +150,13 @@ class NfoReader:
             tree = ET.parse(filename)
             root = tree.getroot()
         except ET.ParseError:
-            raise BadXmlFile()
+            raise BadXmlFile
 
         if os.path.exists(filename):
             self._nfo_filename = filename
             self._root = root
         else:
-            raise BadXmlFile()
+            raise BadXmlFile
 
         # Each key in the dictionary correspond to a field that should be read from the nfo file. The values are a tuple
         # with a boolean and a callable. The boolean indicates if the field can appear multiple times, while the
@@ -163,61 +165,56 @@ class NfoReader:
         # In the future we could extend the nfo_lookup plugin to accept 'set' in its configuration to add new entries to
         # this dictionary to handle other tags in the nfo file and add the data to the entry.
         self._fields = {
-            "title": (False, NfoReader._single_elem_getter_func),
-            "originaltitle": (False, NfoReader._single_elem_getter_func),
-            "sorttitle": (False, NfoReader._single_elem_getter_func),
-            "rating": (False, NfoReader._single_elem_getter_func),
-            "year": (False, NfoReader._single_elem_getter_func),
-            "votes": (False, NfoReader._single_elem_getter_func),
-            "plot": (False, NfoReader._single_elem_getter_func),
-            "runtime": (False, NfoReader._single_elem_getter_func),
-            "id": (False, NfoReader._single_elem_getter_func),
-            "filenameandpath": (False, NfoReader._single_elem_getter_func),
-            "trailer": (False, NfoReader._single_elem_getter_func),
-            "thumb": (True, NfoReader._single_elem_getter_func),
-            "genre": (True, NfoReader._single_elem_getter_func),
-            "director": (True, NfoReader._single_elem_getter_func),
+            'title': (False, NfoReader._single_elem_getter_func),
+            'originaltitle': (False, NfoReader._single_elem_getter_func),
+            'sorttitle': (False, NfoReader._single_elem_getter_func),
+            'rating': (False, NfoReader._single_elem_getter_func),
+            'year': (False, NfoReader._single_elem_getter_func),
+            'votes': (False, NfoReader._single_elem_getter_func),
+            'plot': (False, NfoReader._single_elem_getter_func),
+            'runtime': (False, NfoReader._single_elem_getter_func),
+            'id': (False, NfoReader._single_elem_getter_func),
+            'filenameandpath': (False, NfoReader._single_elem_getter_func),
+            'trailer': (False, NfoReader._single_elem_getter_func),
+            'thumb': (True, NfoReader._single_elem_getter_func),
+            'genre': (True, NfoReader._single_elem_getter_func),
+            'director': (True, NfoReader._single_elem_getter_func),
             # Actor field has child elements, such as 'name' and 'role'
-            "actor": (True, NfoReader._composite_elem_getter_func),
-            "studio": (True, NfoReader._single_elem_getter_func),
-            "country": (True, NfoReader._single_elem_getter_func),
+            'actor': (True, NfoReader._composite_elem_getter_func),
+            'studio': (True, NfoReader._single_elem_getter_func),
+            'country': (True, NfoReader._single_elem_getter_func),
         }
 
     @staticmethod
     def _single_elem_getter_func(x):
-        """
-        Method to get the text value of simple XML element that does not contain child nodes.
-        """
+        """Get the text value of simple XML element that does not contain child nodes."""
         return x.text
 
     @staticmethod
     def _composite_elem_getter_func(x):
-        """
-        Method to get XML elements that have children as a dictionary.
-        """
+        """Get XML elements that have children as a dictionary."""
         return {i.tag: i.text for i in x}
 
     def _extract_single_field(self, name, getter_func):
-        """
-        Use this method to get fields from the root XML tree that only appear once, such as 'title', 'year', etc.
-        """
+        """Get fields from the root XML tree that only appear once, such as 'title', 'year', etc."""
         f = self._root.find(name)
         if f is not None:
             return getter_func(f)
+        return None
 
     def _extract_multiple_field(self, name, getter_func):
-        """
-        Use this method to get fields from the root XML tree that can appear more than once, such as 'actor', 'genre',
-        'director', etc. The result will be a list of values.
+        """Use this method to get fields from the root XML tree that can appear more than once, such as 'actor', 'genre', 'director', etc.
+
+        The result will be a list of values.
         """
         values = [getter_func(i) for i in self._root.findall(name)]
 
         if len(values) > 0:
             return values
+        return None
 
     def get_fields_from_nfo_file(self):
-        """
-        Returns a dictionary with all firlds read from the '.nfo' file.
+        """Return a dictionary with all firlds read from the '.nfo' file.
 
         The keys are named as 'nfo_something'.
         """
@@ -233,7 +230,7 @@ class NfoReader:
             multiple_bool = values[0]
             getter_func = values[1]
 
-            nfo_field_name = 'nfo_{0}'.format(name)
+            nfo_field_name = f'nfo_{name}'
 
             if multiple_bool:
                 v = self._extract_multiple_field(name, getter_func)

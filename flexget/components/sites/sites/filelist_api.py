@@ -14,9 +14,7 @@ requests = RequestSession()
 
 
 class SearchFileList:
-    """
-    FileList search plugin w/ API w00t.
-    """
+    """FileList search plugin w/ API w00t."""
 
     api_url = 'https://filelist.io/api.php'
 
@@ -68,7 +66,6 @@ class SearchFileList:
     }
 
     def get(self, url, params):
-
         try:
             response = requests.get(url, params=params, raise_status=False)
         except RequestException as e:
@@ -86,9 +83,7 @@ class SearchFileList:
 
     @plugin.internet(logger)
     def search(self, task, entry, config):
-        """
-        Search for entries on FileList
-        """
+        """Search for entries on FileList."""
         entries = []
 
         # mandatory params
@@ -116,7 +111,6 @@ class SearchFileList:
             params['season'] = entry.get('series_season')
 
         for search_title in entry.get('search_strings', [entry.get('title')]):
-
             if entry.get('imdb_id'):
                 params['type'] = 'imdb'
                 params['query'] = entry.get('imdb_id')
@@ -146,7 +140,7 @@ class SearchFileList:
                 entry['url'] = result['download_link']
                 entry['imdb'] = result['imdb']
                 # size is returned in bytes but expected in MiB
-                entry['content_size'] = result['size'] / 2 ** 20
+                entry['content_size'] = result['size']
                 entry['torrent_snatches'] = result['times_completed']
                 entry['torrent_seeds'] = result['seeders']
                 entry['torrent_leeches'] = result['leechers']

@@ -2,21 +2,20 @@ from loguru import logger
 
 from flexget import plugin
 from flexget.event import event
+from flexget.utils.tools import format_filesize
 
 logger = logger.bind(name='torrent_size')
 
 
 class TorrentSize:
-    """
-    Provides file size information when dealing with torrents
-    """
+    """Provide file size information when dealing with torrents."""
 
     @plugin.priority(200)
     def on_task_modify(self, task, config):
         for entry in task.entries:
             if 'torrent' in entry:
-                size = entry['torrent'].size / 1024 / 1024
-                logger.debug('{} size: {} MB', entry['title'], size)
+                size = entry['torrent'].size
+                logger.debug('{} size: {}', entry['title'], format_filesize(size))
                 entry['content_size'] = size
 
 

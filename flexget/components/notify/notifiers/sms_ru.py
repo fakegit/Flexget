@@ -20,11 +20,11 @@ requests.add_domain_limiter(TimedLimiter('sms.ru', '5 seconds'))
 
 
 class SMSRuNotifier:
-    """
-    Sends SMS notification through sms.ru http api sms/send.
+    """Send SMS notification through sms.ru http api sms/send.
+
     Phone number is a login assigned to sms.ru account.
 
-    Example:
+    Example::
 
       notify:
         entries:
@@ -32,7 +32,6 @@ class SMSRuNotifier:
             - sms_ru:
                 phone_number: <PHONE_NUMBER> (accepted format example: '79997776655')
                 password: <PASSWORD>
-
     """
 
     schema = {
@@ -43,13 +42,11 @@ class SMSRuNotifier:
     }
 
     def notify(self, title, message, config):
-        """
-        Send an SMS RU notification
-        """
+        """Send an SMS RU notification."""
         try:
             token_response = requests.get(SMS_TOKEN_URL)
         except RequestException as e:
-            raise PluginWarning('Could not get auth token: %s' % repr(e))
+            raise PluginWarning(f'Could not get auth token: {e!r}')
 
         sha512 = hashlib.sha512(config['password'] + token_response.text).hexdigest()
 

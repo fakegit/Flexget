@@ -7,8 +7,7 @@ logger = logger.bind(name='inputs')
 
 
 class PluginInputs:
-    """
-    Allows the same input plugin to be configured multiple times in a task.
+    """Allows the same input plugin to be configured multiple times in a task.
 
     Example::
 
@@ -45,7 +44,7 @@ class PluginInputs:
                     logger.warning('Error during input plugin {}: {}', input_name, e)
                     continue
                 if not result:
-                    msg = 'Input %s did not return anything' % input_name
+                    msg = f'Input {input_name} did not return anything'
                     if getattr(task, 'no_entries_ok', False):
                         logger.verbose(msg)
                     else:

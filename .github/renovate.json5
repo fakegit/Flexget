@@ -1,0 +1,93 @@
+{
+  $schema: 'https://docs.renovatebot.com/renovate-schema.json',
+  extends: [
+    'config:best-practices',
+    ':automergeDigest',
+    ':automergePatch',
+    ':enablePreCommit',
+    ':prConcurrentLimitNone',
+    ':prHourlyLimitNone',
+    ':preserveSemverRanges',
+  ],
+  schedule: ['* 16-23 * * 0', '* 0-12 * * 1'],
+  lockFileMaintenance: {
+    enabled: true,
+    schedule: ['* 16-23 * * 0', '* 0-12 * * 1'],
+  },
+  gitIgnoredAuthors: [
+    '114827586+autofix-ci[bot]@users.noreply.github.com',
+    '66853113+pre-commit-ci[bot]@users.noreply.github.com',
+    'github-actions[bot]@users.noreply.github.com',
+  ],
+  addLabels: ['dependencies'],
+  customManagers: [
+    {
+      customType: 'regex',
+      managerFilePatterns: ['/^\\.github/workflows/[^/]+\\.ya?ml$/'],
+      matchStrings: [
+        '\\s*[A-Z_]+?_VERSION:\\s*["\']?(?<currentValue>.+?)["\']?\\s*# renovate: datasource=(?<datasource>.+?) depName=(?<depName>.+?)\\s',
+      ],
+    },
+    {
+      customType: 'regex',
+      managerFilePatterns: [
+        '/^\\.readthedocs\\.yaml$/',
+        '/^pyproject\\.toml$/',
+      ],
+      matchStrings: [
+        'python:\\s*["\']?(?<currentValue>.+?)["\']?\\s+',
+        'docs\\s*=\\s*\\{\\s*requires-python\\s*=\\s*["\']+>=(?<currentValue>.+?)["\']+\\s*\\}',
+      ],
+      depNameTemplate: 'python',
+      versioningTemplate: 'semver-coerced',
+      datasourceTemplate: 'custom.readthedocsPython',
+    },
+  ],
+  customDatasources: {
+    readthedocsPython: {
+      // TODO: Schema lists Python versions that the build environment doesn’t support yet, which leads to Renovate opening PRs too early.
+      // Blocked by https://github.com/readthedocs/readthedocs.org/issues/12619
+      defaultRegistryUrlTemplate: 'https://raw.githubusercontent.com/readthedocs/readthedocs.org/master/readthedocs/rtd_tests/fixtures/spec/v2/schema.json',
+      transformTemplates: [
+        '{"releases":properties.build.properties.tools.properties.python.enum[$match($,/^\\d+\\.\\d+$/)].{"version":$}}',
+      ],
+    },
+  },
+  npm: {
+    enabled: false,
+  },
+  pep723: {
+    managerFilePatterns: [
+      '/scripts/bundle_webui.py/',
+      '/scripts/dev_tools.py/',
+      '/scripts/update_changelog.py/',
+    ],
+  },
+  pip_requirements: {
+    enabled: false,
+  },
+  packageRules: [
+    {
+      extends: [':automergeAll'],
+      matchManagers: ['pre-commit'],
+    },
+    {
+      description: 'Group all ruff updates together.',
+      groupName: 'ruff',
+      matchPackageNames: ['ruff', 'astral-sh/ruff-pre-commit'],
+      minimumGroupSize: 2,
+      extends: [':automergeAll'],
+    },
+    {
+      description: 'Group all uv updates together.',
+      groupName: 'uv',
+      matchPackageNames: [
+        'uv',
+        'ghcr.io/astral-sh/uv',
+        'astral-sh/uv-pre-commit',
+      ],
+      minimumGroupSize: 3,
+      extends: [':automergeAll'],
+    },
+  ],
+}

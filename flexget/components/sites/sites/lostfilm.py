@@ -1,52 +1,58 @@
-# -*- coding: utf-8 -*-
-
-
 import re
+from urllib.request import ProxyHandler
 
 import feedparser
-from urllib.request import ProxyHandler
 from loguru import logger
 
-from flexget import entry, plugin
+from flexget import plugin
+from flexget.components.sites.utils import normalize_unicode
 from flexget.entry import Entry
 from flexget.event import event
 from flexget.plugin import PluginError
+from flexget.utils import qualities
 from flexget.utils.requests import RequestException
 from flexget.utils.soup import get_soup
-from flexget.utils import qualities
-from flexget.components.sites.utils import normalize_unicode
-try:
-    from cloudscraper.exceptions import CloudflareException, CaptchaException
-    cf_exceptions = (CloudflareException, CaptchaException)
-except ModuleNotFoundError:
-    cf_exceptions = ()
-    pass # cloudscraper module is optional
 
 __authors__ = 'danfocus, Karlson2k'
 
 logger = logger.bind(name='lostfilm')
 
-RSS_TITLE_REGEXP = re.compile(r'^(?P<sr_rus>[^)(]+?)(?: \((?P<sr_org>[^)]+)\))?\. (?:(?P<ep_rus>.*)\. )?\(S(?P<season>\d+)E(?P<episode>\d+)\)$')
-RSS_LINK_REGEXP = re.compile(r'^https?://[a-z./]+/series/(?P<sr_org2>.+)/season_(?P<season>\d+)/episode_(?P<episode>\d+)/$')
+RSS_TITLE_REGEXP = re.compile(
+    r'^(?P<sr_rus>[^)(]+?)(?: \((?P<sr_org>[^)]+)\))?\. (?:(?P<ep_rus>.*)\. )?\(S(?P<season>\d+)E(?P<episode>\d+)\)$'
+)
+RSS_LINK_REGEXP = re.compile(
+    r'^https?://[a-zA-Z0-9./_-]+/series/(?P<sr_org2>.+)/season_(?P<season>\d+)/episode_(?P<episode>\d+)/$'
+)
 RSS_LF_ID_REGEXP = re.compile(r'/Images/(?P<id>\d+)/Posters/image\.(?:png|jpg|jpeg)')
-PAGE_TEXT_REGEXP = re.compile(r'^\s*(?P<season>\d+)\s+сезон\s+(?P<episode>\d+)\s+серия\.(?:\s(?P<ep_rus>[^(]+?(?:\([^)]+?\))??))?(?:\s+\((?P<ep_org>[^)(]*?(?:\([^)]+?\))??)\s?\))?$')
-PAGE_LINKMAIN_REGEXP = re.compile(r'(?:(?P<sr_rus>.+?)\.\s+)??(?:(?P<season>\d+) сезон, (?P<episode>\d+) серия\.\s+)?(?:(?P<ql>[0-9A-Za-z]+)\s)?(?P<tp>\b[A-Za-z-]*(?:Rip|RIP|rip))$')
+RSS_TITLE_MOVIE_REGEXP = re.compile(
+    r'^(?P<movie_name_rus>[^)(]+?)(?: \((?P<movie_name>[^)]+)\))?\. \(Фильм\)$'
+)
+RSS_LINK_MOVIE_REGEXP = re.compile(r'^https?://[a-zA-Z0-9./_-]+/movies/(?P<movie_name2>[^/]+)$')
+PAGE_TEXT_REGEXP = re.compile(
+    r'^\s*(?P<season>\d+)\s+сезон\s+(?P<episode>\d+)\s+серия\.(?:\s(?P<ep_rus>[^(]+?(?:\([^)]+?\))??))?(?:\s+\((?P<ep_org>[^)(]*?(?:\([^)]+?\))??)\s?\))?$'
+)
+PAGE_LINKMAIN_REGEXP = re.compile(
+    r'(?:(?P<sr_rus>.+?)\.\s+)??(?:(?P<season>\d+) сезон, (?P<episode>\d+) серия\.\s+)?(?:(?P<ql>[0-9A-Za-z]+)\s)?(?P<tp>\b[A-Za-z-]*(?:Rip|RIP|rip))$'
+)
 
 quality_map = {
-    'SD': '480p.mp3.xvid',
-    '1080': '1080p.ac3.h264',
-    'MP4': '720p.aac.h264',
-    'HD': '720p.ac3.h264',
+    'SD': '480p.xvid.sdr.mp3',
+    '1080': '1080p.h264.sdr.ac3',
+    'MP4': '720p.h264.sdr.aac',
+    'HD': '720p.h264.sdr.ac3',
 }
 
 # All URLs must have '/' at the end
 SITE_URLS = [
-    'https://www.lostfilmtv.site/',
-    'https://www.lostfilmtv.uno/',
+    'https://www.lostfilm.download/',
+    'https://www.lostfilm.today/',
+    'https://www.lostfilmtv2.site/',
+    'https://www.lostfilm.top/',
     'https://www.lostfilm.run/',
     'https://www.lostfilm.uno/',
-    'https://www.lostfilm.win/',
+    'https://www.lostfilmtv3.site/',
     'https://www.lostfilm.tv/',
+    'https://www.lostfilm.tw/',
 ]
 
 SIMPLIFY_MAP = str.maketrans({
@@ -55,6 +61,7 @@ SIMPLIFY_MAP = str.maketrans({
     '\\': None,
 })
 SIMPLIFY_MAP.update(dict.fromkeys([ord(ch) for ch in '_./-,[](){}:;!?@#%^*+<>=~`$'], ' '))
+
 
 class TextProcessingError(Exception):
     def __init__(self, value):
@@ -69,18 +76,17 @@ class TextProcessingError(Exception):
 
 
 class LostFilm:
-    """
-    Grab new torrents from lostfilm RSS feed
+    """Grab new torrents from lostfilm RSS feed.
 
-    Example:
+    Example::
 
       lostfilm: yes
 
-    or
+    or ::
 
       lostfilm: <lf_session_cookie_value>
 
-    Advanced usage:
+    Advanced usage::
 
       lostfilm:
         lf_session: <lf_session_cookie_value>
@@ -96,17 +102,17 @@ class LostFilm:
             'lf_session': {'type': 'string'},
             'prefilter': {'type': 'boolean'},
             'site_urls': {
-                'type': [ 'string', 'array'],
+                'type': ['string', 'array'],
                 'format': 'url',
                 'items': {'type': 'string', 'format': 'url'},
-            }
-         },
+            },
+        },
         'additionalProperties': False,
     }
 
     def build_config(self, config):
-        """Set defaults to config"""
-        cfg = dict()
+        """Set defaults to config."""
+        cfg = {}
         if isinstance(config, bool):
             cfg['enabled'] = bool(config)
         elif isinstance(config, str):
@@ -126,7 +132,7 @@ class LostFilm:
                 if url.endswith('/'):
                     site_urls.append(url)
                 else:
-                    site_urls.append(url + "/")
+                    site_urls.append(url + '/')
             cfg['site_urls'] = site_urls
         return cfg
 
@@ -134,12 +140,11 @@ class LostFilm:
         config = self.build_config(config)
         logger.trace('Config is {}', config)
         if not config['enabled']:
-            return
+            return None
         if config.get('lf_session') is not None:
             task.requests.cookies.set('lf_session', config['lf_session'])
             logger.debug('lf_session is set')
-        task.requests.headers.update({'Cache-Control': 'no-cache',
-                                      'Pragma': 'no-cache'})
+        task.requests.headers.update({'Cache-Control': 'no-cache', 'Pragma': 'no-cache'})
         prefilter_list = set()
         if config['prefilter']:
             prefilter_list = self._get_series(task)
@@ -154,27 +159,36 @@ class LostFilm:
 
         site_urls = config['site_urls']
         tried_urls = []
+        rss = None
 
         while site_urls:
-            rss_url = site_urls[0] + "rss.xml" # If RSS url changes, update it here
+            rss_url = site_urls[0] + 'rss.xml'  # If RSS url changes, update it here
             logger.trace('Trying to get and parse the RSS feed: {}', rss_url)
             try:
-                rss = feedparser.parse(rss_url, handlers=[proxy_handler],
-                          request_headers={'Cache-Control': 'no-cache',
-                                           'Pragma': 'no-cache'})
+                rss = feedparser.parse(
+                    rss_url,
+                    handlers=[proxy_handler],
+                    request_headers={'Cache-Control': 'no-cache', 'Pragma': 'no-cache'},
+                )
                 status = rss.get('status')
                 if status == 200:
                     logger.verbose('Received RSS feed from {}', rss_url)
                     break
-                logger.info('Received {} status instead of 200 (OK) when trying to download the RSS feed {}', status, rss_url)
+                logger.info(
+                    'Received {} status instead of 200 (OK) when trying to download the RSS feed {}',
+                    status,
+                    rss_url,
+                )
             except Exception as e:
                 logger.info('Cannot get or parse the RSS feed {}. Error: {}', rss_url, e)
             rss = None
             tried_urls.append(site_urls.pop(0))
 
         if not rss:
-            raise PluginError('Cannot get the RSS feed')
-        # Use failed site locations as the last resot option for the redirect page
+            logger.error('Failed to get the RSS feed')
+            return None
+
+        # Use failed site locations as the last resort option for the redirect page
         site_urls.extend(tried_urls)
 
         entries = []
@@ -185,7 +199,7 @@ class LostFilm:
             perfect_match = False
 
             if item.get('title') is None:
-                logger.warning('RSS item doesn\'t have a title')
+                logger.warning("RSS item doesn't have a title")
             else:
                 logger.trace('Got RSS item title: {}', item['title'])
                 title_match = RSS_TITLE_REGEXP.fullmatch(item['title'])
@@ -202,6 +216,14 @@ class LostFilm:
                     episode_num = int(title_match['episode'])
                     episode_name_rus = title_match['ep_rus']
                 else:
+                    title_movie_match = RSS_TITLE_MOVIE_REGEXP.fullmatch(item['title'])
+                    if title_movie_match is not None:
+                        logger.debug(
+                            'Skipping movie "{}" ("{}")',
+                            title_movie_match['movie_name'],
+                            title_movie_match['movie_name_rus'],
+                        )
+                        continue
                     logger.warning('Cannot parse RSS item title: {}', item['title'])
 
             # Skip series names that are not configured.
@@ -213,47 +235,75 @@ class LostFilm:
                 if perfect_match:
                     try:
                         folded_name = self._simplify_name(series_name_org)
-                    except TextProcessingError as e:
+                    except TextProcessingError:
                         logger.warning('RSS item series name "{}" could be wrong', series_name_org)
                         folded_name = None
                     if folded_name and folded_name not in prefilter_list:
                         if idx != len(rss.entries) or entries or task.no_entries_ok:
-                            logger.debug('Skipping "{}" as "{}" was not found in the list of configured series',
-                                     item['title'], series_name_org)
+                            logger.verbose(
+                                'Skipping "{}" as "{}" is not found in the list of configured series',
+                                item['title'],
+                                series_name_org,
+                            )
                             continue
-                        else:
-                            logger.debug('Force adding the last RSS item to the result to avoid warning of empty output')
+                        logger.debug(
+                            'Force adding the last RSS item to the result to avoid warning of empty output'
+                        )
                     else:
-                        logger.trace('"{}" was found in the list of configured series', series_name_org)
+                        logger.trace(
+                            '"{}" was found in the list of configured series', series_name_org
+                        )
                 else:
-                    logger.debug('Not skipping RSS item as series names may be detected incorrectly')
+                    logger.debug(
+                        'Not skipping RSS item as series names may be detected incorrectly'
+                    )
 
             if item.get('description') is None:
-                logger.warning('RSS item doesn\'t have a description, skipping')
+                logger.warning("RSS item doesn't have a description, skipping")
                 continue
             lostfilm_id_match = RSS_LF_ID_REGEXP.search(item['description'])
             if lostfilm_id_match is None or lostfilm_id_match['id'] is None:
-                logger.warning('RSS item doesn\'t have lostfilm id in the description: {}, skipping'. item['description'])
+                logger.warning(
+                    "RSS item doesn't have lostfilm id in the description: {}, skipping".item[
+                        'description'
+                    ]
+                )
                 continue
             lostfilm_id = int(lostfilm_id_match['id'])
 
             if not series_name_org or season_num is None or episode_num is None:
                 if item.get('link') is None:
-                    logger.warning('RSS item doesn\'t have a link, skipping')
+                    logger.warning("RSS item doesn't have a link, skipping")
                     continue
                 link_match = RSS_LINK_REGEXP.fullmatch(item['link'])
                 if link_match is None:
-                    logger.warning('Cannot parse RSS item link, skipping: {}', item['link'])
+                    link_movie_match = RSS_LINK_MOVIE_REGEXP.fullmatch(item['link'])
+                    if link_movie_match is not None:
+                        logger.warning(
+                            'Strange: series item has "{}" movie download link',
+                            link_movie_match['movie_name2'],
+                        )
+                    else:
+                        logger.warning('Cannot parse RSS item link, skipping: {}', item['link'])
                     continue
                 series_name_org = link_match['sr_org2'].replace('_', ' ')
                 season_num = int(link_match['season'])
                 episode_num = int(link_match['episode'])
-                logger.verbose('Using imprecise information from RSS item \'link\'')
+                logger.verbose("Using imprecise information from RSS item 'link'")
 
-            logger.trace(('Processing RSS entry: names: series "{}", series ru "{}", episode ru "{}"; '
-                          'numbers: season "{}", episode "{}", lostfilm id "{}"; perfect detect: {}'),
-                           series_name_org, series_name_rus, episode_name_rus,
-                           season_num, episode_num, lostfilm_id, perfect_match)
+            logger.trace(
+                (
+                    'Processing RSS entry: names: series "{}", series ru "{}", episode ru "{}"; '
+                    'numbers: season "{}", episode "{}", lostfilm id "{}"; perfect detect: {}'
+                ),
+                series_name_org,
+                series_name_rus,
+                episode_name_rus,
+                season_num,
+                episode_num,
+                lostfilm_id,
+                perfect_match,
+            )
             params = {'c': lostfilm_id, 's': season_num, 'e': episode_num}
 
             tried_urls = []
@@ -265,46 +315,88 @@ class LostFilm:
                     if response.status_code == 200:
                         logger.debug('The redirect page is downloaded from {}', redirect_url)
                         break
-                    logger.verbose('Got status {} while retriving the redirect page {}', response.status_code, redirect_url)
+                    logger.verbose(
+                        'Got status {} while retrieving the redirect page {}',
+                        response.status_code,
+                        redirect_url,
+                    )
                 except RequestException as e:
-                    logger.verbose('Failed to get the redirect page from {}. Error: {}', redirect_url, e)
-                except cf_exceptions as e:
-                    logger.verbose('Cannot bypass CF page protection to get the redirect page {}. Error: {}', redirect_url, e)
+                    logger.verbose(
+                        'Failed to get the redirect page from {}. Error: {}', redirect_url, e
+                    )
                 except Exception as e:
                     # Catch other errors related to download to avoid crash
-                    logger.warning('Got unexpected exception when trying to get the redirect page. Error: {}', redirect_url, e)
+                    logger.warning(
+                        'Got unexpected exception when trying to get the redirect page. Error: {}',
+                        redirect_url,
+                        e,
+                    )
                 response = None
                 tried_urls.append(site_urls.pop(0))
 
-            # Use failed site locations as the last resot option for the next attempts
+            # Use failed site locations as the last resort option for the next attempts
             site_urls.extend(tried_urls)
 
             if not response:
                 if config.get('lf_session') is not None:
-                    logger.error('Failed to get the redirect page. ' \
-                                 'Check whether "lf_session" parameter is correct.')
+                    logger.error(
+                        'Failed to get the redirect page. '
+                        'Check whether "lf_session" parameter is correct.'
+                    )
                 else:
-                    logger.error('Failed to get the redirect page. ' \
-                                 'Specify your "lf_session" cookie value in plugin parameters.')
+                    logger.error(
+                        'Failed to get the redirect page. '
+                        'Specify your "lf_session" cookie value in plugin parameters.'
+                    )
                 continue
 
             page = get_soup(response.content)
 
             download_page_url = None
-            find_item = page.find('html', recursive=False)
-            if find_item is not None:
-                find_item = find_item.find('head', recursive=False)
-                if find_item is not None:
-                    find_item = find_item.find('meta', attrs={'http-equiv': "refresh"}, recursive=False)
-                    if find_item is not None and find_item.has_attr('content') and find_item['content'].startswith('0; url=http'):
-                        download_page_url = find_item['content'][7:]
+            html_item = page.find('html', recursive=False)
+            if html_item is not None:
+                found_item = html_item.find('head', recursive=False)
+                if found_item is not None:
+                    found_item = found_item.find(
+                        'meta', attrs={'http-equiv': 'refresh'}, recursive=False
+                    )
+                    if found_item is not None:
+                        if found_item.has_attr('content'):
+                            if found_item['content'].startswith('0; url=/'):
+                                download_page_url = (
+                                    site_urls[0].rstrip('/') + found_item['content'][7:]
+                                )
+                            elif found_item['content'].startswith('0; url=https://') or found_item[
+                                'content'
+                            ].startswith('0; url=http://'):
+                                download_page_url = found_item['content'][7:]
+                            else:
+                                logger.debug(
+                                    'Failed to parse "content" value "{}"', found_item['content']
+                                )
+                        else:
+                            logger.debug(
+                                'Header meta "refresh" item has no "content": {}', found_item
+                            )
+                    else:
+                        logger.debug('Header meta "refresh" item not found')
+                else:
+                    logger.debug('Failed to find the "<head>" section on the redirect page')
+            else:
+                logger.debug('Failed to parse the redirect page as HTML data')
+            found_item = None
+            html_item = None
             if not download_page_url:
                 if config.get('lf_session') is not None:
-                    logger.error('Links were not foung on lostfilm.tv torrent download page. ' \
-                                 'Check whether "lf_session" parameter is correct.')
+                    logger.error(
+                        'Links are not found on lostfilm.tv redirect page. '
+                        'Check whether "lf_session" parameter is correct.'
+                    )
                 else:
-                    logger.error('Links were not foung on lostfilm.tv torrent download page. ' \
-                                 'Specify your "lf_session" cookie value in plugin parameters.')
+                    logger.error(
+                        'Links are not found on lostfilm.tv redirect page. '
+                        'Specify your "lf_session" cookie value in plugin parameters.'
+                    )
                 continue
 
             try:
@@ -312,12 +404,13 @@ class LostFilm:
             except RequestException as e:
                 logger.error('Failed to get the download page {}. Error: {}', download_page_url, e)
                 continue
-            except cf_exceptions as e:
-                logger.error('Cannot pass CF page protection to get the download page {}. Error: {}', download_page_url, e)
-                continue
             except Exception as e:
                 # Catch other errors related to download to avoid crash
-                logger.error('Got unexpected exception when trying to get the download page {}. Error: {}', download_page_url, e)
+                logger.error(
+                    'Got unexpected exception when trying to get the download page {}. Error: {}',
+                    download_page_url,
+                    e,
+                )
                 continue
 
             page = get_soup(response.content)
@@ -330,13 +423,14 @@ class LostFilm:
                     if title_org_div.endswith(', сериал') and len(title_org_div) != 8:
                         series_name_org = title_org_div[:-8]
                     else:
-                        logger.info('Cannot parse text on the final download page for original series name')
+                        logger.info(
+                            'Cannot parse text on the final download page for original series name'
+                        )
                 else:
                     logger.info('Cannot parse the final download page for original series name')
 
                 find_item = page.find('div', class_='inner-box--title')
-                if find_item is not None and \
-                   find_item.text.strip():
+                if find_item is not None and find_item.text.strip():
                     series_name_rus = find_item.text.strip()
                 else:
                     logger.info('Cannot parse the final download page for russian series name')
@@ -345,16 +439,29 @@ class LostFilm:
             if find_item is not None:
                 info_match = PAGE_TEXT_REGEXP.fullmatch(find_item.text.strip())
                 if info_match is not None:
-                    if int(info_match['season']) != season_num or int(info_match['episode']) != episode_num:
-                        logger.warning(('Using season number ({}) and episode number ({}) from download page instead of '
-                                    'season number ({}) and episode number ({}) in RSS item'), int(info_match['season']),
-                                    int(info_match['episode']), season_num, episode_num)
+                    if (
+                        int(info_match['season']) != season_num
+                        or int(info_match['episode']) != episode_num
+                    ):
+                        logger.warning(
+                            (
+                                'Using season number ({}) and episode number ({}) from download page instead of '
+                                'season number ({}) and episode number ({}) in RSS item'
+                            ),
+                            int(info_match['season']),
+                            int(info_match['episode']),
+                            season_num,
+                            episode_num,
+                        )
                         season_num = int(info_match['season'])
-                        eposode_num = int(info_match['episode'])
+                        episode_num = int(info_match['episode'])
                     if info_match['ep_org'] is not None:
                         episode_name_org = info_match['ep_org'].strip()
-                    if not perfect_match and info_match['ep_rus'] is not None and \
-                      info_match['ep_rus'].strip():
+                    if (
+                        not perfect_match
+                        and info_match['ep_rus'] is not None
+                        and info_match['ep_rus'].strip()
+                    ):
                         episode_name_rus = info_match['ep_rus'].strip()
                 else:
                     logger.info('Cannot parse text on the final download page for episode names')
@@ -374,9 +481,13 @@ class LostFilm:
             if not series_name_org:
                 find_item = item.get['title']
                 if find_item:
-                    logger.warning(('Unable to detect series name. Full RSS item title will be used in hope '
-                                    'that series parser will be able to detect something: {}'),
-                                    find_item)
+                    logger.warning(
+                        (
+                            'Unable to detect series name. Full RSS item title will be used in hope '
+                            'that series parser will be able to detect something: {}'
+                        ),
+                        find_item,
+                    )
                     series_name_org = None
                 else:
                     logger.error('Unable to detect series name. Skipping RSS item.')
@@ -387,7 +498,7 @@ class LostFilm:
                 logger.error('No download links were found on the download page')
                 continue
 
-            episode_id = 'S{:02d}E{:02d}'.format(season_num, episode_num)
+            episode_id = f'S{season_num:02d}E{episode_num:02d}'
             for d_item in d_items:
                 find_item = d_item.find('div', class_='inner-box--link sub').a['href']
                 if not find_item:
@@ -407,15 +518,7 @@ class LostFilm:
                     logger.info('Download item has unknown quality indicator: {}', lf_quality)
                     quality = lf_quality
                 if series_name_org:
-                    new_title = '.'.join(
-                        [
-                            series_name_org,
-                            episode_id,
-                            quality,
-                            r_type,
-                            'LostFilm.TV'
-                        ]
-                    )
+                    new_title = f'{series_name_org}.{episode_id}.{quality}.{r_type}.LostFilm.TV'
                 else:
                     new_title = '{} {}'.format(item['title'], quality).strip()
                 new_entry = Entry()
@@ -438,7 +541,7 @@ class LostFilm:
                 new_entry['release_group'] = 'LostFilm.TV'
                 if quality_map.get(lf_quality):
                     if r_type:
-                        new_entry['quality'] = qualities.Quality('.'.join([quality, r_type]))
+                        new_entry['quality'] = qualities.Quality(f'{quality}.{r_type}')
                     else:
                         new_entry['quality'] = qualities.Quality(quality)
                 if series_name_rus:
@@ -449,13 +552,23 @@ class LostFilm:
                     new_entry['episode_name_org'] = episode_name_org
                 new_entry['lostfilm_id'] = lostfilm_id
                 entries.append(new_entry)
-                logger.trace(('Added new entry: names: series "{}", series ru "{}", episode "{}", episode ru "{}"; '
-                        'numbers: season "{}", episode "{}", lostfilm id "{}"; quality: "{}", perfect detect: {}'),
-                        series_name_org, series_name_rus, episode_name_org, episode_name_rus,
-                        season_num, episode_num, lostfilm_id, quality, perfect_match)
+                logger.trace(
+                    (
+                        'Added new entry: names: series "{}", series ru "{}", episode "{}", episode ru "{}"; '
+                        'numbers: season "{}", episode "{}", lostfilm id "{}"; quality: "{}", perfect detect: {}'
+                    ),
+                    series_name_org,
+                    series_name_rus,
+                    episode_name_org,
+                    episode_name_rus,
+                    season_num,
+                    episode_num,
+                    lostfilm_id,
+                    quality,
+                    perfect_match,
+                )
 
         return entries
-
 
     @staticmethod
     def _simplify_name(name: str) -> str:
@@ -465,7 +578,6 @@ class LostFilm:
         if not name:
             raise TextProcessingError('Simplified name of series is empty')
         return name
-
 
     @staticmethod
     def _get_series(task):
@@ -489,22 +601,21 @@ class LostFilm:
                 logger.warning('Unsupported series configuration type')
                 return None
         except Exception as e:
-            logger.warning('Error parsing series config: {:s}'.format(repr(e)))
+            logger.warning('Error parsing series config: {!r:s}', e)
             names_list = None
 
         return names_list
-
 
     @staticmethod
     def _add_names_from_cfg_list(names_list: set, cfg_list: list) -> None:
         for s_item in cfg_list:
             if isinstance(s_item, str):
                 names_list.add(LostFilm._simplify_name(s_item))
-            elif isinstance(s_item, int) or isinstance(s_item, float):
+            elif isinstance(s_item, (int, float)):
                 # The name is something like '365' or '36.6'
                 names_list.add(LostFilm._simplify_name(str(s_item)))
             elif isinstance(s_item, dict):
-                s_name, s_cfg = list(s_item.items())[0]
+                s_name, s_cfg = next(iter(s_item.items()))
                 names_list.add(LostFilm._simplify_name(s_name))
                 if s_cfg.get('alternate_name'):
                     if isinstance(s_cfg['alternate_name'], str):
@@ -514,10 +625,11 @@ class LostFilm:
                         for a_name in s_cfg['alternate_name']:
                             names_list.add(LostFilm._simplify_name(a_name))
                     else:
-                        raise PluginError('Cannot read series "alternate_name" for "{:s}"'.format(s_name))
+                        raise PluginError(f'Cannot read series "alternate_name" for "{s_name:s}"')
             else:
-                raise PluginError('Series configuration list item has ' \
-                                  'unsupported type: %s' % type(s_item))
+                raise PluginError(
+                    f'Series configuration list item has unsupported type: {type(s_item)}'
+                )
 
 
 @event('plugin.register')

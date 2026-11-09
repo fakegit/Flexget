@@ -1,23 +1,29 @@
+from __future__ import annotations
+
 import os
 import re
 import time
 from functools import total_ordering
 from http.client import BadStatusLine
 from importlib import import_module
+from importlib.metadata import entry_points
 from pathlib import Path
-from typing import Callable, Dict, Iterable, List, Optional, Union
+from typing import TYPE_CHECKING
 from urllib.error import HTTPError, URLError
 
 import loguru
-import pkg_resources
 from requests import RequestException
 
 from flexget import components as components_pkg
 from flexget import config_schema
 from flexget import plugins as plugins_pkg
-from flexget.event import Event
 from flexget.event import add_event_handler as add_phase_handler
 from flexget.event import event, fire_event, remove_event_handlers
+
+if TYPE_CHECKING:
+    from collections.abc import Callable, Iterable
+
+    from flexget.event import Event
 
 logger = loguru.logger.bind(name='plugin')
 
@@ -35,13 +41,14 @@ class DependencyError(Exception):
         message: customized user readable error message
 
     All args are optional.
+
     """
 
     def __init__(
         self,
-        issued_by: Optional[str] = None,
-        missing: Optional[str] = None,
-        message: Optional[str] = None,
+        issued_by: str | None = None,
+        missing: str | None = None,
+        message: str | None = None,
         silent: bool = False,
     ):
         super().__init__()
@@ -64,12 +71,7 @@ class DependencyError(Exception):
     message = property(_get_message, _set_message)
 
     def __str__(self) -> str:
-        return '<DependencyError(issued_by=%r,missing=%r,message=%r,silent=%r)>' % (
-            self.issued_by,
-            self.missing,
-            self.message,
-            self.silent,
-        )
+        return f'<DependencyError(issued_by={self.issued_by!r},missing={self.missing!r},message={self.message!r},silent={self.silent!r})>'
 
 
 class RegisterException(Exception):
@@ -82,7 +84,7 @@ class RegisterException(Exception):
 
 
 class PluginWarning(Warning):
-    def __init__(self, value, logger: 'loguru.Logger' = logger, **kwargs):
+    def __init__(self, value, logger: loguru.Logger = logger, **kwargs):
         super().__init__()
         self.value = value
         self.logger = logger
@@ -93,7 +95,7 @@ class PluginWarning(Warning):
 
 
 class PluginError(Exception):
-    def __init__(self, value, logger: 'loguru.Logger' = logger, **kwargs):
+    def __init__(self, value, logger: loguru.Logger = logger, **kwargs):
         super().__init__()
         # Value is expected to be a string
         if not isinstance(value, str):
@@ -107,14 +109,14 @@ class PluginError(Exception):
 
 
 # TODO: move to utils or somewhere more appropriate
-class internet:
+class internet:  # noqa: N801 It acts like a function in usage
     """@internet decorator for plugin phase methods.
 
     Catches all internet related exceptions and raises PluginError with relevant message.
     Task handles PluginErrors by aborting the task.
     """
 
-    def __init__(self, logger_: 'loguru.Logger' = logger):
+    def __init__(self, logger_: loguru.Logger = logger):
         if logger_:
             self.logger = logger_
         else:
@@ -157,7 +159,7 @@ class internet:
 
 
 def priority(value: int) -> Callable[[Callable], Callable]:
-    """Priority decorator for phase methods"""
+    """Priority decorator for phase methods."""
 
     def decorator(target: Callable) -> Callable:
         target.priority = value
@@ -189,18 +191,18 @@ phase_methods = {
 phase_methods.update((_phase, 'on_task_' + _phase) for _phase in task_phases)  # DRY
 
 # Mapping of plugin name to PluginInfo instance (logical singletons)
-plugins: Dict[str, 'PluginInfo'] = {}
+plugins: dict[str, PluginInfo] = {}
 
 # Loading done?
 plugins_loaded = False
 
 _loaded_plugins = {}
 _plugin_options = []
-_new_phase_queue: Dict[str, List[Optional[str]]] = {}
+_new_phase_queue: dict[str, list[str | None]] = {}
 
 
-def register_task_phase(name: str, before: str = None, after: str = None):
-    """Adds a new task phase to the available phases."""
+def register_task_phase(name: str, before: str | None = None, after: str | None = None):
+    """Add a new task phase to the available phases."""
     if before and after:
         raise RegisterException('You can only give either before or after for a phase.')
     if not before and not after:
@@ -208,7 +210,7 @@ def register_task_phase(name: str, before: str = None, after: str = None):
     if name in task_phases or name in _new_phase_queue:
         raise RegisterException(f'Phase {name} already exists.')
 
-    def add_phase(phase_name: str, before: Optional[str], after: Optional[str]):
+    def add_phase(phase_name: str, before: str | None, after: str | None):
         if before is not None and before not in task_phases:
             return False
         if after is not None and after not in task_phases:
@@ -233,9 +235,9 @@ def register_task_phase(name: str, before: str = None, after: str = None):
 
 @total_ordering
 class PluginInfo(dict):
-    """
-    Allows accessing key/value pairs of this dictionary subclass via
-    attributes. Also instantiates a plugin and initializes properties.
+    """Allow accessing key/value pairs of this dictionary subclass via attributes.
+
+    Also instantiate a plugin and initialize properties.
     """
 
     # Counts duplicate registrations
@@ -244,15 +246,14 @@ class PluginInfo(dict):
     def __init__(
         self,
         plugin_class: type,
-        name: Optional[str] = None,
-        interfaces: Optional[List[str]] = None,
+        name: str | None = None,
+        interfaces: list[str] | None = None,
         builtin: bool = False,
         debug: bool = False,
         api_ver: int = 1,
-        category: Optional[str] = None,
+        category: str | None = None,
     ) -> None:
-        """
-        Register a plugin.
+        """Register a plugin.
 
         :param plugin_class: The plugin factory.
         :param string name: Name of the plugin (if not given, default to factory class name in underscore form).
@@ -279,7 +280,7 @@ class PluginInfo(dict):
 
         # Check for unsupported api versions
         if api_ver < 2:
-            raise PluginError('Api versions <2 are no longer supported. Plugin %s' % name)
+            raise PluginError(f'Api versions <2 are no longer supported. Plugin {name}')
 
         # Set basic info attributes
         self.api_ver = api_ver
@@ -288,9 +289,9 @@ class PluginInfo(dict):
         self.builtin = builtin
         self.debug = debug
         self.category = category
-        self.phase_handlers: Dict[str, Event] = {}
+        self.phase_handlers: dict[str, Event] = {}
         self.schema: config_schema.JsonSchema = {}
-        self.schema_id: Optional[str] = None
+        self.schema_id: str | None = None
 
         self.plugin_class: type = plugin_class
         self.instance: object = None
@@ -312,7 +313,7 @@ class PluginInfo(dict):
         self.instance = self.plugin_class()
         self.instance.plugin_info = self  # give plugin easy access to its own info
         self.instance.logger = logger.bind(
-            name=getattr(self.instance, "LOGGER_NAME", None) or self.name
+            name=getattr(self.instance, 'LOGGER_NAME', None) or self.name
         )
         if hasattr(self.instance, 'schema'):
             self.schema = self.instance.schema
@@ -329,7 +330,7 @@ class PluginInfo(dict):
         self.build_phase_handlers()
 
     def build_phase_handlers(self) -> None:
-        """(Re)build phase_handlers in this plugin"""
+        """(Re)build phase_handlers in this plugin."""
         for phase, method_name in phase_methods.items():
             if phase in self.phase_handlers:
                 continue
@@ -338,10 +339,7 @@ class PluginInfo(dict):
                 if not callable(method):
                     continue
                 # check for priority decorator
-                if hasattr(method, 'priority'):
-                    handler_prio = method.priority
-                else:
-                    handler_prio = PRIORITY_DEFAULT
+                handler_prio = method.priority if hasattr(method, 'priority') else PRIORITY_DEFAULT
                 event = add_phase_handler(f'plugin.{self.name}.{phase}', method, handler_prio)
                 # provides backwards compatibility
                 event.plugin = self
@@ -356,7 +354,7 @@ class PluginInfo(dict):
         self[attr] = value
 
     def __str__(self):
-        return '<PluginInfo(name=%s)>' % self.name
+        return f'<PluginInfo(name={self.name})>'
 
     def _is_valid_operand(self, other):
         return hasattr(other, 'name')
@@ -367,39 +365,38 @@ class PluginInfo(dict):
     def __lt__(self, other):
         return self.name < other.name
 
+    def __hash__(self):
+        return hash(self.name)
+
     __repr__ = __str__
 
 
 register = PluginInfo
 
 
-def _get_standard_plugins_path() -> List[str]:
-    """
-    :returns: List of directories where traditional plugins should be tried to load from.
-    """
+def _get_standard_plugins_path() -> list[Path]:
+    """Return list of directories where traditional plugins should be tried to load from."""
     # Get basic path from environment
     paths = []
     env_path = os.environ.get('FLEXGET_PLUGIN_PATH')
     if env_path:
-        paths = env_path.split(os.pathsep)
+        paths = [Path(path) for path in env_path.split(os.pathsep)]
 
     # Add flexget.plugins directory (core plugins)
-    paths.append(os.path.abspath(os.path.dirname(plugins_pkg.__file__)))
+    paths.append(Path(plugins_pkg.__file__).parent.resolve())
     return paths
 
 
-def _get_standard_components_path() -> List[str]:
-    """
-    :returns: List of directories where component plugins should be tried to load from.
-    """
+def _get_standard_components_path() -> list[Path]:
+    """Return list of directories where component plugins should be tried to load from."""
     # Get basic path from environment
     paths = []
     env_path = os.environ.get('FLEXGET_COMPONENT_PATH')
     if env_path:
-        paths = env_path.split(os.pathsep)
+        paths = [Path(path) for path in env_path.split(os.pathsep)]
 
     # Add flexget.plugins directory (core plugins)
-    paths.append(os.path.abspath(os.path.dirname(components_pkg.__file__)))
+    paths.append(Path(components_pkg.__file__).parent.resolve())
     return paths
 
 
@@ -414,14 +411,14 @@ def _check_phase_queue() -> None:
             )
 
 
-def _import_plugin(module_name: str, plugin_path: Union[str, Path]) -> None:
+def _import_plugin(module_name: str, plugin_path: str | Path) -> None:
     try:
         import_module(module_name)
     except DependencyError as e:
         if e.has_message():
             msg = e.message
         else:
-            msg = 'Plugin `%s` requires plugin `%s` to load.' % (
+            msg = 'Plugin `{}` requires plugin `{}` to load.'.format(
                 e.issued_by or module_name,
                 e.missing or 'N/A',
             )
@@ -445,13 +442,10 @@ def _import_plugin(module_name: str, plugin_path: Union[str, Path]) -> None:
         logger.trace('Loaded module {} from {}', module_name, plugin_path)
 
 
-def _load_plugins_from_dirs(dirs: List[str]) -> None:
-    """
-    :param list dirs: Directories from where plugins are loaded from
-    """
-
-    logger.debug(f'Trying to load plugins from: {dirs}')
-    dir_paths = [Path(d) for d in dirs if os.path.isdir(d)]
+def _load_plugins_from_dirs(dirs: list[Path]) -> None:
+    """:param list dirs: Directories from where plugins are loaded from"""
+    logger.debug('Trying to load plugins from: {}', dirs)
+    dir_paths = [d for d in dirs if d.is_dir()]
     # add all dirs to plugins_pkg load path so that imports work properly from any of the plugin dirs
     plugins_pkg.__path__ = [str(d) for d in dir_paths]
     for plugins_dir in dir_paths:
@@ -462,20 +456,16 @@ def _load_plugins_from_dirs(dirs: List[str]) -> None:
             plugin_subpackages = [
                 _f for _f in plugin_path.relative_to(plugins_dir).parent.parts if _f
             ]
-            module_name = '.'.join(
-                [plugins_pkg.__name__] + plugin_subpackages + [plugin_path.stem]
-            )
+            module_name = '.'.join([plugins_pkg.__name__, *plugin_subpackages, plugin_path.stem])
             _import_plugin(module_name, plugin_path)
     _check_phase_queue()
 
 
 # TODO: this is now identical to _load_plugins_from_dirs, REMOVE
-def _load_components_from_dirs(dirs: List[str]) -> None:
-    """
-    :param list dirs: Directories where plugin components are loaded from
-    """
+def _load_components_from_dirs(dirs: list[Path]) -> None:
+    """:param list dirs: Directories where plugin components are loaded from"""
     logger.debug('Trying to load components from: {}', dirs)
-    dir_paths = [Path(d) for d in dirs if os.path.isdir(d)]
+    dir_paths = [d for d in dirs if d.is_dir()]
     for component_dir in dir_paths:
         for component_path in component_dir.glob('**/*.py'):
             if component_path.name == '__init__.py':
@@ -484,16 +474,18 @@ def _load_components_from_dirs(dirs: List[str]) -> None:
             plugin_subpackages = [
                 _f for _f in component_path.relative_to(component_dir).parent.parts if _f
             ]
-            package_name = '.'.join(
-                [components_pkg.__name__] + plugin_subpackages + [component_path.stem]
-            )
+            package_name = '.'.join([
+                components_pkg.__name__,
+                *plugin_subpackages,
+                component_path.stem,
+            ])
             _import_plugin(package_name, component_path)
     _check_phase_queue()
 
 
 def _load_plugins_from_packages() -> None:
-    """Load plugins installed via PIP"""
-    for entrypoint in pkg_resources.iter_entry_points('FlexGet.plugins'):
+    """Load plugins installed via PIP."""
+    for entrypoint in entry_points(group='FlexGet.plugins'):
         try:
             plugin_module = entrypoint.load()
         except DependencyError as e:
@@ -520,16 +512,15 @@ def _load_plugins_from_packages() -> None:
             raise
         else:
             logger.trace(
-                'Loaded packaged module {} from {}', entrypoint.module_name, plugin_module.__file__
+                'Loaded packaged module {} from {}', entrypoint.module, plugin_module.__file__
             )
     _check_phase_queue()
 
 
 def load_plugins(
-    extra_plugins: Optional[List[str]] = None, extra_components: Optional[List[str]] = None
+    extra_plugins: list[Path] | None = None, extra_components: list[Path] | None = None
 ) -> None:
-    """
-    Load plugins from the standard plugin and component paths.
+    """Load plugins from the standard plugin and component paths.
 
     :param list extra_plugins: Extra directories from where plugins are loaded.
     :param list extra_components: Extra directories from where components are loaded.
@@ -565,14 +556,13 @@ def load_plugins(
 
 
 def get_plugins(
-    phase: Optional[str] = None,
-    interface: Optional[str] = None,
-    category: Optional[str] = None,
-    name: Optional[str] = None,
-    min_api: Optional[int] = None,
+    phase: str | None = None,
+    interface: str | None = None,
+    category: str | None = None,
+    name: str | None = None,
+    min_api: int | None = None,
 ) -> Iterable[PluginInfo]:
-    """
-    Query other plugins characteristics.
+    """Query other plugins characteristics.
 
     :param string phase: Require phase
     :param string interface: Plugin must implement this interface.
@@ -580,29 +570,26 @@ def get_plugins(
     :param string name: Name of the plugin.
     :param int min_api: Minimum api version.
     :return: List of PluginInfo instances.
-    :rtype: list
     """
 
     def matches(plugin):
         if phase is not None and phase not in phase_methods:
-            raise ValueError('Unknown phase %s' % phase)
+            raise ValueError(f'Unknown phase {phase}')
         if phase and phase not in plugin.phase_handlers:
             return False
         if interface and interface not in plugin.interfaces:
             return False
-        if category and not category == plugin.category:
+        if category and category != plugin.category:
             return False
         if name is not None and name != plugin.name:
             return False
-        if min_api is not None and plugin.api_ver < min_api:
-            return False
-        return True
+        return not (min_api is not None and plugin.api_ver < min_api)
 
     return filter(matches, iter(plugins.values()))
 
 
-def plugin_schemas(**kwargs) -> 'config_schema.JsonSchema':
-    """Create a dict schema that matches plugins specified by `kwargs`"""
+def plugin_schemas(**kwargs) -> config_schema.JsonSchema:
+    """Create a dict schema that matches plugins specified by `kwargs`."""
     return {
         'type': 'object',
         'properties': {p.name: {'$ref': p.schema_id} for p in get_plugins(**kwargs)},
@@ -617,14 +604,13 @@ def register_schema():
     config_schema.register_schema('/schema/plugins', plugin_schemas)
 
 
-def get_phases_by_plugin(name: str) -> List[str]:
-    """Return all phases plugin :name: hooks"""
+def get_phases_by_plugin(name: str) -> list[str]:
+    """Return all phases plugin :name: hooks."""
     return list(get_plugin_by_name(name).phase_handlers)
 
 
 def get_plugin_by_name(name: str, issued_by: str = '???') -> PluginInfo:
-    """
-    Get plugin by name, preferred way since this structure may be changed at some point.
+    """Get plugin by name, preferred way since this structure may be changed at some point.
 
     Getting plugin via `.get` function is recommended for normal use.
 
@@ -645,12 +631,11 @@ def get_plugin_by_name(name: str, issued_by: str = '???') -> PluginInfo:
     return plugins[name]
 
 
-def get(name: str, requested_by: Union[str, object]) -> object:
-    """
+def get(name: str, requested_by: str | object) -> object:
+    """Return instance of Plugin class.
 
     :param str name: Name of the requested plugin
     :param requested_by: Plugin class instance OR string value who is making the request.
-    :return: Instance of Plugin class
     """
     if name not in plugins:
         if hasattr(requested_by, 'plugin_info'):
@@ -661,5 +646,5 @@ def get(name: str, requested_by: Union[str, object]) -> object:
 
     instance = plugins[name].instance
     if instance is None:
-        raise Exception('Plugin referred before system initialized?')
+        raise RuntimeError('Plugin referred before system initialized?')
     return instance

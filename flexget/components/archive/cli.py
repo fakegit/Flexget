@@ -3,6 +3,7 @@ from collections import defaultdict
 from datetime import datetime
 
 from loguru import logger
+from rich.progress import track
 
 import flexget.components.archive.db
 from flexget import options
@@ -10,7 +11,7 @@ from flexget.entry import Entry
 from flexget.event import event
 from flexget.manager import Session
 from flexget.options import ParseExtrasAction, get_parser
-from flexget.terminal import TerminalTable, TerminalTableError, console, table_parser
+from flexget.terminal import TerminalTable, console, table_parser
 from flexget.utils.tools import strip_html
 
 logger = logger.bind(name='archive_cli')
@@ -30,10 +31,7 @@ def do_cli(manager, options):
 
 
 def consolidate():
-    """
-    Converts previous archive data model to new one.
-    """
-
+    """Convert previous archive data model to new one."""
     session = Session()
     try:
         logger.verbose('Checking archive size ...')
@@ -41,19 +39,14 @@ def consolidate():
         logger.verbose('Found {} items to migrate, this can be aborted with CTRL-C safely.', count)
 
         # consolidate old data
-        from progressbar import ETA, Bar, Percentage, ProgressBar
-
-        widgets = ['Process - ', ETA(), ' ', Percentage(), ' ', Bar(left='[', right=']')]
-        bar = ProgressBar(widgets=widgets, maxval=count).start()
-
         # id's for duplicates
         duplicates = []
 
-        for index, orig in enumerate(
-            session.query(flexget.components.archive.db.ArchiveEntry).yield_per(5)
+        for orig in track(
+            session.query(flexget.components.archive.db.ArchiveEntry).yield_per(5),
+            total=count,
+            description='Processing...',
         ):
-            bar.update(index)
-
             # item already processed
             if orig.id in duplicates:
                 continue
@@ -73,7 +66,8 @@ def consolidate():
             # orig.task = None
 
             for dupe in (
-                session.query(flexget.components.archive.db.ArchiveEntry)
+                session
+                .query(flexget.components.archive.db.ArchiveEntry)
                 .filter(flexget.components.archive.db.ArchiveEntry.id != orig.id)
                 .filter(flexget.components.archive.db.ArchiveEntry.title == orig.title)
                 .filter(flexget.components.archive.db.ArchiveEntry.url == orig.url)
@@ -98,13 +92,11 @@ def consolidate():
 
 
 def tag_source(source_name, tag_names=None):
-    """
-    Tags all archived entries within a source with supplied tags
+    """Tag all archived entries within a source with supplied tags.
 
     :param string source_name: Source name
     :param list tag_names: List of tag names to add
     """
-
     if not tag_names or tag_names is None:
         return
 
@@ -112,33 +104,31 @@ def tag_source(source_name, tag_names=None):
     try:
         # check that source exists
         source = (
-            session.query(flexget.components.archive.db.ArchiveSource)
+            session
+            .query(flexget.components.archive.db.ArchiveSource)
             .filter(flexget.components.archive.db.ArchiveSource.name == source_name)
             .first()
         )
         if not source:
             logger.critical('Source `{}` does not exists', source_name)
-            srcs = ', '.join(
-                [
-                    s.name
-                    for s in session.query(flexget.components.archive.db.ArchiveSource).order_by(
-                        flexget.components.archive.db.ArchiveSource.name
-                    )
-                ]
-            )
+            srcs = ', '.join([
+                s.name
+                for s in session.query(flexget.components.archive.db.ArchiveSource).order_by(
+                    flexget.components.archive.db.ArchiveSource.name
+                )
+            ])
             if srcs:
                 logger.info('Known sources: {}', srcs)
             return
 
         # construct tags list
-        tags = []
-        for tag_name in tag_names:
-            tags.append(flexget.components.archive.db.get_tag(tag_name, session))
+        tags = [flexget.components.archive.db.get_tag(tag_name, session) for tag_name in tag_names]
 
         # tag 'em
         logger.verbose('Please wait while adding tags {} ...', ', '.join(tag_names))
         for a in (
-            session.query(flexget.components.archive.db.ArchiveEntry)
+            session
+            .query(flexget.components.archive.db.ArchiveEntry)
             .filter(flexget.components.archive.db.ArchiveEntry.sources.any(name=source_name))
             .yield_per(5)
         ):
@@ -175,13 +165,10 @@ def cli_search(options):
     if not table_data:
         console('No results found for search')
         return
-
-    try:
-        table = TerminalTable(options.table_type, table_data, wrap_columns=[1])
-        table.table.inner_heading_row_border = False
-        console(table.output)
-    except TerminalTableError as e:
-        console('ERROR: %s' % str(e))
+    table = TerminalTable('Field', 'Value', table_type=options.table_type)
+    for row in table_data:
+        table.add_row(*row)
+    console(table)
 
 
 def cli_inject(manager, options):
@@ -264,7 +251,7 @@ def register_parser_arguments():
     inject_parser.add_argument(
         '--immortal',
         action='store_true',
-        help='Injected entries will not be able to be ' 'rejected by any plugins',
+        help='Injected entries will not be able to be rejected by any plugins',
     )
     exec_group = inject_parser.add_argument_group('execute arguments')
     exec_group.add_argument(

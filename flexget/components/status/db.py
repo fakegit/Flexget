@@ -1,40 +1,60 @@
-import datetime
-from datetime import timedelta
+from __future__ import annotations
+
+from datetime import datetime, timedelta
 
 from loguru import logger
-from sqlalchemy import Boolean, Column, DateTime, Index, Integer, String, func, select
+from sqlalchemy import func, select
 from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm import relation
+from sqlalchemy.orm import DynamicMapped, Mapped, mapped_column, relationship
 from sqlalchemy.schema import ForeignKey
 
 from flexget import db_schema
 from flexget.event import event
 from flexget.utils.database import with_session
-from flexget.utils.sqlalchemy_utils import create_index
+from flexget.utils.sqlalchemy_utils import create_index, drop_index, index_exists
 
 logger = logger.bind(name='status.db')
-Base = db_schema.versioned_base('status', 2)
+Base = db_schema.versioned_base('status', 4)
 
 
 @db_schema.upgrade('status')
 def upgrade(ver, session):
-    if ver < 2:
+    if ver < 3:
+        table_name = 'status_execution'
+        old_index_name = 'ix_status_execution_task_id_start_end_succeeded'
+        if index_exists(table_name, old_index_name, session):
+            drop_index(table_name, old_index_name, session)
         # Creates the executions table index
-        create_index('status_execution', session, 'task_id', 'start', 'end', 'succeeded')
-        ver = 2
+        create_index(table_name, session, 'task_id')
+        ver = 3
+
+    # Add composite indexes for better query performance
+    if ver < 4:
+        table_name = 'status_execution'
+
+        # Index for finding last successful executions with produced > 0
+        # This supports queries filtering by task_id, succeeded, and produced with ordering by start
+        create_index(table_name, session, 'task_id', 'succeeded', 'produced', 'start')
+
+        # Index for finding latest executions by task_id and start time
+        # This supports queries that need the max(start) for each task_id
+        create_index(table_name, session, 'task_id', 'start')
+
+        ver = 4
+
     return ver
 
 
 class StatusTask(Base):
     __tablename__ = 'status_task'
-    id = Column(Integer, primary_key=True)
-    name = Column('task', String)
-    executions = relation(
-        'TaskExecution', backref='task', cascade='all, delete, delete-orphan', lazy='dynamic'
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str | None] = mapped_column('task')
+    executions: DynamicMapped[TaskExecution] = relationship(
+        back_populates='task', cascade='all, delete-orphan'
     )
 
     def __repr__(self):
-        return '<StatusTask(id=%s,name=%s)>' % (self.id, self.name)
+        return f'<StatusTask(id={self.id},name={self.name})>'
 
     @hybrid_property
     def last_execution_time(self):
@@ -43,9 +63,10 @@ class StatusTask(Base):
         return max(execution.start for execution in self.executions)
 
     @last_execution_time.expression
+    @classmethod
     def last_execution_time(cls):
         return (
-            select([func.max(TaskExecution.start)])
+            select(func.max(TaskExecution.start))
             .where(TaskExecution.task_id == cls.id)
             .correlate(StatusTask.__table__)
             .label('last_execution_time')
@@ -62,31 +83,21 @@ class StatusTask(Base):
 
 class TaskExecution(Base):
     __tablename__ = 'status_execution'
-    id = Column(Integer, primary_key=True)
-    task_id = Column(Integer, ForeignKey('status_task.id'))
-
-    start = Column(DateTime)
-    end = Column(DateTime)
-    succeeded = Column(Boolean, default=True)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    task_id: Mapped[int | None] = mapped_column(ForeignKey('status_task.id'), index=True)
+    task: Mapped[StatusTask] = relationship(back_populates='executions')
+    start: Mapped[datetime | None]
+    end: Mapped[datetime | None]
+    succeeded: Mapped[bool | None] = mapped_column(default=True)
     # Entry amounts
-    produced = Column(Integer)
-    accepted = Column(Integer)
-    rejected = Column(Integer)
-    failed = Column(Integer)
-    abort_reason = Column(String, nullable=True)
+    produced: Mapped[int | None]
+    accepted: Mapped[int | None]
+    rejected: Mapped[int | None]
+    failed: Mapped[int | None]
+    abort_reason: Mapped[str | None]  # explicitly allows None
 
     def __repr__(self):
-        return '<TaskExecution(task_id=%s,start=%s,end=%s,succeeded=%s,p=%s,a=%s,r=%s,f=%s,reason=%s)>' % (
-            self.task_id,
-            self.start,
-            self.end,
-            self.succeeded,
-            self.produced,
-            self.accepted,
-            self.rejected,
-            self.failed,
-            self.abort_reason,
-        )
+        return f'<TaskExecution(task_id={self.task_id},start={self.start},end={self.end},succeeded={self.succeeded},p={self.produced},a={self.accepted},r={self.rejected},f={self.failed},reason={self.abort_reason})>'
 
     def to_dict(self):
         return {
@@ -103,15 +114,6 @@ class TaskExecution(Base):
         }
 
 
-Index(
-    'ix_status_execution_task_id_start_end_succeeded',
-    TaskExecution.task_id,
-    TaskExecution.start,
-    TaskExecution.end,
-    TaskExecution.succeeded,
-)
-
-
 @event('manager.db_cleanup')
 def db_cleanup(manager, session):
     # Purge all status data for non existing tasks
@@ -122,8 +124,9 @@ def db_cleanup(manager, session):
 
     # Purge task executions older than 1 year
     result = (
-        session.query(TaskExecution)
-        .filter(TaskExecution.start < datetime.datetime.now() - timedelta(days=365))
+        session
+        .query(TaskExecution)
+        .filter(TaskExecution.start < datetime.now() - timedelta(days=365))
         .delete()
     )
     if result:

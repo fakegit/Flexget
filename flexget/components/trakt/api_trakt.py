@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-
-
 from dateutil.parser import parse as dateutil_parse
 from loguru import logger
 
@@ -117,7 +114,7 @@ class TraktUserCache(TimedDict):
 
 
 # Global user cache
-# TODO better idea?
+# TODO: better idea?
 user_cache = TraktUserCache(cache_time=USER_CACHE_DURATION)
 
 
@@ -158,7 +155,8 @@ class ApiTrakt:
         found = None
         if not series and title:
             found = (
-                session.query(db.TraktShowSearchResult)
+                session
+                .query(db.TraktShowSearchResult)
                 .filter(db.TraktShowSearchResult.search == title.lower())
                 .first()
             )
@@ -170,7 +168,7 @@ class ApiTrakt:
         if only_cached:
             if series:
                 return series
-            raise LookupError('Series %s not found from cache' % lookup_params)
+            raise LookupError(f'Series {lookup_params} not found from cache')
         if series and not series.expired:
             return series
         try:
@@ -186,14 +184,17 @@ class ApiTrakt:
             series = session.merge(db.TraktShow(trakt_show, session))
             if series and title.lower() == series.title.lower():
                 return series
-            elif series and title and not found:
+            if series and title and not found:
                 if (
-                    not session.query(db.TraktShowSearchResult)
+                    not session
+                    .query(db.TraktShowSearchResult)
                     .filter(db.TraktShowSearchResult.search == title.lower())
                     .first()
                 ):
                     logger.debug('Adding search result to db')
-                    session.merge(db.TraktShowSearchResult(search=title, series=series))
+                    result = session.merge(db.TraktShowSearchResult(search=title))
+                    result.series = series
+
             elif series and found:
                 logger.debug('Updating search result in db')
                 found.series = series
@@ -210,7 +211,8 @@ class ApiTrakt:
         found = None
         if not movie and title:
             found = (
-                session.query(db.TraktMovieSearchResult)
+                session
+                .query(db.TraktMovieSearchResult)
                 .filter(db.TraktMovieSearchResult.search == title.lower())
                 .first()
             )
@@ -220,7 +222,7 @@ class ApiTrakt:
         if only_cached:
             if movie:
                 return movie
-            raise LookupError('Movie %s not found from cache' % lookup_params)
+            raise LookupError(f'Movie {lookup_params} not found from cache')
         if movie and not movie.expired:
             return movie
         # Parse the movie for better results
@@ -245,12 +247,14 @@ class ApiTrakt:
                 return movie
             if movie and title and not found:
                 if (
-                    not session.query(db.TraktMovieSearchResult)
+                    not session
+                    .query(db.TraktMovieSearchResult)
                     .filter(db.TraktMovieSearchResult.search == title.lower())
                     .first()
                 ):
                     logger.debug('Adding search result to db')
-                    session.merge(db.TraktMovieSearchResult(search=title, movie=movie))
+                    result = session.merge(db.TraktMovieSearchResult(search=title))
+                    result.movie = movie
             elif movie and found:
                 logger.debug('Updating search result in db')
                 found.movie = movie

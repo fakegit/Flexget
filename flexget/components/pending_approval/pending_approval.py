@@ -12,13 +12,15 @@ logger = logger.bind(name='pending_approval')
 class PendingApproval:
     schema = {
         'type': 'boolean',
-        'deprecated': 'pending_approval is deprecated, switch to using pending_list',
+        'deprecated': True,
+        'deprecationMessage': 'pending_approval is deprecated, switch to using pending_list',
     }
 
     @staticmethod
     def _item_query(entry, task, session):
         return (
-            session.query(db.PendingEntry)
+            session
+            .query(db.PendingEntry)
             .filter(db.PendingEntry.task_name == task.name)
             .filter(db.PendingEntry.title == entry['title'])
             .filter(db.PendingEntry.url == entry['url'])
@@ -27,14 +29,15 @@ class PendingApproval:
 
     def on_task_input(self, task, config):
         if not config:
-            return
+            return None
 
         approved_entries = []
         with Session() as session:
             for approved_entry in (
-                session.query(db.PendingEntry)
+                session
+                .query(db.PendingEntry)
                 .filter(db.PendingEntry.task_name == task.name)
-                .filter(db.PendingEntry.approved == True)
+                .filter(db.PendingEntry.approved)
                 .all()
             ):
                 e = approved_entry.entry

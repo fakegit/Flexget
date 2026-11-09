@@ -12,8 +12,7 @@ logger = logger.bind(name='utorrent')
 
 
 class PluginUtorrent:
-    """
-    Parse task content or url for hoster links and adds them to utorrent.
+    """Parse task content or url for hoster links and adds them to utorrent.
 
     Example::
 
@@ -42,10 +41,7 @@ class PluginUtorrent:
 
     @plugin.priority(120)
     def on_task_download(self, task, config):
-        """
-        Call download plugin to generate the temp files we will load
-        into deluge then verify they are valid torrents
-        """
+        """Call download plugin to generate the temp files we will load into deluge then verify they are valid torrents."""
         # If the download plugin is not enabled, we need to call it to get
         # our temp .torrent files
         if 'download' not in task.config:
@@ -77,12 +73,12 @@ class PluginUtorrent:
                 raise plugin.PluginError(
                     'Invalid credentials, check your utorrent webui username and password.', logger
                 )
-            raise plugin.PluginError('%s' % e, logger)
+            raise plugin.PluginError(f'{e}', logger)
         token = get_soup(response.text).find('div', id='token').text
         result = session.get(url, auth=auth, params={'action': 'list-dirs', 'token': token}).json()
-        download_dirs = dict(
-            (os.path.normcase(dir['path']), i) for i, dir in enumerate(result['download-dirs'])
-        )
+        download_dirs = {
+            os.path.normcase(dir['path']): i for i, dir in enumerate(result['download-dirs'])
+        }
 
         for entry in task.accepted:
             # bunch of urls now going to check
@@ -91,7 +87,7 @@ class PluginUtorrent:
             path = entry.get('path', config.get('path', ''))
             try:
                 path = os.path.expanduser(entry.render(path))
-            except RenderError as e:
+            except RenderError:
                 logger.error(
                     'Could not render path for `{}` downloading to default directory.',
                     entry['title'],
@@ -101,9 +97,9 @@ class PluginUtorrent:
             if path:
                 path_normcase = os.path.normcase(path)
 
-                for dir in download_dirs:
+                for dir, value in download_dirs.items():
                     if path_normcase.startswith(dir.lower()):
-                        folder = download_dirs[dir]
+                        folder = value
                         path = path[len(dir) :].lstrip('\\')
                         break
                 else:
@@ -132,15 +128,21 @@ class PluginUtorrent:
                 tmp_path = os.path.join(task.manager.config_base, 'temp')
                 logger.debug('entry: {}', entry)
                 logger.debug('temp: {}', ', '.join(os.listdir(tmp_path)))
-                entry.fail("Downloaded temp file '%s' doesn't exist!?" % entry['file'])
+                entry.fail("Downloaded temp file '{}' doesn't exist!?".format(entry['file']))
                 continue
 
             # Add torrent
             if downloaded:
                 # HTTP://[IP]:[PORT]/GUI/?ACTION=ADD-FILE
-                files = {'torrent_file': open(entry['file'], 'rb')}
-                data = {'action': 'add-file', 'token': token, 'download_dir': folder, 'path': path}
-                result = session.post(url, params=data, auth=auth, files=files)
+                with open(entry['file'], 'rb') as torrent_file:
+                    files = {'torrent_file': torrent_file}
+                    data = {
+                        'action': 'add-file',
+                        'token': token,
+                        'download_dir': folder,
+                        'path': path,
+                    }
+                    result = session.post(url, params=data, auth=auth, files=files)
             else:
                 # http://[IP]:[PORT]/gui/?action=add-url&s=[TORRENT URL]
                 data = {
@@ -157,10 +159,10 @@ class PluginUtorrent:
                 logger.info('Added `{}` to utorrent', entry['url'])
                 logger.info('in folder {} {} ', folder, path)
             else:
-                entry.fail('Fail to add `%s` to utorrent' % entry['url'])
+                entry.fail('Fail to add `{}` to utorrent'.format(entry['url']))
 
     def on_task_learn(self, task, config):
-        """ Make sure all temp files are cleaned up when entries are learned """
+        """Make sure all temp files are cleaned up when entries are learned."""
         # If download plugin is enabled, it will handle cleanup.
         if 'download' not in task.config:
             plugin.get('download', self).cleanup_temp_files(task)

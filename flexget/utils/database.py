@@ -1,19 +1,23 @@
+from __future__ import annotations
+
 import functools
 from datetime import datetime
-from typing import List, Union, Optional, Any
+from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import extract, func
 from sqlalchemy.ext.hybrid import Comparator, hybrid_property
-from sqlalchemy.orm import synonym, SynonymProperty
+from sqlalchemy.orm import synonym
 
 from flexget.entry import Entry
 from flexget.manager import Session
 from flexget.utils import json, qualities, serialization
 
+if TYPE_CHECKING:
+    from sqlalchemy.orm import SynonymProperty
+
 
 def with_session(*args, **kwargs):
-    """ "
-    A decorator which creates a new session if one was not passed via keyword argument to the function.
+    """Use as a decorator which creates a new session if one was not passed via keyword argument to the function.
 
     Automatically commits and closes the session if one was created, caller is responsible for commit if passed in.
 
@@ -34,24 +38,23 @@ def with_session(*args, **kwargs):
     if len(args) == 1 and not kwargs and callable(args[0]):
         # Used without arguments, e.g. @with_session
         # We default to expire_on_commit being false, in case the decorated function returns db instances
-        _Session = functools.partial(Session, expire_on_commit=False)
+        _Session = functools.partial(Session, expire_on_commit=False)  # noqa: N806 It's acting as a class
         return decorator(args[0])
-    else:
-        # Arguments were specified, turn them into arguments for Session creation e.g. @with_session(autocommit=True)
-        _Session = functools.partial(Session, *args, **kwargs)
-        return decorator
+    # Arguments were specified, turn them into arguments for Session creation e.g. @with_session(autocommit=True)
+    _Session = functools.partial(Session, *args, **kwargs)  # noqa: N806 It's acting as a class
+    return decorator
 
 
 def pipe_list_synonym(name: str) -> SynonymProperty:
-    """Converts pipe separated text into a list"""
+    """Convert pipe separated text into a list."""
 
-    def getter(self) -> Optional[List[str]]:
+    def getter(self) -> list[str] | None:
         attr = getattr(self, name)
         if attr:
             return attr.strip('|').split('|')
         return None
 
-    def setter(self, value: Union[str, List[str]]) -> None:
+    def setter(self, value: str | list[str]) -> None:
         if isinstance(value, str):
             setattr(self, name, value)
         else:
@@ -61,12 +64,12 @@ def pipe_list_synonym(name: str) -> SynonymProperty:
 
 
 def text_date_synonym(name: str) -> SynonymProperty:
-    """Converts Y-M-D date strings into datetime objects"""
+    """Convert Y-M-D date strings into datetime objects."""
 
-    def getter(self) -> Optional[datetime]:
+    def getter(self) -> datetime | None:
         return getattr(self, name)
 
-    def setter(self, value: Union[str, datetime]) -> None:
+    def setter(self, value: str | datetime) -> None:
         if isinstance(value, str):
             try:
                 setattr(self, name, datetime.strptime(value, '%Y-%m-%d'))
@@ -85,7 +88,7 @@ def entry_synonym(name: str) -> SynonymProperty:
     def getter(self) -> Any:
         return serialization.loads(getattr(self, name))
 
-    def setter(self, entry: Union[dict, Entry]) -> None:
+    def setter(self, entry: dict | Entry) -> None:
         if isinstance(entry, dict):
             if entry.get('serializer') == 'Entry' and 'version' in entry and 'value' in entry:
                 # This is already a serialized form of entry
@@ -115,7 +118,7 @@ def json_synonym(name: str) -> SynonymProperty:
 class CaseInsensitiveWord(Comparator):
     """Hybrid value representing a string that compares case insensitively."""
 
-    def __init__(self, word: Union[str, 'CaseInsensitiveWord']):
+    def __init__(self, word: str | CaseInsensitiveWord):
         if isinstance(word, CaseInsensitiveWord):
             self.word: str = word.word
         else:
@@ -124,13 +127,11 @@ class CaseInsensitiveWord(Comparator):
     def lower(self) -> str:
         if isinstance(self.word, str):
             return self.word.lower()
-        else:
-            return func.lower(self.word)
+        return func.lower(self.word)
 
-    def operate(self, op, other):
-        if not isinstance(other, CaseInsensitiveWord):
-            other = CaseInsensitiveWord(other)
-        return op(self.lower(), other.lower())
+    def operate(self, op, *other, **kwargs):
+        other = [CaseInsensitiveWord(o).lower() for o in other]
+        return op(self.lower(), *other, **kwargs)
 
     def __clause_element__(self) -> str:
         return self.lower()
@@ -145,7 +146,10 @@ class CaseInsensitiveWord(Comparator):
 
 def quality_property(text_attr):
     def getter(self):
-        return qualities.Quality(getattr(self, text_attr))
+        try:
+            return qualities.get(getattr(self, text_attr))
+        except (ValueError, AttributeError):
+            return qualities.Quality(getattr(self, text_attr))
 
     def setter(self, value):
         if isinstance(value, str):
@@ -154,17 +158,15 @@ def quality_property(text_attr):
             setattr(self, text_attr, value.name)
 
     class QualComparator(Comparator):
-        def operate(self, op, other):
-            if isinstance(other, qualities.Quality):
-                other = other.name
-            return op(self.__clause_element__(), other)
+        def operate(self, op, *other, **kwargs):
+            other = [o.name if isinstance(o, qualities.Quality) else o for o in other]
+            return op(self.__clause_element__(), *other, **kwargs)
 
     def comparator(self):
         return QualComparator(getattr(self, text_attr))
 
     prop = hybrid_property(getter, setter)
-    prop = prop.comparator(comparator)
-    return prop
+    return prop.comparator(comparator)
 
 
 def quality_requirement_property(text_attr):
@@ -177,8 +179,7 @@ def quality_requirement_property(text_attr):
         else:
             setattr(self, text_attr, value.text)
 
-    prop = hybrid_property(getter, setter)
-    return prop
+    return hybrid_property(getter, setter)
 
 
 def ignore_case_property(text_attr):

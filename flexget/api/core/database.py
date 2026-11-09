@@ -1,9 +1,17 @@
-from flask import jsonify, request, Response
-from sqlalchemy.orm import Session
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+from flask import jsonify, request
+from sqlalchemy import text
 
 from flexget.api import APIResource, api
 from flexget.api.app import BadRequest, base_message_schema, success_response
 from flexget.db_schema import plugin_schemas, reset_schema
+
+if TYPE_CHECKING:
+    from flask import Response
+    from sqlalchemy.orm import Session
 
 db_api = api.namespace('database', description='Manage Flexget DB')
 
@@ -31,7 +39,7 @@ class DBOperation(APIResource):
     @api.validate(input_schema)
     @api.response(200, model=base_message_schema)
     def post(self, session: Session = None) -> Response:
-        """Perform DB operations"""
+        """Perform DB operations."""
         msg = ''
         data = request.json
         operation = data['operation']
@@ -39,7 +47,7 @@ class DBOperation(APIResource):
             self.manager.db_cleanup(force=True)
             msg = 'DB Cleanup finished'
         elif operation == 'vacuum':
-            session.execute('VACUUM')
+            session.execute(text('VACUUM'))
             session.commit()
             msg = 'DB VACUUM finished'
         elif operation == 'plugin_reset':
@@ -60,5 +68,5 @@ class DBOperation(APIResource):
 class DBCleanup(APIResource):
     @api.response(200, model=plugins_schema)
     def get(self, session: Session = None) -> Response:
-        """List resettable DB plugins"""
-        return jsonify(sorted(list(plugin_schemas)))
+        """List resettable DB plugins."""
+        return jsonify(sorted(plugin_schemas))

@@ -8,9 +8,7 @@ logger = logger.bind(name='urlfix')
 
 
 class UrlFix:
-    """
-    Automatically fix broken urls.
-    """
+    """Automatically fix broken urls."""
 
     schema = {'type': 'boolean'}
 
@@ -21,7 +19,8 @@ class UrlFix:
         for entry in task.entries:
             if '&amp;' in entry['url']:
                 log_once(
-                    'Corrected `%s` url (replaced &amp; with &)' % entry['title'], logger=logger
+                    'Corrected `{}` url (replaced &amp; with &)'.format(entry['title']),
+                    logger=logger,
                 )
                 entry['url'] = entry['url'].replace('&amp;', '&')
 

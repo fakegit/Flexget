@@ -13,7 +13,8 @@ logger = logger.bind(name='regexp_parse')
 
 
 class RegexpParse:
-    r"""This plugin is designed to take input from a web resource or a file.
+    r"""Designed to take input from a web resource or a file.
+
     It then parses the text via regexps supplied in the config file.
 
     source: is a file or url to get the data from. You can specify a username:password
@@ -37,52 +38,52 @@ class RegexpParse:
       #TODO: consider a mode field that allows a growing list for a field instead of just setting to
             # first match
 
-    Example config
+    Example config ::
 
-    regexp_parse:
-      source: http://username:password@ezrss.it/feed/
-      encoding: "utf-8"
-      sections:
-        - {regexp: "(?<=<item>).*?(?=</item>)", flags: "DOTALL,IGNORECASE"}
+        regexp_parse:
+          source: http://username:password@ezrss.it/feed/
+          encoding: "utf-8"
+          sections:
+            - {regexp: "(?<=<item>).*?(?=</item>)", flags: "DOTALL,IGNORECASE"}
 
-      keys:
-        title:
-          regexps:
-            - {regexp: '(?<=<title><!\[CDATA\[).*?(?=\]\]></title>)'} #comment
-        url:
-          regexps:
-            - {regexp: "magnet:.*?(?=])"}
-        custom_field:
-          regexps:
-            - {regexp: "custom regexps", flags: "comma separated list of flags (see python regex docs)"}
-          required: False
-        custom_field2:
-          regexps:
-            - {regexp: 'first custom regexps'}
-            - {regexp: 'can't find first regexp so try this one'}
+          keys:
+            title:
+              regexps:
+                - {regexp: '(?<=<title><!\[CDATA\[).*?(?=\]\]></title>)'} #comment
+            url:
+              regexps:
+                - {regexp: "magnet:.*?(?=])"}
+            custom_field:
+              regexps:
+                - {regexp: "custom regexps", flags: "comma separated list of flags (see python regex docs)"}
+              required: False
+            custom_field2:
+              regexps:
+                - {regexp: 'first custom regexps'}
+                - {regexp: 'can't find first regexp so try this one'}
     """
 
     # dict used to convert string values of regexp flags to int
     FLAG_VALUES = {
         'DEBUG': re.DEBUG,
-        'I': re.I,
+        'I': re.IGNORECASE,
         'IGNORECASE': re.IGNORECASE,
-        'L': re.L,
+        'L': re.LOCALE,
         'LOCALE': re.LOCALE,
-        'M': re.M,
+        'M': re.MULTILINE,
         'MULTILINE': re.MULTILINE,
-        'S': re.S,
+        'S': re.DOTALL,
         'DOTALL': re.DOTALL,
-        'U': re.U,
+        'U': re.UNICODE,
         'UNICODE': re.UNICODE,
-        'X': re.X,
+        'X': re.VERBOSE,
         'VERBOSE': re.VERBOSE,
     }
 
     FLAG_REGEX = r'^(\s?({})\s?(,|$))+$'.format('|'.join(FLAG_VALUES))
 
     schema = {
-        'definitions': {
+        '$defs': {
             'regex_list': {
                 'type': 'array',
                 'items': {
@@ -109,14 +110,14 @@ class RegexpParse:
                 ]
             },
             'encoding': {'type': 'string'},
-            'sections': {'$ref': '#/definitions/regex_list'},
+            'sections': {'$ref': '#/$defs/regex_list'},
             'keys': {
                 'type': 'object',
                 'additionalProperties': {
                     'type': 'object',
                     'properties': {
                         'required': {'type': 'boolean'},
-                        'regexps': {'$ref': '#/definitions/regex_list'},
+                        'regexps': {'$ref': '#/$defs/regex_list'},
                     },
                     'required': ['regexps'],
                     'additionalProperties': False,
@@ -132,15 +133,15 @@ class RegexpParse:
         self.required = []
 
     def flagstr_to_flags(self, flag_str):
-        """turns a comma seperated list of flags into the int value."""
-        COMBIND_FLAGS = 0
+        """Turn a comma separated list of flags into the int value."""
+        combined_flags = 0
         split_flags = flag_str.split(',')
         for flag in split_flags:
-            COMBIND_FLAGS = COMBIND_FLAGS | RegexpParse.FLAG_VALUES[flag.strip()]
-        return COMBIND_FLAGS
+            combined_flags = combined_flags | RegexpParse.FLAG_VALUES[flag.strip()]
+        return combined_flags
 
     def compile_regexp_dict_list(self, re_list):
-        """turns a list of dicts containing regexps information into a list of compiled regexps."""
+        """Turn a list of dicts containing regexps information into a list of compiled regexps."""
         compiled_regexps = []
         for dic in re_list:
             flags = 0
@@ -150,7 +151,7 @@ class RegexpParse:
         return compiled_regexps
 
     def isvalid(self, entry):
-        """checks to make sure that all required fields are present in the entry."""
+        """Check to make sure that all required fields are present in the entry."""
         for key in self.required:
             if key not in entry:
                 return False
@@ -164,7 +165,8 @@ class RegexpParse:
 
         # if it's a file open it and read into content (assume utf-8 encoding)
         if os.path.isfile(os.path.expanduser(url)):
-            content = codecs.open(url, 'r', encoding=encoding or 'utf-8').read()
+            with codecs.open(url, 'r', encoding=encoding or 'utf-8') as u:
+                content = u.read()
         # else use requests to get the data
         else:
             resp = task.requests.get(url)
@@ -173,15 +175,15 @@ class RegexpParse:
             content = resp.text
 
         sections = []
-        seperators = config.get('sections')
-        if seperators:
-            for sep in seperators:
+        separators = config.get('sections')
+        if separators:
+            for sep in separators:
                 flags = 0
                 if 'flags' in sep:
                     flags = self.flagstr_to_flags(sep['flags'])
                 sections.extend(re.findall(sep['regexp'], content, flags))
 
-        # no seperators just do work on the whole content
+        # no separators just do work on the whole content
         else:
             sections.append(content)
 
@@ -191,7 +193,7 @@ class RegexpParse:
         # put every key in keys into the rey_to_regexps list
         for key, value in config['keys'].items():
             key_to_regexps[key] = self.compile_regexp_dict_list(value['regexps'])
-            if 'required' in value and value['required']:
+            if value.get('required'):
                 self.required.append(key)
 
         entries = []

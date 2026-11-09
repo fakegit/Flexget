@@ -1,0 +1,46 @@
+name: autofix.ci
+on:
+  pull_request:
+    paths:
+      - .github/workflows/autofix-cleanup-cassettes.yml
+      - tests/cassettes/**
+permissions: {}
+concurrency:
+  group: ${{ github.workflow_ref }}-${{ github.event.number || github.ref || github.run_id }}
+  cancel-in-progress: true
+env:
+  PYTHON_VERSION: '3.13' # renovate: datasource=python-version depName=python
+  UV_VERSION: 0.13.7 # renovate: datasource=pypi depName=uv
+jobs:
+  uv-lock:
+    name: clean up cassettes
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Install uv and Python
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          version: ${{ env.UV_VERSION }}
+      - name: Get all new cassettes
+        id: new-cassettes
+        uses: tj-actions/changed-files@24d32ffd492484c1d75e0c0b894501ddb9d30d62 # v47
+        with:
+          files: tests/cassettes/*.yml
+      - name: Clean up cassettes
+        env:
+          NEW_CASSETTES: ${{steps.new-cassettes.outputs.added_files}}
+        run: uv run scripts/cleanup_cassettes.py
+      - name: Autofix
+        if: ${{!cancelled()}}
+        id: autofix
+        uses: autofix-ci/action@c5b2d67aa2274e7b5a18224e8171550871fc7e4a # v1
+      - name: Prompt PR author if autofix fails to apply # this step can be removed if autofix becomes more stable
+        if: failure() && steps.autofix.outputs.autofix_started
+        run: |
+          echo 'The Autofix task has been started. But if it doesn’t succeed, you need to fix it manually by running "uv run scripts/cleanup_cassettes.py"'
+          exit 1

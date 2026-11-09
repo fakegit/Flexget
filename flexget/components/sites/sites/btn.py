@@ -46,7 +46,7 @@ class SearchBTN:
         return config
 
     def search(self, task, entry, config):
-        task.requests.add_domain_limiter(self.request_limiter)
+        task.requests.add_domain_limiter(self.request_limiter, replace=False)
         config = self.prepare_config(config)
         api_key = config['api_key']
 
@@ -66,11 +66,11 @@ class SearchBTN:
             else:
                 search['series'] = entry['series_name']
             if entry.get('season_pack_lookup', False) and 'series_season' in entry:
-                search['name'] = 'Season %s' % entry['series_season']
+                search['name'] = 'Season {}'.format(entry['series_season'])
             elif 'series_id' in entry:
                 # BTN wants an ep style identifier even for sequence shows
                 if entry.get('series_id_type') == 'sequence':
-                    search['name'] = 'S01E%02d' % entry['series_id']
+                    search['name'] = 'S01E{:02d}'.format(entry['series_id'])
                 else:
                     search['name'] = (
                         entry['series_id'] + '%'
@@ -97,7 +97,7 @@ class SearchBTN:
             try:
                 content = r.json()
             except ValueError as e:
-                raise plugin.PluginError('Error searching btn. Maybe it\'s down?. %s' % str(e))
+                raise plugin.PluginError(f"Error searching btn. Maybe it's down?. {e!s}")
             if not content or not content['result']:
                 logger.debug('No results from btn')
                 if content and content.get('error'):
@@ -115,9 +115,12 @@ class SearchBTN:
                     entry = Entry()
                     entry['title'] = item['ReleaseName']
                     if config['append_quality']:
-                        entry['title'] += ' '.join(
-                            ['', item['Resolution'], item['Source'], item['Codec']]
-                        )
+                        entry['title'] += ' '.join([
+                            '',
+                            item['Resolution'],
+                            item['Source'],
+                            item['Codec'],
+                        ])
                     entry['url'] = item['DownloadURL']
                     entry['torrent_seeds'] = int(item['Seeders'])
                     entry['torrent_leeches'] = int(item['Leechers'])

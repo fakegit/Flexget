@@ -1,14 +1,20 @@
-# -*- coding: utf-8 -*-
-from typing import Optional
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
 
 from loguru import logger
 
-from flexget import entry, plugin
+from flexget import plugin
+from flexget.entry import register_lazy_lookup
 from flexget.event import event
 from flexget.manager import Session
 
 from . import api_trakt as plugin_api_trakt
 from . import db
+
+if TYPE_CHECKING:
+    from flexget.entry import Entry
+    from flexget.utils.sqlalchemy_utils import ContextSession
 
 # TODO: not very nice ..
 lookup_series = plugin_api_trakt.ApiTrakt.lookup_series
@@ -18,35 +24,35 @@ lookup_movie = plugin_api_trakt.ApiTrakt.lookup_movie
 logger = logger.bind(name='trakt_lookup')
 
 
-def is_show(entry: entry.Entry) -> bool:
+def is_show(entry: Entry) -> bool:
     return entry.get('series_name') or entry.get('tvdb_id', eval_lazy=False)
 
 
-def is_episode(entry: entry.Entry) -> bool:
+def is_episode(entry: Entry) -> bool:
     return entry.get('series_season') and entry.get('series_episode')
 
 
-def is_season(entry: entry.Entry) -> bool:
+def is_season(entry: Entry) -> bool:
     return entry.get('series_season') and not is_episode(entry)
 
 
-def is_movie(entry: entry.Entry) -> bool:
+def is_movie(entry: Entry) -> bool:
     return bool(entry.get('movie_name'))
 
 
-def get_media_type_for_entry(entry: entry.Entry) -> Optional[str]:
+def get_media_type_for_entry(entry: Entry) -> str | None:
     if is_episode(entry):
         return 'episode'
-    elif is_season(entry):
+    if is_season(entry):
         return 'season'
-    elif is_show(entry):
+    if is_show(entry):
         return 'show'
-    elif is_movie(entry):
+    if is_movie(entry):
         return 'movie'
     return None
 
 
-@entry.register_lazy_lookup('trakt_user_data_lookup')
+@register_lazy_lookup('trakt_user_data_lookup')
 def trakt_user_data_lookup(entry, field_name, data_type, media_type, username, account):
     trakt = plugin_api_trakt.ApiTrakt(username=username, account=account)
     user_data_lookup = trakt.lookup_map[data_type][media_type]
@@ -55,14 +61,20 @@ def trakt_user_data_lookup(entry, field_name, data_type, media_type, username, a
         with Session() as session:
             result = user_data_lookup(get_db_data_for(media_type, entry, session), entry['title'])
     except LookupError as e:
-        logger.debug(e)
+        logger.debug(
+            "Failed lazy lookup of `{}` field `{}` from `{}`'s `{}`",
+            media_type,
+            e,
+            username,
+            data_type,
+        )
     else:
         entry[field_name] = result
 
     return entry
 
 
-def _get_lookup_args(entry: entry.Entry) -> dict:
+def _get_lookup_args(entry: Entry) -> dict:
     args = {
         'title': entry.get('series_name', eval_lazy=False) or entry.get('title', eval_lazy=False),
         'year': entry.get('year', eval_lazy=False) or entry.get('movie_year', eval_lazy=False),
@@ -88,7 +100,7 @@ def _get_lookup_args(entry: entry.Entry) -> dict:
     return args
 
 
-def get_db_data_for(data_type: str, entry: entry.Entry, session: Session):
+def get_db_data_for(data_type: str, entry: Entry, session: ContextSession):
     if data_type == 'movie':
         movie_lookup_args = _get_lookup_args(entry)
         return lookup_movie(session=session, **movie_lookup_args)
@@ -100,6 +112,7 @@ def get_db_data_for(data_type: str, entry: entry.Entry, session: Session):
         return show.get_season(entry['series_season'], session)
     if data_type == 'episode':
         return show.get_episode(entry['series_season'], entry['series_episode'], session)
+    return None
 
 
 lazy_lookup_types = {
@@ -121,10 +134,10 @@ lazy_lookup_types = {
         'trakt_series_content_rating': 'certification',
         'trakt_genres': lambda i: [db_genre.name for db_genre in i.genres],
         'trakt_series_network': 'network',
-        'imdb_url': lambda series: series.imdb_id
-        and 'http://www.imdb.com/title/%s' % series.imdb_id,
-        'trakt_series_url': lambda series: series.slug
-        and 'https://trakt.tv/shows/%s' % series.slug,
+        'imdb_url': lambda series: (
+            series.imdb_id and f'http://www.imdb.com/title/{series.imdb_id}'
+        ),
+        'trakt_series_url': lambda series: series.slug and f'https://trakt.tv/shows/{series.slug}',
         'trakt_series_country': 'country',
         'trakt_series_status': 'status',
         'trakt_series_overview': 'overview',
@@ -163,7 +176,7 @@ lazy_lookup_types = {
         'trakt_ep_abs_number': 'number_abs',
         'trakt_season': 'season',
         'trakt_episode': 'number',
-        'trakt_ep_id': lambda ep: 'S%02dE%02d' % (ep.season, ep.number),
+        'trakt_ep_id': lambda ep: f'S{ep.season:02d}E{ep.number:02d}',
     },
     'movie': {
         'movie_name': 'title',
@@ -193,21 +206,20 @@ lazy_lookup_types = {
 }
 
 
-@entry.register_lazy_lookup('trakt_lazy_lookup')
-def lazy_lookup(entry, lazy_lookup_name, media_type):
+@register_lazy_lookup('trakt_lazy_lookup')
+def lazy_lookup(entry: Entry, lazy_lookup_name: str, media_type: str):
     with Session() as session:
         try:
             db_data = get_db_data_for(media_type, entry, session)
         except LookupError as e:
-            logger.debug(e)
+            logger.debug('Failed {} lazy lookup: {}', media_type, e)
         else:
             entry.update_using_map(lazy_lookup_types[lazy_lookup_name], db_data)
     return entry
 
 
-def add_lazy_fields(entry: entry.Entry, lazy_lookup_name: str, media_type: str) -> None:
-    """
-    Adds lazy fields for one of the lookups in our `lazy_lookup_types` dict.
+def add_lazy_fields(entry: Entry, lazy_lookup_name: str, media_type: str) -> None:
+    """Add lazy fields for one of the lookups in our `lazy_lookup_types` dict.
 
     :param entry: The entry to add lazy fields to.
     :param lazy_lookup_name: One of the keys in `lazy_lookup_types` dict.
@@ -231,10 +243,9 @@ user_data_fields = {
 
 
 def add_lazy_user_fields(
-    entry: entry.Entry, data_type: str, media_type: str, username: str, account: str
+    entry: Entry, data_type: str, media_type: str, username: str, account: str
 ) -> None:
-    """
-    Adds one of the user field lazy lookups to an entry.
+    """Add one of the user field lazy lookups to an entry.
 
     :param entry: Entry to add lazy fields to
     :param data_type: ratings/collected/watched (one of the keys in `user_data_fields` dict.)
@@ -253,11 +264,11 @@ def add_lazy_user_fields(
 
 
 class PluginTraktLookup:
-    """Retrieves trakt information for entries. Uses series_name,
-    series_season, series_episode from series plugin.
+    """Retrieve trakt information for entries.
+
+    Use series_name, eries_season, series_episode from series plugin.
 
     Example:
-
     trakt_lookup: yes
 
     Primarily used for passing trakt information to other plugins.
@@ -323,7 +334,7 @@ class PluginTraktLookup:
             return
 
         if isinstance(config, bool):
-            config = dict()
+            config = {}
 
         for entry in task.entries:
             if is_show(entry):
@@ -359,12 +370,12 @@ class PluginTraktLookup:
 
     @property
     def series_identifier(self):
-        """Returns the plugin main identifier type"""
+        """Return the plugin main identifier type."""
         return 'trakt_show_id'
 
     @property
     def movie_identifier(self):
-        """Returns the plugin main identifier type"""
+        """Return the plugin main identifier type."""
         return 'trakt_movie_id'
 
 

@@ -22,10 +22,7 @@ logger = logger.bind(name='movie_list')
 
 
 class MovieListBase:
-    """
-    Class that contains helper methods for movie list as well as plugins that use it,
-    such as API and CLI.
-    """
+    """Class that contains helper methods for movie list as well as plugins that use it, such as API and CLI."""
 
     @property
     def supported_ids(self):
@@ -59,9 +56,9 @@ class MovieList(MutableSet):
 
     def __iter__(self):
         with Session() as session:
-            return iter(
-                [movie.to_entry(self.strip_year) for movie in self._db_list(session).movies]
-            )
+            return iter([
+                movie.to_entry(self.strip_year) for movie in self._db_list(session).movies
+            ])
 
     def __len__(self):
         with Session() as session:
@@ -100,13 +97,14 @@ class MovieList(MutableSet):
 
     @with_session
     def _find_entry(self, entry, session=None):
-        """Finds `MovieListMovie` corresponding to this entry, if it exists."""
+        """Find `MovieListMovie` corresponding to this entry, if it exists."""
         # Match by supported IDs
         for id_name in MovieListBase().supported_ids:
             if entry.get(id_name):
                 logger.debug('trying to match movie based off id {}: {}', id_name, entry[id_name])
                 res = (
-                    self._db_list(session)
+                    self
+                    ._db_list(session)
                     .movies.join(db.MovieListMovie.ids)
                     .filter(
                         and_(
@@ -124,13 +122,14 @@ class MovieList(MutableSet):
             self._parse_title(entry)
         if entry.get('movie_name'):
             name = entry['movie_name']
-            year = entry.get('movie_year') if entry.get('movie_year') else None
+            year = entry.get('movie_year')
         else:
             logger.warning('Could not get a movie name, skipping')
-            return
+            return None
         logger.debug('trying to match movie based of name: {} and year: {}', name, year)
         res = (
-            self._db_list(session)
+            self
+            ._db_list(session)
             .movies.filter(func.lower(db.MovieListMovie.title) == name.lower())
             .filter(db.MovieListMovie.year == year)
             .first()
@@ -154,10 +153,7 @@ class MovieList(MutableSet):
 
     @property
     def online(self):
-        """
-        Set the online status of the plugin, online plugin should be treated
-        differently in certain situations, like test mode
-        """
+        """Set the online status of the plugin, online plugin should be treated differently in certain situations, like test mode."""
         return False
 
     @with_session

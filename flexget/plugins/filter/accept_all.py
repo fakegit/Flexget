@@ -7,15 +7,14 @@ logger = logger.bind(name='accept_all')
 
 
 class FilterAcceptAll:
-    """
-    Just accepts all entries.
+    """Just accepts all entries.
 
     Example::
 
       accept_all: true
     """
 
-    schema = {'type': 'boolean'}
+    schema = {'type': 'boolean', 'description': 'Accepts all entries'}
 
     def on_task_filter(self, task, config):
         if config:

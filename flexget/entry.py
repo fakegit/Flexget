@@ -1,15 +1,26 @@
+from __future__ import annotations
+
 import functools
 import types
-import warnings
+from datetime import date, datetime
 from enum import Enum
-from typing import Callable, Iterable, Mapping, Optional, Sequence, Union, Dict
+from typing import TYPE_CHECKING
 
+import pendulum
 from loguru import logger
 
 from flexget import plugin
 from flexget.utils.lazy_dict import LazyDict, LazyLookup
 from flexget.utils.serialization import Serializer, deserialize, serialize
-from flexget.utils.template import FlexGetTemplate, render_from_entry
+from flexget.utils.template import CoercingDateTime, FlexGetTemplate, render_from_entry
+
+try:
+    from warnings import deprecated
+except ImportError:
+    from typing_extensions import deprecated  # for python<=3.12
+
+if TYPE_CHECKING:
+    from collections.abc import Callable, Iterable, Mapping, Sequence
 
 logger = logger.bind(name='entry')
 
@@ -47,19 +58,18 @@ class EntryState(Enum):
 
 
 class EntryUnicodeError(Exception):
-    """This exception is thrown when trying to set non-unicode compatible field value to entry."""
+    """Thrown when trying to set non-unicode compatible field value to entry."""
 
     def __init__(self, key: str, value) -> None:
         self.key = key
         self.value = value
 
     def __str__(self):
-        return 'Entry strings must be unicode: %s (%r)' % (self.key, self.value)
+        return f'Entry strings must be unicode: {self.key} ({self.value!r})'
 
 
 class Entry(LazyDict, Serializer):
-    """
-    Represents one item in task. Must have `url` and *title* fields.
+    """Represents one item in task. Must have `url` and *title* fields.
 
     Stores automatically *original_url* key, which is necessary because
     plugins (eg. urlrewriters) may change *url* into something else
@@ -89,27 +99,26 @@ class Entry(LazyDict, Serializer):
 
     def trace(
         self,
-        message: Optional[str],
-        operation: str = None,
-        plugin: str = None,
+        message: str | None,
+        operation: str | None = None,
+        plugin: str | None = None,
     ) -> None:
-        """
-        Adds trace message to the entry which should contain useful information about why
-        plugin did not operate on entry. Accept and Reject messages are added to trace automatically.
+        """Add trace message to the entry which should contain useful information about why plugin did not operate on entry.
+
+        Accept and Reject messages are added to trace automatically.
 
         :param string message: Message to add into entry trace.
         :param string operation: None, reject, accept or fail
         :param plugin: Uses task.current_plugin by default, pass value to override
         """
         if operation not in (None, 'accept', 'reject', 'fail'):
-            raise ValueError('Unknown operation %s' % operation)
+            raise ValueError(f'Unknown operation {operation}')
         item = (plugin, operation, message)
         if item not in self.traces:
             self.traces.append(item)
 
     def run_hooks(self, action: str, **kwargs) -> None:
-        """
-        Run hooks that have been registered for given ``action``.
+        """Run hooks that have been registered for given ``action``.
 
         :param action: Name of action to run hooks for
         :param kwargs: Keyword arguments that should be passed to the registered functions
@@ -118,8 +127,7 @@ class Entry(LazyDict, Serializer):
             func(self, **kwargs)
 
     def add_hook(self, action: str, func: Callable, **kwargs) -> None:
-        """
-        Add a hook for ``action`` to this entry.
+        """Add a hook for ``action`` to this entry.
 
         :param string action: One of: 'accept', 'reject', 'fail', 'complete'
         :param func: Function to execute when event occurs
@@ -129,11 +137,10 @@ class Entry(LazyDict, Serializer):
         try:
             self._hooks[action].append(functools.partial(func, **kwargs))
         except KeyError:
-            raise ValueError('`%s` is not a valid entry action' % action)
+            raise ValueError(f'`{action}` is not a valid entry action')
 
     def on_accept(self, func: Callable, **kwargs) -> None:
-        """
-        Register a function to be called when this entry is accepted.
+        """Register a function to be called when this entry is accepted.
 
         :param func: The function to call
         :param kwargs: Keyword arguments that should be passed to the registered function
@@ -141,8 +148,7 @@ class Entry(LazyDict, Serializer):
         self.add_hook('accept', func, **kwargs)
 
     def on_reject(self, func: Callable, **kwargs) -> None:
-        """
-        Register a function to be called when this entry is rejected.
+        """Register a function to be called when this entry is rejected.
 
         :param func: The function to call
         :param kwargs: Keyword arguments that should be passed to the registered function
@@ -150,8 +156,7 @@ class Entry(LazyDict, Serializer):
         self.add_hook('reject', func, **kwargs)
 
     def on_fail(self, func: Callable, **kwargs) -> None:
-        """
-        Register a function to be called when this entry is failed.
+        """Register a function to be called when this entry is failed.
 
         :param func: The function to call
         :param kwargs: Keyword arguments that should be passed to the registered function
@@ -159,15 +164,14 @@ class Entry(LazyDict, Serializer):
         self.add_hook('fail', func, **kwargs)
 
     def on_complete(self, func: Callable, **kwargs) -> None:
-        """
-        Register a function to be called when a :class:`Task` has finished processing this entry.
+        """Register a function to be called when a :class:`Task` has finished processing this entry.
 
         :param func: The function to call
         :param kwargs: Keyword arguments that should be passed to the registered function
         """
         self.add_hook('complete', func, **kwargs)
 
-    def accept(self, reason: str = None, **kwargs) -> None:
+    def accept(self, reason: str | None = None, **kwargs) -> None:
         if self.rejected:
             logger.debug('tried to accept rejected {!r}', self)
         elif not self.accepted:
@@ -176,10 +180,10 @@ class Entry(LazyDict, Serializer):
             # Run entry on_accept hooks
             self.run_hooks('accept', reason=reason, **kwargs)
 
-    def reject(self, reason: str = None, **kwargs) -> None:
+    def reject(self, reason: str | None = None, **kwargs) -> None:
         # ignore rejections on immortal entries
         if self.get('immortal'):
-            reason_str = '(%s)' % reason if reason else ''
+            reason_str = f'({reason})' if reason else ''
             logger.info('Tried to reject immortal {} {}', self['title'], reason_str)
             self.trace(f'Tried to reject immortal {reason_str}')
             return
@@ -189,7 +193,7 @@ class Entry(LazyDict, Serializer):
             # Run entry on_reject hooks
             self.run_hooks('reject', reason=reason, **kwargs)
 
-    def fail(self, reason: Optional[str] = None, **kwargs):
+    def fail(self, reason: str | None = None, **kwargs):
         logger.debug("Marking entry '{}' as failed", self['title'])
         if not self.failed:
             self._state = EntryState.FAILED
@@ -228,21 +232,31 @@ class Entry(LazyDict, Serializer):
             raise EntryUnicodeError(key, value)
         # Coerce any enriched strings (such as those returned by BeautifulSoup) to plain strings to avoid serialization
         # troubles.
-        elif (
-            isinstance(value, str) and type(value) != str
-        ):  # pylint: disable=unidiomatic-typecheck
+        if isinstance(value, str) and type(value) is not str:
             value = str(value)
+        # Turn datetimes and dates into their pendulum versions
+        elif isinstance(value, datetime):
+            value = CoercingDateTime.instance(value)
+            if not value.tzinfo:
+                logger.warning(
+                    '{} was set to a naive datetime. Plugin should be updated to provide a timezone aware datetime',
+                    key,
+                )
+        elif isinstance(value, date):
+            value = pendulum.instance(value)
 
         # url and original_url handling
         if key == 'url':
             if not isinstance(value, (str, LazyLookup)):
-                raise plugin.PluginError('Tried to set %r url to %r' % (self.get('title'), value))
+                raise plugin.PluginError(
+                    'Tried to set {!r} url to {!r}'.format(self.get('title'), value)
+                )
             self.setdefault('original_url', value)
 
         # title handling
         if key == 'title':
             if not isinstance(value, (str, LazyLookup)):
-                raise plugin.PluginError('Tried to set title to %r' % value)
+                raise plugin.PluginError(f'Tried to set title to {value!r}')
             self.setdefault('original_title', value)
 
         try:
@@ -258,26 +272,19 @@ class Entry(LazyDict, Serializer):
     # TODO: this is too manual, maybe we should somehow check this internally and throw some exception if
     # application is trying to operate on invalid entry
     def isvalid(self) -> bool:
-        """
-        :return: True if entry is valid. Return False if this cannot be used.
-        :rtype: bool
-        """
+        """Return True if entry is valid. Return False if this cannot be used."""
         if 'title' not in self:
             return False
         if 'url' not in self:
             return False
         if not isinstance(self['url'], str):
             return False
-        if not isinstance(self['title'], str):
-            return False
-        return True
+        return isinstance(self['title'], str)
 
     def update_using_map(
-        self, field_map: dict, source_item: Union[dict, object], ignore_none: bool = False
+        self, field_map: dict, source_item: dict | object, ignore_none: bool = False
     ):
-        """
-        Populates entry fields from a source object using a dictionary that maps from entry field names to
-        attributes (or keys) in the source object.
+        """Populate entry fields from a source object using a dictionary that maps from entry field names to attributes (or keys) in the source object.
 
         :param dict field_map:
           A dictionary mapping entry field names to the attribute in source_item (or keys,
@@ -288,6 +295,9 @@ class Entry(LazyDict, Serializer):
         :param ignore_none:
           Ignore any None values, do not record it to the Entry
         """
+        if source_item is None:
+            logger.debug('source_item is None, skipping update_using_map')
+            return
         func = dict.get if isinstance(source_item, dict) else getattr
         for field, value in field_map.items():
             if isinstance(value, str):
@@ -298,26 +308,23 @@ class Entry(LazyDict, Serializer):
                 continue
             self[field] = v
 
-    def render(self, template: Union[str, FlexGetTemplate], native: bool = False) -> str:
-        """
-        Renders a template string based on fields in the entry.
+    def render(self, template: str | FlexGetTemplate, native: bool = False) -> str:
+        """Render a template string based on fields in the entry.
 
         :param template: A template string or FlexGetTemplate that uses jinja2 or python string replacement format.
         :param native: If True, and the rendering result can be all native python types, not just strings.
         :return: The result of the rendering.
-        :rtype: string
         :raises RenderError: If there is a problem.
         """
         if not isinstance(template, (str, FlexGetTemplate)):
-            raise ValueError(
-                'Trying to render non string template or unrecognized template format, got %s'
-                % repr(template)
+            raise TypeError(
+                f'Trying to render non string template or unrecognized template format, got {template!r}'
             )
         logger.trace('rendering: {}', template)
         return render_from_entry(template, self, native=native)
 
     @classmethod
-    def serialize(cls, entry: 'Entry') -> dict:
+    def serialize(cls, entry: Entry) -> dict:
         fields = {}
         for key in entry:
             if key.startswith('_') or entry.is_lazy(key):
@@ -330,15 +337,14 @@ class Entry(LazyDict, Serializer):
         for ll in entry.lazy_lookups:
             try:
                 lazy_lookups.append(serialize(ll))
-            except TypeError as exc:
+            except TypeError:
                 logger.exception(
-                    'BUG: Lazy lookup was not compatible with serialization. Please file a bug report: {}',
-                    exc,
+                    'BUG: Lazy lookup was not compatible with serialization. Please file a bug report'
                 )
         return {'fields': fields, 'lazy_lookups': lazy_lookups}
 
     @classmethod
-    def deserialize(cls, data, version) -> 'Entry':
+    def deserialize(cls, data, version) -> Entry:
         result = cls()
         for key, value in data['fields'].items():
             result[key] = deserialize(value)
@@ -348,14 +354,14 @@ class Entry(LazyDict, Serializer):
 
     def add_lazy_fields(
         self,
-        lazy_func: Union[Callable[['Entry'], None], str],
+        lazy_func: Callable[[Entry], None] | str,
         fields: Iterable[str],
-        args: Sequence = None,
-        kwargs: Mapping = None,
+        args: Sequence | None = None,
+        kwargs: Mapping | None = None,
     ):
-        """
-        Add lazy fields to an entry.
-        :param lazy_func: should be a funciton previously registered with the `register_lazy_func` decorator,
+        """Add lazy fields to an entry.
+
+        :param lazy_func: should be a function previously registered with the `register_lazy_func` decorator,
             or the name it was registered under.
         :param fields: list of fields this function will fill
         :param args: Arguments that will be passed to the lazy lookup function when called.
@@ -374,16 +380,16 @@ class Entry(LazyDict, Serializer):
         super().register_lazy_func(func.function, fields, args, kwargs)
         self.lazy_lookups.append((lazy_func, fields, args, kwargs))
 
+    @deprecated(
+        '`register_lazy_func` is deprecated. `add_lazy_fields` should be used instead. '
+        'This plugin should be updated to work with the latest versions of FlexGet'
+    )
     def register_lazy_func(self, func, keys):
+        """Add lazy fields to an entry.
+
+        .. deprecated:: 3.1.11
+           Use :meth:`add_lazy_fields` instead.
         """
-        DEPRECATED. Use `add_lazy_fields` instead.
-        """
-        warnings.warn(
-            '`register_lazy_func` is deprecated. `add_lazy_fields` should be used instead. '
-            'This plugin should be updated to work with the latest versions of FlexGet',
-            DeprecationWarning,
-            stacklevel=2,
-        )
         super().register_lazy_func(func, keys, [], {})
 
     def __eq__(self, other):
@@ -395,7 +401,7 @@ class Entry(LazyDict, Serializer):
         return hash(self.get('original_title', '') + self.get('original_url', ''))
 
     def __repr__(self):
-        return '<Entry(title=%s,state=%s)>' % (self['title'], self._state)
+        return '<Entry(title={},state={})>'.format(self['title'], self._state)
 
 
 lazy_func_registry = {}
@@ -408,7 +414,7 @@ class LazyFunc:
 
     def __call__(self, func: Callable) -> Callable:
         if self.name in lazy_func_registry:
-            raise Exception(
+            raise RuntimeError(
                 f'The name {self.name} is already registered to another lazy function.'
             )
         func.lazy_func_id = self.name
@@ -424,7 +430,7 @@ class LazyFunc:
             for p in plugin.plugins.values():
                 if p.plugin_class.__name__ == plugin_class_name:
                     return types.MethodType(self._func, p.instance)
-            raise Exception(
+            raise TypeError(
                 f'lazy lookups must be functions, or methods of a registered plugin class. {self._func!r} is not'
             )
         return self._func

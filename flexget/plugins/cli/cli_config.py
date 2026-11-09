@@ -1,5 +1,4 @@
-"""
-Allows specifying yml configuration values from commandline parameters.
+"""Allows specifying yml configuration values from commandline parameters.
 
 Yml variables are prefixed with dollar sign ($).
 Commandline parameter must be comma separated list of variable=values.
@@ -16,6 +15,7 @@ Commandline example::
   --cli-config url=http://some.url/ path=~/downloads
 
 """
+
 import argparse
 import functools
 
@@ -32,23 +32,22 @@ def replace_in_item(replaces, item):
     if isinstance(item, str):
         # Do replacement in text objects
         for key, val in replaces.items():
-            item = item.replace('$%s' % key, val)
+            item = item.replace(f'${key}', val)
         return item
-    elif isinstance(item, list):
+    if isinstance(item, list):
         # Make a new list with replacements done on each item
         return list(map(replace, item))
-    elif isinstance(item, dict):
+    if isinstance(item, dict):
         # Make a new dict with replacements done on keys and values
         return dict(list(map(replace, kv_pair)) for kv_pair in item.items())
-    else:
-        # We don't know how to do replacements on this item, just return it
-        return item
+    # We don't know how to do replacements on this item, just return it
+    return item
 
 
 @event('manager.before_config_validate')
 def substitute_cli_variables(config, manager):
     if not manager.options.execute.cli_config:
-        return
+        return None
     return replace_in_item(dict(manager.options.execute.cli_config), config)
 
 

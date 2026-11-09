@@ -2,7 +2,8 @@ import pickle
 from datetime import datetime
 
 from loguru import logger
-from sqlalchemy import Column, DateTime, Index, Integer, String, Unicode, column, select
+from sqlalchemy import Index, Unicode, column, select
+from sqlalchemy.orm import Mapped, mapped_column
 
 from flexget import db_schema
 from flexget.entry import Entry
@@ -17,15 +18,15 @@ Base = db_schema.versioned_base('backlog', 3)
 class BacklogEntry(Base):
     __tablename__ = 'backlog'
 
-    id = Column(Integer, primary_key=True)
-    task = Column('feed', String)
-    title = Column(String)
-    expire = Column(DateTime)
-    _json = Column('json', Unicode)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    task: Mapped[str | None] = mapped_column('feed')
+    title: Mapped[str | None]
+    expire: Mapped[datetime | None]
+    _json: Mapped[str | None] = mapped_column('json')
     entry = entry_synonym('_json')
 
     def __repr__(self):
-        return '<BacklogEntry(title=%s)>' % (self.title)
+        return f'<BacklogEntry(title={self.title})>'
 
 
 Index('ix_backlog_feed_expire', BacklogEntry.task, BacklogEntry.expire)
@@ -56,11 +57,12 @@ def upgrade(ver, session):
         table_add_column(table, 'json', Unicode, session)
         # Make sure we get the new schema with the added column
         table = table_schema('backlog', session)
-        for row in session.execute(select([table.c.id, table.c.entry])):
+        for row in session.execute(select(table.c.id, table.c.entry)):
             try:
                 p = pickle.loads(row['entry'])
                 session.execute(
-                    table.update()
+                    table
+                    .update()
                     .where(table.c.id == row['id'])
                     .values(json=json.dumps(p, encode_datetime=True))
                 )
@@ -70,7 +72,7 @@ def upgrade(ver, session):
         ver = 2
     if ver == 2:
         table = table_schema('backlog', session)
-        for row in session.execute(select([table.c.id, table.c.json])):
+        for row in session.execute(select(table.c.id, table.c.json)):
             if not row['json']:
                 # Seems there could be invalid data somehow. See #2590
                 continue
@@ -96,8 +98,7 @@ def get_entries(task=None, session=None):
 
 @with_session
 def clear_entries(task=None, all=False, session=None):
-    """
-    Clear entries from backlog.
+    """Clear entries from backlog.
 
     :param task: If given, only entries from specified task will be cleared.
     :param all: If True, all entries will be cleared, otherwise only expired entries will be cleared.

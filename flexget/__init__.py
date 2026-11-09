@@ -1,54 +1,69 @@
-#!/usr/bin/python
-import os
+from __future__ import annotations
+
 import sys
-from typing import Sequence
+from typing import TYPE_CHECKING
+
+from loguru import logger
 
 # __version__ import need to be first in order to avoid circular import within logger
-from ._version import __version__  # noqa
+from ._version import __version__  # noqa: F401
 
 # isort: split
-from flexget import log  # noqa
-from flexget.manager import Manager  # noqa
+from flexget import log
+from flexget.manager import Manager
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
 
 
-def main(args: Sequence = None):
-    """Main entry point for Command Line Interface"""
-
+def main(args: Sequence[str] | None = None):
+    """Execute as the main entry point for Command Line Interface."""
+    if args is None:
+        args = sys.argv[1:]
     try:
         log.initialize()
 
         try:
             manager = Manager(args)
-        except (OSError, ValueError) as e:
+        except (OSError, ValueError):
+            options = Manager.parse_initial_options(args)
+            log.start(level=options.loglevel, to_file=False)
             if _is_debug():
                 import traceback
 
                 traceback.print_exc()
             else:
-                print('Could not instantiate manager: %s' % e, file=sys.stderr)
+                logger.opt(exception=True).critical('Could not instantiate manager:')
             sys.exit(1)
+        else:
+            log.start(
+                manager.log_filename,
+                manager.options.loglevel,
+                to_file=manager.check_ipc_info() is None,
+                to_console=not manager.options.cron,
+            )
 
         try:
             if manager.options.profile:
                 try:
-                    import cProfile as profile
+                    import cProfile as profile  # noqa: N813
                 except ImportError:
                     import profile
                 profile.runctx(
                     'manager.start()',
                     globals(),
                     locals(),
-                    os.path.join(manager.config_base, manager.options.profile),
+                    str(manager.config_base / manager.options.profile),
                 )
             else:
                 manager.start()
-        except (OSError, ValueError) as e:
+        except (OSError, ValueError):
             if _is_debug():
                 import traceback
 
                 traceback.print_exc()
             else:
-                print('Could not start manager: %s' % e, file=sys.stderr)
+                logger.opt(exception=True).critical('Could not start manager:')
 
             sys.exit(1)
     except KeyboardInterrupt:
@@ -57,7 +72,7 @@ def main(args: Sequence = None):
 
             traceback.print_exc()
 
-        print('Killed with keyboard interrupt.', file=sys.stderr)
+        logger.critical('Killed with keyboard interrupt.')
         sys.exit(1)
 
 

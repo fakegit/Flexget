@@ -1,10 +1,12 @@
+from __future__ import annotations
+
 import pickle
 from collections.abc import MutableSet
 from datetime import datetime
 
 from loguru import logger
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, Unicode, func, or_, select
-from sqlalchemy.orm import relationship
+from sqlalchemy import ForeignKey, Unicode, func, or_, select
+from sqlalchemy.orm import DynamicMapped, Mapped, mapped_column, relationship
 from sqlalchemy.sql.elements import and_
 
 from flexget import db_schema
@@ -28,11 +30,12 @@ def upgrade(ver, session):
         table_add_column(table, 'json', Unicode, session)
         # Make sure we get the new schema with the added column
         table = table_schema('entry_list_entries', session)
-        for row in session.execute(select([table.c.id, table.c.entry])):
+        for row in session.execute(select(table.c.id, table.c.entry)):
             try:
                 p = pickle.loads(row['entry'])
                 session.execute(
-                    table.update()
+                    table
+                    .update()
                     .where(table.c.id == row['id'])
                     .values(json=json.dumps(p, encode_datetime=True))
                 )
@@ -42,7 +45,7 @@ def upgrade(ver, session):
         ver = 1
     if ver == 1:
         table = table_schema('entry_list_entries', session)
-        for row in session.execute(select([table.c.id, table.c.json])):
+        for row in session.execute(select(table.c.id, table.c.json)):
             if not row['json']:
                 # Seems there could be invalid data somehow. See #2590
                 continue
@@ -59,11 +62,11 @@ def upgrade(ver, session):
 
 class EntryListList(Base):
     __tablename__ = 'entry_list_lists'
-    id = Column(Integer, primary_key=True)
-    name = Column(Unicode, unique=True)
-    added = Column(DateTime, default=datetime.now)
-    entries = relationship(
-        'EntryListEntry', backref='list', cascade='all, delete, delete-orphan', lazy='dynamic'
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str | None] = mapped_column(unique=True)
+    added: Mapped[datetime | None] = mapped_column(default=datetime.now)
+    entries: DynamicMapped[EntryListEntry] = relationship(
+        back_populates='list_', cascade='all, delete-orphan'
     )
 
     def to_dict(self):
@@ -72,12 +75,13 @@ class EntryListList(Base):
 
 class EntryListEntry(Base):
     __tablename__ = 'entry_list_entries'
-    id = Column(Integer, primary_key=True)
-    list_id = Column(Integer, ForeignKey(EntryListList.id), nullable=False)
-    added = Column(DateTime, default=datetime.now)
-    title = Column(Unicode)
-    original_url = Column(Unicode)
-    _json = Column('json', Unicode)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    list_id: Mapped[int] = mapped_column(ForeignKey(EntryListList.id))
+    added: Mapped[datetime | None] = mapped_column(default=datetime.now)
+    title: Mapped[str | None]
+    original_url: Mapped[str | None]
+    _json: Mapped[str | None] = mapped_column('json')
+    list_: Mapped[EntryListList] = relationship(back_populates='entries')
     entry = entry_synonym('_json')
 
     def __init__(self, entry, entry_list_id):
@@ -87,7 +91,7 @@ class EntryListEntry(Base):
         self.list_id = entry_list_id
 
     def __repr__(self):
-        return '<EntryListEntry,title=%s,original_url=%s>' % (self.title, self.original_url)
+        return f'<EntryListEntry,title={self.title},original_url={self.original_url}>'
 
     def to_dict(self):
         return {
@@ -111,8 +115,9 @@ class DBEntrySet(MutableSet):
                 session.add(EntryListList(name=self.config))
 
     def _entry_query(self, session, entry):
-        db_entry = (
-            session.query(EntryListEntry)
+        return (
+            session
+            .query(EntryListEntry)
             .filter(
                 and_(
                     EntryListEntry.list_id == self._db_list(session).id,
@@ -127,8 +132,6 @@ class DBEntrySet(MutableSet):
             )
             .first()
         )
-
-        return db_entry
 
     def __iter__(self):
         with Session() as session:
@@ -173,8 +176,10 @@ class DBEntrySet(MutableSet):
 
     @property
     def online(self):
-        """Set the online status of the plugin, online plugin should be treated differently in certain situations,
-        like test mode"""
+        """Set the online status of the plugin.
+
+        Online plugin should be treated differently in certain situations, like test mode
+        """
         return False
 
     def get(self, entry):
@@ -241,17 +246,20 @@ def get_entry_by_title(list_id, title, session=None):
     entry_list = get_list_by_id(list_id=list_id, session=session)
     if entry_list:
         return (
-            session.query(EntryListEntry)
+            session
+            .query(EntryListEntry)
             .filter(and_(EntryListEntry.title == title, EntryListEntry.list_id == list_id))
             .first()
         )
+    return None
 
 
 @with_session
 def get_entry_by_id(list_id, entry_id, session=None):
     logger.debug('fetching entry with id {} from list id {}', entry_id, list_id)
     return (
-        session.query(EntryListEntry)
+        session
+        .query(EntryListEntry)
         .filter(and_(EntryListEntry.id == entry_id, EntryListEntry.list_id == list_id))
         .one()
     )

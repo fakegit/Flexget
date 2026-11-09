@@ -23,41 +23,37 @@ class UrlRewriteGoogleCse:
     def url_rewritable(self, task, entry):
         if entry['url'].startswith('http://www.google.com/cse?'):
             return True
-        if entry['url'].startswith('http://www.google.com/custom?'):
-            return True
-        return False
+        return bool(entry['url'].startswith('http://www.google.com/custom?'))
 
     # urlrewriter API
     def url_rewrite(self, task, entry):
+        # need to fake user agent
+        txheaders = {'User-agent': 'Mozilla/4.0 (compatible; MSIE 5.5; Windows NT)'}
         try:
-            # need to fake user agent
-            txheaders = {'User-agent': 'Mozilla/4.0 (compatible; MSIE 5.5; Windows NT)'}
             page = task.requests.get(entry['url'], headers=txheaders)
             soup = get_soup(page.text)
             results = soup.find_all('a', attrs={'class': 'l'})
-            if not results:
-                raise UrlRewritingError('No results')
-            for res in results:
-                url = res.get('href')
-                url = url.replace('/interstitial?url=', '')
-                # generate match regexp from google search result title
-                regexp = '.*'.join([x.contents[0] for x in res.find_all('em')])
-                if re.match(regexp, entry['title']):
-                    logger.debug('resolved, found with {}', regexp)
-                    entry['url'] = url
-                    return
-            raise UrlRewritingError('Unable to resolve')
         except Exception as e:
             raise UrlRewritingError(e)
+        if not results:
+            raise UrlRewritingError('No results')
+        for res in results:
+            url = res.get('href')
+            url = url.replace('/interstitial?url=', '')
+            # generate match regexp from google search result title
+            regexp = '.*'.join([x.contents[0].text for x in res.find_all('em')])
+            if re.match(regexp, entry['title']):
+                logger.debug('resolved, found with {}', regexp)
+                entry['url'] = url
+                return
+        raise UrlRewritingError('Unable to resolve')
 
 
 class UrlRewriteGoogle:
     # urlrewriter API
 
     def url_rewritable(self, task, entry):
-        if entry['url'].startswith('https://www.google.com/search?q='):
-            return True
-        return False
+        return bool(entry['url'].startswith('https://www.google.com/search?q='))
 
     # urlrewriter API
     def url_rewrite(self, task, entry):
@@ -84,8 +80,7 @@ class UrlRewriteGoogle:
                 logger.debug('--> rewriting {} (known url pattern)', href)
                 entry['url'] = href
                 return
-            else:
-                logger.debug('<-- ignoring {} (unknown url pattern)', href)
+            logger.debug('<-- ignoring {} (unknown url pattern)', href)
         raise UrlRewritingError('Unable to resolve')
 
 

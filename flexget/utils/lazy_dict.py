@@ -1,7 +1,12 @@
+from __future__ import annotations
+
 from collections.abc import MutableMapping
-from typing import Any, Callable, Iterable, List, Mapping, NamedTuple, Sequence
+from typing import TYPE_CHECKING, Any, NamedTuple
 
 from loguru import logger
+
+if TYPE_CHECKING:
+    from collections.abc import Callable, Iterable, Mapping, Sequence
 
 logger = logger.bind(name='lazy_lookup')
 
@@ -14,14 +19,15 @@ class LazyCallee(NamedTuple):
 
 
 class LazyLookup:
-    """
-    This class stores the information to do a lazy lookup for a LazyDict. An instance is stored as a placeholder value
-    for any key that can be lazily looked up. There should be one instance of this class per LazyDict.
+    """Store the information to do a lazy lookup for a LazyDict.
+
+    An instance is stored as a placeholder value for any key that can be lazily looked up.
+    There should be one instance of this class per LazyDict.
     """
 
-    def __init__(self, store: 'LazyDict') -> None:
+    def __init__(self, store: LazyDict) -> None:
         self.store = store
-        self.callee_list: List[LazyCallee] = []
+        self.callee_list: list[LazyCallee] = []
 
     def add_func(self, func: Callable, keys: Sequence, args: Sequence, kwargs: Mapping) -> None:
         self.callee_list.append(LazyCallee(func, keys, args, kwargs))
@@ -52,7 +58,7 @@ class LazyLookup:
         return self.store[key]
 
     def __repr__(self):
-        return '<LazyLookup(%r)>' % self.callee_list
+        return f'<LazyLookup({self.callee_list!r})>'
 
 
 class LazyDict(MutableMapping):
@@ -82,11 +88,8 @@ class LazyDict(MutableMapping):
 
     copy = __copy__
 
-    def get(
-        self, key, default: Any = None, eval_lazy: bool = True
-    ) -> Any:  # pylint: disable=W0221
-        """
-        Adds the `eval_lazy` keyword argument to the normal :func:`dict.get` method.
+    def get(self, key, default: Any = None, eval_lazy: bool = True) -> Any:
+        """Add the `eval_lazy` keyword argument to the normal :func:`dict.get` method.
 
         :param bool eval_lazy: If False, the default will be returned rather than evaluating a lazy field.
         """
@@ -103,8 +106,8 @@ class LazyDict(MutableMapping):
 
     @property
     def _lazy_lookup(self) -> LazyLookup:
-        """
-        The LazyLookup instance for this LazyDict.
+        """Return the LazyLookup instance for this LazyDict.
+
         If one is already stored in this LazyDict, it is returned, otherwise a new one is instantiated.
         """
         for val in self.store.values():
@@ -133,9 +136,9 @@ class LazyDict(MutableMapping):
                 self[key] = ll
 
     def is_lazy(self, key) -> bool:
-        """
+        """Return True if value for key is lazy loading.
+
         :param key: Key to check
-        :return: True if value for key is lazy loading.
         :rtype: bool
         """
         return isinstance(self.store.get(key), LazyLookup)

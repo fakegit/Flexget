@@ -1,5 +1,4 @@
-import datetime
-from datetime import timedelta
+from datetime import datetime
 
 from loguru import logger
 
@@ -13,7 +12,7 @@ logger = logger.bind(name='status')
 
 
 class Status:
-    """Track health status of tasks"""
+    """Track health status of tasks."""
 
     schema = {'type': 'boolean'}
 
@@ -30,7 +29,7 @@ class Status:
                 session.add(st)
 
         self.execution = db.TaskExecution()
-        self.execution.start = datetime.datetime.now()
+        self.execution.start = datetime.now()
         self.execution.task = st
 
     @plugin.priority(plugin.PRIORITY_LAST)
@@ -50,28 +49,10 @@ class Status:
             if task.aborted:
                 self.execution.succeeded = False
                 self.execution.abort_reason = task.abort_reason
-            self.execution.end = datetime.datetime.now()
+            self.execution.end = datetime.now()
             session.merge(self.execution)
 
     on_task_abort = on_task_exit
-
-
-@event('manager.db_cleanup')
-def db_cleanup(manager, session):
-    # Purge all status data for non existing tasks
-    for status_task in session.query(db.StatusTask).all():
-        if status_task.name not in manager.config['tasks']:
-            logger.verbose('Purging obsolete status data for task {}', status_task.name)
-            session.delete(status_task)
-
-    # Purge task executions older than 1 year
-    result = (
-        session.query(db.TaskExecution)
-        .filter(db.TaskExecution.start < datetime.datetime.now() - timedelta(days=365))
-        .delete()
-    )
-    if result:
-        logger.verbose('Removed {} task executions from history older than 1 year', result)
 
 
 @event('plugin.register')

@@ -1,3 +1,5 @@
+import contextlib
+
 from loguru import logger
 
 from flexget import plugin
@@ -45,7 +47,8 @@ class Letterboxd:
             'sort_by': {'type': 'string', 'enum': list(SORT_BY.keys()), 'default': 'default'},
             'max_results': {
                 'type': 'integer',
-                'deprecated': '`limit` plugin should be used instead of letterboxd `max_results` option',
+                'deprecated': True,
+                'deprecationMessage': '`limit` plugin should be used instead of letterboxd `max_results` option',
             },
         },
         'required': ['username', 'list'],
@@ -68,39 +71,35 @@ class Letterboxd:
 
     def tmdb_lookup(self, search):
         if not search:
-            logger.warning('Can\'t search tmdb, no tmdb_id')
-            return
+            logger.warning("Can't search tmdb, no tmdb_id")
+            return None
 
         try:
             tmdb = plugin.get('api_tmdb', self).lookup(tmdb_id=search)
         except LookupError as e:
             logger.warning('Error searching tmdb: {}', e)
-            return
+            return None
 
-        result = {
-            'title': '%s (%s)' % (tmdb.name, tmdb.year),
+        return {
+            'title': f'{tmdb.name} ({tmdb.year})',
             'imdb_id': tmdb.imdb_id,
             'tmdb_id': tmdb.id,
             'movie_name': tmdb.name,
             'movie_year': tmdb.year,
         }
 
-        return result
-
     def parse_film(self, film, config):
-        url = base_url + film.get(config['f_slug'])
+        url = base_url + '/film/' + film.get(config['f_slug'])
         soup = get_soup(requests.get(url).content)
         result = self.tmdb_lookup(soup.find(attrs={'data-tmdb-id': True}).get('data-tmdb-id'))
         if not result:
-            return
+            return None
 
         entry = Entry(result)
         entry['url'] = url
-        entry['letterboxd_list'] = '%s (%s)' % (config['list'], config['username'])
-        try:
+        entry['letterboxd_list'] = '{} ({})'.format(config['list'], config['username'])
+        with contextlib.suppress(AttributeError):
             entry['letterboxd_score'] = float(soup.find(itemprop='average').get('content'))
-        except AttributeError:
-            pass
         if config['list'] == 'diary':
             entry['letterboxd_uscore'] = int(
                 film.find_next(attrs={'data-rating': True}).get('data-rating')
@@ -124,7 +123,7 @@ class Letterboxd:
             try:
                 page = requests.get(url).content
             except RequestException as e:
-                raise plugin.PluginError('Error retrieving list from Letterboxd: %s' % e)
+                raise plugin.PluginError(f'Error retrieving list from Letterboxd: {e}')
             soup = get_soup(page)
 
             for film in soup.find_all(attrs={config['f_slug']: True}):

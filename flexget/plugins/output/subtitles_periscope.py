@@ -1,6 +1,7 @@
 import logging
 import os
 import tempfile
+from pathlib import Path
 
 from loguru import logger
 
@@ -11,9 +12,7 @@ logger = logger.bind(name='subtitles')
 
 
 class PluginPeriscope:
-    r"""
-    Search and download subtitles using Periscope by Patrick Dessalle
-    (http://code.google.com/p/periscope/).
+    r"""Search and download subtitles using Periscope by Patrick Dessalle (http://code.google.com/p/periscope/).
 
     Example (complete task)::
 
@@ -49,22 +48,21 @@ class PluginPeriscope:
 
     def on_task_start(self, task, config):
         try:
-            import periscope  # noqa
+            import periscope  # noqa: F401
         except ImportError as e:
             logger.debug('Error importing Periscope: {}', e)
             raise plugin.DependencyError(
-                'periscope', 'periscope', 'Periscope module required. ImportError: %s' % e
+                'periscope', 'periscope', f'Periscope module required. ImportError: {e}'
             )
 
     def subbed(self, filename):
-        for ext in self.exts:
-            if os.path.exists(os.path.splitext(filename)[0] + ext):
-                return True
-        return False
+        return any(os.path.exists(os.path.splitext(filename)[0] + ext) for ext in self.exts)
 
     def on_task_output(self, task, config):
-        """
+        """Register this as an output plugin.
+
         Configuration::
+
             periscope:
                 languages: List of languages in order of preference (at least one is required).
                 alternatives: List of second-choice languages; subs will be downloaded but entries rejected.
@@ -86,17 +84,19 @@ class PluginPeriscope:
         for entry in task.accepted:
             if 'location' not in entry:
                 logger.warning('Cannot act on entries that do not represent a local file.')
-            elif not os.path.exists(entry['location']):
-                entry.fail('file not found: %s' % entry['location'])
-            elif '$RECYCLE.BIN' in entry['location']:
+            elif not Path(entry['location']).exists():
+                entry.fail('file not found: {}'.format(entry['location']))
+            elif '$RECYCLE.BIN' in str(entry['location']):
                 continue  # ignore deleted files in Windows shares
             elif not config['overwrite'] and self.subbed(entry['location']):
                 logger.warning('cannot overwrite existing subs for {}', entry['location'])
             else:
                 try:
-                    if psc.downloadSubtitle(entry['location'].encode("utf8"), langs):
+                    if psc.downloadSubtitle(str(entry['location']).encode('utf8'), langs):
                         logger.info('Subtitles found for {}', entry['location'])
-                    elif alts and psc.downloadSubtitle(entry['location'].encode('utf8'), alts):
+                    elif alts and psc.downloadSubtitle(
+                        str(entry['location']).encode('utf8'), alts
+                    ):
                         entry.fail('subtitles found for a second-choice language.')
                     else:
                         entry.fail('cannot find any subtitles for now.')

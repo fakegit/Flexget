@@ -9,7 +9,7 @@ logger = logger.bind(name='abort_if_exists')
 
 
 class PluginAbortIfExists:
-    """Aborts a task if an entry field matches the regexp"""
+    """Aborts a task if an entry field matches the regexp."""
 
     schema = {
         'type': 'object',
@@ -31,8 +31,10 @@ class PluginAbortIfExists:
             if field not in entry:
                 logger.debug('Field {} not found. Skipping.', field)
                 continue
-            if abort_re.search(entry[field]):
-                task.abort('An entry contained %s in field %s. Abort!' % (config['regexp'], field))
+            if abort_re.search(str(entry[field])):
+                task.abort(
+                    'An entry contained {} in field {}. Abort!'.format(config['regexp'], field)
+                )
 
 
 @event('plugin.register')

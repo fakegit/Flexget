@@ -2,14 +2,14 @@ import hashlib
 import random
 import socket
 import threading
-from typing import Optional, Dict, Tuple
 
 import cherrypy
 import zxcvbn
 from flask import Flask, abort, redirect
 from flask_login import UserMixin
 from loguru import logger
-from sqlalchemy import Column, Integer, Unicode
+from sqlalchemy import String
+from sqlalchemy.orm import Mapped, mapped_column
 from werkzeug.security import generate_password_hash
 
 from flexget.manager import Base
@@ -17,23 +17,22 @@ from flexget.utils.database import with_session
 
 logger = logger.bind(name='web_server')
 
-_home: Optional[str] = None
-_app_register: Dict[str, Tuple[Flask, str]] = {}
+_home: str | None = None
+_app_register: dict[str, tuple[Flask, str]] = {}
 _default_app = Flask(__name__)
 
 rand = random.SystemRandom()
 
 
 def generate_key():
-    """ Generate key for use to authentication """
+    """Generate key for use to authentication."""
     return str(hashlib.sha224(str(rand.getrandbits(128)).encode('utf-8')).hexdigest())
 
 
 def get_random_string(
     length=12, allowed_chars='abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
 ):
-    """
-    Returns a securely generated random string.
+    """Return a securely generated random string.
 
     The default length of 12 with the a-z, A-Z, 0-9 character set returns
     a 71-bit value. log_2((26+26+10)^12) =~ 71 bits.
@@ -45,7 +44,7 @@ def get_random_string(
 
 @with_session
 def get_secret(session=None):
-    """ Generate a secret key for flask applications and store it in the database. """
+    """Generate a secret key for flask applications and store it in the database."""
     web_secret = session.query(WebSecret).first()
     if not web_secret:
         web_secret = WebSecret(
@@ -76,53 +75,53 @@ class WeakPassword(Exception):
 
 
 class User(Base, UserMixin):
-    """ User class available for flask apps to handle authentication using flask_login """
+    """User class available for flask apps to handle authentication using flask_login."""
 
     __tablename__ = 'users'
 
-    id = Column(Integer, primary_key=True)
-    name = Column(Unicode(50), unique=True)
-    token = Column(Unicode, default=generate_key)
-    password = Column(Unicode)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str | None] = mapped_column(String(50), unique=True)
+    token: Mapped[str | None] = mapped_column(default=generate_key)
+    password: Mapped[str | None]
 
     def __repr__(self):
-        return '<User %r>' % self.name
+        return f'<User {self.name!r}>'
 
     def get_id(self):
         return self.name
 
 
 class WebSecret(Base):
-    """ Store flask secret in the database """
+    """Store flask secret in the database."""
 
     __tablename__ = 'secret'
 
-    id = Column(Unicode, primary_key=True)
-    value = Column(Unicode)
+    id: Mapped[str] = mapped_column(primary_key=True)
+    value: Mapped[str | None]
 
 
 def register_app(path, application, name):
     if path in _app_register:
-        raise ValueError('path %s already registered' % path)
+        raise ValueError(f'path {path} already registered')
     _app_register[path] = (application, name)
 
 
 def register_home(route):
-    """Registers UI home page"""
+    """Register UI home page."""
     global _home
     _home = route
 
 
 @_default_app.route('/')
 def start_page():
-    """ Redirect user to registered UI home """
+    """Redirect user to registered UI home."""
     if not _home:
         abort(404)
     return redirect(_home)
 
 
 def setup_server(config):
-    """ Sets up and starts/restarts the web service. """
+    """Set up and start/restart the web service."""
     web_server = WebServer(
         bind=config['bind'],
         port=config['port'],
@@ -136,8 +135,7 @@ def setup_server(config):
     user = get_user()
     if not user or not user.password:
         logger.warning(
-            'No password set for web server, create one by using'
-            ' `flexget web passwd <password>`'
+            'No password set for web server, create one by using `flexget web passwd <password>`'
         )
 
     if _app_register:
@@ -175,34 +173,30 @@ class WebServer(threading.Thread):
     def _start_server(self):
         # Mount the WSGI callable object (app) on the root directory
         cherrypy.tree.graft(_default_app, '/')
-        for path, (registered_app, name) in _app_register.items():
+        for path, (registered_app, _name) in _app_register.items():
             cherrypy.tree.graft(registered_app, self.base_url + path)
 
         cherrypy.log.error_log.propagate = False
         cherrypy.log.access_log.propagate = False
 
         # Set the configuration of the web server
-        cherrypy.config.update(
-            {
-                'engine.autoreload.on': False,
-                'server.socket_port': self.port,
-                'server.socket_host': self.bind,
-                'log.screen': False,
-            }
-        )
+        cherrypy.config.update({
+            'engine.autoreload.on': False,
+            'server.socket_port': self.port,
+            'server.socket_host': self.bind,
+            'log.screen': False,
+        })
 
         if self.ssl_certificate and self.ssl_private_key:
-            cherrypy.config.update(
-                {
-                    'server.ssl_module': 'builtin',
-                    'server.ssl_certificate': self.ssl_certificate,
-                    'server.ssl_private_key': self.ssl_private_key,
-                }
-            )
+            cherrypy.config.update({
+                'server.ssl_module': 'builtin',
+                'server.ssl_certificate': self.ssl_certificate,
+                'server.ssl_private_key': self.ssl_private_key,
+            })
 
         try:
             host = (
-                self.bind if self.bind != "0.0.0.0" else socket.gethostbyname(socket.gethostname())
+                self.bind if self.bind != '0.0.0.0' else socket.gethostbyname(socket.gethostname())
             )
         except socket.gaierror:
             host = '127.0.0.1'
@@ -211,7 +205,7 @@ class WebServer(threading.Thread):
 
         server_url = f'{protocol}://{host}:{self.port}{self.base_url}'
         logger.info('Web server started at {}', server_url)
-        for path, (registered_app, name) in _app_register.items():
+        for path, (_registered_app, name) in _app_register.items():
             logger.info('{} available at {}{}', name, server_url, path)
 
         # Start the CherryPy WSGI web server
@@ -247,11 +241,11 @@ def change_password(username='flexget', password='', session=None):
     if check['score'] < 3:
         warning = check['feedback']['warning']
         suggestions = ' '.join(check['feedback']['suggestions'])
-        message = 'Password \'{}\' is not strong enough. '.format(password)
+        message = f"Password '{password}' is not strong enough. "
         if warning:
             message += warning + ' '
         if suggestions:
-            message += 'Suggestions: {}'.format(suggestions)
+            message += f'Suggestions: {suggestions}'
         raise WeakPassword(message)
 
     user = get_user(username=username, session=session)

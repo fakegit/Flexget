@@ -1,13 +1,13 @@
 import re
-from urllib.parse import urlparse
 import time
 from datetime import datetime
+from urllib.parse import urlparse
 
 from loguru import logger
 
 from flexget import plugin
 from flexget.components.sites.urlrewriting import UrlRewritingError
-from flexget.components.sites.utils import normalize_unicode, torrent_availability
+from flexget.components.sites.utils import torrent_availability
 from flexget.entry import Entry
 from flexget.event import event
 
@@ -15,11 +15,24 @@ logger = logger.bind(name='solidtorrents')
 
 URL = 'https://solidtorrents.net/'
 
-CATEGORIES = ("all", "Audio", "Video", "Image", "Document", "eBook", "Program", "Android", "Archive", "Diskimage",
-              "Sourcecode", "Database")
+CATEGORIES = (
+    'all',
+    'Audio',
+    'Video',
+    'Image',
+    'Document',
+    'eBook',
+    'Program',
+    'Android',
+    'Archive',
+    'Diskimage',
+    'Sourcecode',
+    'Database',
+)
 
 
-SORT = ("seeders", "leechers", "downloads", "date", "size")
+SORT = ('seeders', 'leechers', 'downloads', 'date', 'size')
+
 
 class UrlRewriteSolidTorrents:
     """SolidTorrents urlrewriter."""
@@ -59,10 +72,10 @@ class UrlRewriteSolidTorrents:
             escaped_url_scheme = re.escape(parsed_url.scheme)
             escaped_url_netloc = re.escape(parsed_url.netloc)
             self.url_match = re.compile(
-                fr'^{escaped_url_scheme}://{escaped_url_netloc}/view/[^/]+/([a-zA-Z0-9]{24})$'
+                rf'^{escaped_url_scheme}://{escaped_url_netloc}/view/[^/]+/([a-zA-Z0-9]{24})$'
             )
             self.url_search = re.compile(
-                fr'^{escaped_url_scheme}://{escaped_url_netloc}/search\?q=.*$'
+                rf'^{escaped_url_scheme}://{escaped_url_netloc}/search\?q=.*$'
             )
 
     # urlrewriter API
@@ -82,24 +95,22 @@ class UrlRewriteSolidTorrents:
             # use search
             results = self.search(task, entry)
             if not results:
-                raise UrlRewritingError("No search results found")
+                raise UrlRewritingError('No search results found')
             # TODO: Close matching was taken out of search methods, this may need to be fixed to be more picky
             entry['url'] = results[0]['url']
         else:
             torrent_id = self.url_match(entry['url']).group(1)
-            url = f"{self.url}/api/v1/torrents/{torrent_id}"
+            url = f'{self.url}/api/v1/torrents/{torrent_id}'
             logger.debug('Getting info for torrent ID {}', torrent_id)
             json_result = task.requests.get(url).json()
             # if json_result['error'] == '404':
-            if not 'result' in json_result:
-                raise UrlRewritingError("Torrent with ID %s does not exist." % torrent_id)
+            if 'result' not in json_result:
+                raise UrlRewritingError(f'Torrent with ID {torrent_id} does not exist.')
             entry['url'] = json_result['result']['rating']['magnet']
 
     @plugin.internet(logger)
     def search(self, task, entry, config=None):
-        """
-        Search for name from solidtorrents.
-        """
+        """Search for name from solidtorrents."""
         if not isinstance(config, dict):
             config = {}
         self.set_urls(config.get('url', URL))
@@ -108,16 +119,25 @@ class UrlRewriteSolidTorrents:
         remove_potentially_unsafe = bool(config.get('remove_potentially_unsafe', 'True'))
         category = config.get('category', 'all')
 
-        entries = list()
+        entries = []
         for search_string in entry.get('search_strings', [entry['title']]):
             # query = normalize_unicode(search_string)
-            params = {'q': search_string, 'cat': category, 'sort': sort, 'fuv': remove_potentially_unsafe}
-            url = f"{self.url}/api/v1/search"
+            params = {
+                'q': search_string,
+                'cat': category,
+                'sort': sort,
+                'fuv': remove_potentially_unsafe,
+            }
+            url = f'{self.url}/api/v1/search'
             json_results = task.requests.get(url, params=params).json()
             if not json_results:
-                raise plugin.PluginError("Error while searching solidtorrents for %s.", search_string)
-            if not 'results' in json_results:
-                logger.info("No result founds while searching solidtorrents for %s.", search_string)
+                raise plugin.PluginError(
+                    'Error while searching solidtorrents for %s.', search_string
+                )
+            if 'results' not in json_results:
+                logger.info(
+                    'No result founds while searching solidtorrents for %s.', search_string
+                )
                 continue
             for result in json_results['results']:
                 entry = self.json_to_entry(result)
@@ -131,12 +151,15 @@ class UrlRewriteSolidTorrents:
         entry['title'] = json_result['title']
         entry['torrent_seeds'] = int(json_result['swarm']['seeders'])
         entry['torrent_leeches'] = int(json_result['swarm']['leechers'])
-        entry['torrent_timestamp'] = \
-            int(time.mktime(datetime.strptime(json_result['imported'], '%Y-%m-%dT%H:%M:%S.%fZ').timetuple()))
+        entry['torrent_timestamp'] = int(
+            time.mktime(
+                datetime.strptime(json_result['imported'], '%Y-%m-%dT%H:%M:%S.%fZ').timetuple()
+            )
+        )
         entry['torrent_availability'] = torrent_availability(
             entry['torrent_seeds'], entry['torrent_leeches']
         )
-        entry['content_size'] = int(round(int(json_result['size']) / (1024 * 1024)))  # content_size is in MiB
+        entry['content_size'] = int(json_result['size'])  # content_size is in bytes
         entry['torrent_info_hash'] = json_result['infohash']
         entry['url'] = json_result['magnet']
         return entry
@@ -145,5 +168,8 @@ class UrlRewriteSolidTorrents:
 @event('plugin.register')
 def register_plugin():
     plugin.register(
-        UrlRewriteSolidTorrents, 'solidtorrents', interfaces=['urlrewriter', 'search', 'task'], api_ver=2
+        UrlRewriteSolidTorrents,
+        'solidtorrents',
+        interfaces=['urlrewriter', 'search', 'task'],
+        api_ver=2,
     )

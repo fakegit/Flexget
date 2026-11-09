@@ -1,0 +1,265 @@
+interactions:
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      User-Agent:
+      - FlexGet/2.10.20.dev (www.flexget.com)
+    method: GET
+    uri: https://api.tvmaze.com/singlesearch/shows?embed=seasons&q=Tosh.0
+  response:
+    body:
+      string: '{"id":260,"url":"http://www.tvmaze.com/shows/260/tosh0","name":"Tosh.0","type":"Variety","language":"English","genres":["Comedy"],"status":"Running","runtime":30,"premiered":"2009-06-04","schedule":{"time":"22:00","days":["Tuesday"]},"rating":{"average":7.3},"weight":1,"network":{"id":23,"name":"Comedy
+        Central","country":{"name":"United States","code":"US","timezone":"America/New_York"}},"webChannel":null,"externals":{"tvrage":22690,"thetvdb":97731,"imdb":"tt1430587"},"image":{"medium":"http://static.tvmaze.com/uploads/images/medium_portrait/1/4676.jpg","original":"http://static.tvmaze.com/uploads/images/original_untouched/1/4676.jpg"},"summary":"<p><strong>Tosh.0</strong>
+        is a weekly topical series that delves into all aspects of the Internet, featuring
+        razor sharp humor and biting commentary from comedian Daniel Tosh. From the
+        absolutely absurd to the incredibly ingenious, the series features viral clips,
+        sketches, and \"Web Redemptions\" which give subjects of infamous viral videos
+        a second chance to redeem themselves from the embarrassment with which they''ve
+        become synonymous. Now in its third hit season, Tosh.0 continues to be cable
+        TV''s most trusted source for exhibitionist weirdos, injurious idiots and
+        all things Web. </p>","updated":1490283610,"_links":{"self":{"href":"http://api.tvmaze.com/shows/260"},"previousepisode":{"href":"http://api.tvmaze.com/episodes/1101568"},"nextepisode":{"href":"http://api.tvmaze.com/episodes/1101569"}},"_embedded":{"seasons":[{"id":1030,"url":"http://www.tvmaze.com/seasons/1030/tosh0-season-1","number":1,"name":"","episodeOrder":null,"premiereDate":"2009-06-04","endDate":"2009-11-12","network":{"id":23,"name":"Comedy
+        Central","country":{"name":"United States","code":"US","timezone":"America/New_York"}},"webChannel":null,"image":{"medium":"http://static.tvmaze.com/uploads/images/medium_portrait/46/115429.jpg","original":"http://static.tvmaze.com/uploads/images/original_untouched/46/115429.jpg"},"summary":"","_links":{"self":{"href":"http://api.tvmaze.com/seasons/1030"}}},{"id":1031,"url":"http://www.tvmaze.com/seasons/1031/tosh0-season-2","number":2,"name":"","episodeOrder":null,"premiereDate":"2010-01-13","endDate":"2010-09-29","network":{"id":23,"name":"Comedy
+        Central","country":{"name":"United States","code":"US","timezone":"America/New_York"}},"webChannel":null,"image":{"medium":"http://static.tvmaze.com/uploads/images/medium_portrait/46/115430.jpg","original":"http://static.tvmaze.com/uploads/images/original_untouched/46/115430.jpg"},"summary":"","_links":{"self":{"href":"http://api.tvmaze.com/seasons/1031"}}},{"id":1032,"url":"http://www.tvmaze.com/seasons/1032/tosh0-season-3","number":3,"name":"","episodeOrder":null,"premiereDate":"2011-01-11","endDate":"2011-11-15","network":{"id":23,"name":"Comedy
+        Central","country":{"name":"United States","code":"US","timezone":"America/New_York"}},"webChannel":null,"image":{"medium":"http://static.tvmaze.com/uploads/images/medium_portrait/46/115431.jpg","original":"http://static.tvmaze.com/uploads/images/original_untouched/46/115431.jpg"},"summary":"","_links":{"self":{"href":"http://api.tvmaze.com/seasons/1032"}}},{"id":1033,"url":"http://www.tvmaze.com/seasons/1033/tosh0-season-4","number":4,"name":"","episodeOrder":null,"premiereDate":"2012-01-31","endDate":"2012-12-04","network":{"id":23,"name":"Comedy
+        Central","country":{"name":"United States","code":"US","timezone":"America/New_York"}},"webChannel":null,"image":{"medium":"http://static.tvmaze.com/uploads/images/medium_portrait/46/115432.jpg","original":"http://static.tvmaze.com/uploads/images/original_untouched/46/115432.jpg"},"summary":"","_links":{"self":{"href":"http://api.tvmaze.com/seasons/1033"}}},{"id":1034,"url":"http://www.tvmaze.com/seasons/1034/tosh0-season-5","number":5,"name":"","episodeOrder":null,"premiereDate":"2013-02-05","endDate":"2013-12-10","network":{"id":23,"name":"Comedy
+        Central","country":{"name":"United States","code":"US","timezone":"America/New_York"}},"webChannel":null,"image":{"medium":"http://static.tvmaze.com/uploads/images/medium_portrait/46/115433.jpg","original":"http://static.tvmaze.com/uploads/images/original_untouched/46/115433.jpg"},"summary":"","_links":{"self":{"href":"http://api.tvmaze.com/seasons/1034"}}},{"id":1035,"url":"http://www.tvmaze.com/seasons/1035/tosh0-season-6","number":6,"name":"","episodeOrder":null,"premiereDate":"2014-02-18","endDate":"2014-12-02","network":{"id":23,"name":"Comedy
+        Central","country":{"name":"United States","code":"US","timezone":"America/New_York"}},"webChannel":null,"image":{"medium":"http://static.tvmaze.com/uploads/images/medium_portrait/46/115434.jpg","original":"http://static.tvmaze.com/uploads/images/original_untouched/46/115434.jpg"},"summary":"","_links":{"self":{"href":"http://api.tvmaze.com/seasons/1035"}}},{"id":6120,"url":"http://www.tvmaze.com/seasons/6120/tosh0-season-7","number":7,"name":"","episodeOrder":null,"premiereDate":"2015-02-17","endDate":"2015-12-01","network":{"id":23,"name":"Comedy
+        Central","country":{"name":"United States","code":"US","timezone":"America/New_York"}},"webChannel":null,"image":{"medium":"http://static.tvmaze.com/uploads/images/medium_portrait/46/115435.jpg","original":"http://static.tvmaze.com/uploads/images/original_untouched/46/115435.jpg"},"summary":"","_links":{"self":{"href":"http://api.tvmaze.com/seasons/6120"}}},{"id":25458,"url":"http://www.tvmaze.com/seasons/25458/tosh0-season-8","number":8,"name":"","episodeOrder":30,"premiereDate":"2016-02-09","endDate":"2016-11-29","network":{"id":23,"name":"Comedy
+        Central","country":{"name":"United States","code":"US","timezone":"America/New_York"}},"webChannel":null,"image":null,"summary":"","_links":{"self":{"href":"http://api.tvmaze.com/seasons/25458"}}},{"id":58348,"url":"http://www.tvmaze.com/seasons/58348/tosh0-season-9","number":9,"name":"","episodeOrder":null,"premiereDate":"2017-02-07","endDate":"2017-03-28","network":{"id":23,"name":"Comedy
+        Central","country":{"name":"United States","code":"US","timezone":"America/New_York"}},"webChannel":null,"image":null,"summary":null,"_links":{"self":{"href":"http://api.tvmaze.com/seasons/58348"}}}]}}'
+    headers:
+      Access-Control-Allow-Origin:
+      - '*'
+      Cache-Control:
+      - public, max-age=3600
+      Connection:
+      - keep-alive
+      Content-Encoding:
+      - gzip
+      Content-Type:
+      - application/json; charset=UTF-8
+      Date:
+      - Sun, 26 Mar 2017 11:10:52 GMT
+      Server:
+      - nginx/1.10.0 (Ubuntu)
+      Vary:
+      - Accept-Encoding
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      User-Agent:
+      - FlexGet/2.10.20.dev (www.flexget.com)
+    method: GET
+    uri: https://api.tvmaze.com/shows/260/episodebynumber?season=7&number=30
+  response:
+    body:
+      string: '{"id":457679,"url":"http://www.tvmaze.com/episodes/457679/tosh0-7x30-best-of-season-7","name":"Best
+        of Season 7","season":7,"number":30,"airdate":"2015-12-01","airtime":"22:00","airstamp":"2015-12-01T22:00:00-05:00","runtime":30,"image":{"medium":"http://static.tvmaze.com/uploads/images/medium_landscape/33/83190.jpg","original":"http://static.tvmaze.com/uploads/images/original_untouched/33/83190.jpg"},"summary":"","_links":{"self":{"href":"http://api.tvmaze.com/episodes/457679"}}}'
+    headers:
+      Access-Control-Allow-Origin:
+      - '*'
+      Cache-Control:
+      - public, max-age=3600
+      Connection:
+      - keep-alive
+      Content-Encoding:
+      - gzip
+      Content-Type:
+      - application/json; charset=UTF-8
+      Date:
+      - Sun, 26 Mar 2017 11:10:52 GMT
+      Server:
+      - nginx/1.10.0 (Ubuntu)
+      Vary:
+      - Accept-Encoding
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      User-Agent:
+      - FlexGet/2.10.20.dev (www.flexget.com)
+    method: GET
+    uri: https://api.tvmaze.com/singlesearch/shows?embed=seasons&q=Unwrapped+2.0
+  response:
+    body:
+      string: '{"id":5736,"url":"http://www.tvmaze.com/shows/5736/unwrapped-20","name":"Unwrapped
+        2.0","type":"Reality","language":"English","genres":[],"status":"Running","runtime":30,"premiered":"2015-02-02","schedule":{"time":"21:00","days":["Sunday"]},"rating":{"average":null},"weight":0,"network":{"id":174,"name":"Cooking
+        Channel","country":{"name":"United States","code":"US","timezone":"America/New_York"}},"webChannel":null,"externals":{"tvrage":47597,"thetvdb":291603,"imdb":"tt4491916"},"image":{"medium":"http://static.tvmaze.com/uploads/images/medium_portrait/22/57200.jpg","original":"http://static.tvmaze.com/uploads/images/original_untouched/22/57200.jpg"},"summary":"<p><strong>Unwrapped
+        2.0</strong> is a fun and fascinating look at the amazing processes, great
+        stories and interesting people behind the creation of America''s favorite
+        snacks. Hosted by Alfonso Ribeiro, Unwrapped 2.0 features everything from
+        classic childhood treats to the latest candy crazes. Whether you like your
+        snacks sweet or savory, crispy or gooey, Unwrapped 2.0 offers behind-the-scenes
+        access to get you a front row seat to see them made.</p>","updated":1488568653,"_links":{"self":{"href":"http://api.tvmaze.com/shows/5736"},"previousepisode":{"href":"http://api.tvmaze.com/episodes/1015807"}},"_embedded":{"seasons":[{"id":17228,"url":"http://www.tvmaze.com/seasons/17228/unwrapped-20-season-1","number":1,"name":"","episodeOrder":13,"premiereDate":"2015-02-02","endDate":"2015-04-27","network":{"id":174,"name":"Cooking
+        Channel","country":{"name":"United States","code":"US","timezone":"America/New_York"}},"webChannel":null,"image":null,"summary":"","_links":{"self":{"href":"http://api.tvmaze.com/seasons/17228"}}},{"id":17229,"url":"http://www.tvmaze.com/seasons/17229/unwrapped-20-season-2","number":2,"name":"","episodeOrder":16,"premiereDate":"2015-10-10","endDate":"2016-02-08","network":{"id":174,"name":"Cooking
+        Channel","country":{"name":"United States","code":"US","timezone":"America/New_York"}},"webChannel":null,"image":null,"summary":"","_links":{"self":{"href":"http://api.tvmaze.com/seasons/17229"}}},{"id":53126,"url":"http://www.tvmaze.com/seasons/53126/unwrapped-20-season-3","number":3,"name":"","episodeOrder":null,"premiereDate":"2016-10-09","endDate":"2017-01-08","network":{"id":174,"name":"Cooking
+        Channel","country":{"name":"United States","code":"US","timezone":"America/New_York"}},"webChannel":null,"image":null,"summary":"","_links":{"self":{"href":"http://api.tvmaze.com/seasons/53126"}}}]}}'
+    headers:
+      Access-Control-Allow-Origin:
+      - '*'
+      Cache-Control:
+      - public, max-age=3600
+      Connection:
+      - keep-alive
+      Content-Encoding:
+      - gzip
+      Content-Type:
+      - application/json; charset=UTF-8
+      Date:
+      - Sun, 26 Mar 2017 11:10:52 GMT
+      Server:
+      - nginx/1.10.0 (Ubuntu)
+      Vary:
+      - Accept-Encoding
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      User-Agent:
+      - FlexGet/2.10.20.dev (www.flexget.com)
+    method: GET
+    uri: https://api.tvmaze.com/shows/5736/episodebynumber?season=2&number=6
+  response:
+    body:
+      string: '{"id":387214,"url":"http://www.tvmaze.com/episodes/387214/unwrapped-20-2x06-savor-the-flavor","name":"Savor
+        the Flavor","season":2,"number":6,"airdate":"2015-11-07","airtime":"20:00","airstamp":"2015-11-07T20:00:00-05:00","runtime":30,"image":null,"summary":"<p>Join
+        host Alfonso Ribeiro and savor the flavor of some tasty treats, from Eli''s
+        scrumptious Bavarian Apple Tart to Necco''s classic bite-size Mary Jane. Then,
+        the mystery of the orange-colored, banana-flavored Circus Peanuts is solved,
+        and find out why there''s no dip necessary for Snak King''s spicy Salsitas.</p>","_links":{"self":{"href":"http://api.tvmaze.com/episodes/387214"}}}'
+    headers:
+      Access-Control-Allow-Origin:
+      - '*'
+      Cache-Control:
+      - public, max-age=3600
+      Connection:
+      - keep-alive
+      Content-Encoding:
+      - gzip
+      Content-Type:
+      - application/json; charset=UTF-8
+      Date:
+      - Sun, 26 Mar 2017 11:10:53 GMT
+      Server:
+      - nginx/1.10.0 (Ubuntu)
+      Vary:
+      - Accept-Encoding
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      User-Agent:
+      - FlexGet/2.10.20.dev (www.flexget.com)
+    method: GET
+    uri: https://api.tvmaze.com/singlesearch/shows?embed=seasons&q=Jake+2.0
+  response:
+    body:
+      string: '{"id":2381,"url":"http://www.tvmaze.com/shows/2381/jake-20","name":"Jake
+        2.0","type":"Scripted","language":"English","genres":["Action","Adventure","Science-Fiction"],"status":"Ended","runtime":60,"premiered":"2003-09-10","schedule":{"time":"21:00","days":["Wednesday"]},"rating":{"average":8.3},"weight":0,"network":{"id":70,"name":"UPN","country":{"name":"United
+        States","code":"US","timezone":"America/New_York"}},"webChannel":null,"externals":{"tvrage":4033,"thetvdb":78898,"imdb":"tt0367344"},"image":{"medium":"http://static.tvmaze.com/uploads/images/medium_portrait/12/32302.jpg","original":"http://static.tvmaze.com/uploads/images/original_untouched/12/32302.jpg"},"summary":"<p><strong>Jake
+        2.0</strong> surrounds NSA computer technician Jake Foley who is transformed
+        into a secret agent after he is accidentally infected with nanobots, based
+        on nanotechnology that reduce the size of a computer to the molecular level,
+        which give him superhuman powers. With his new abilities, he can hack into
+        anything electronic and control it. His medical and emotional state is carefully
+        watched over by Dr. Diane Hughes, who is far too human for her job with the
+        NSA. Struggling in his early tasks with the NSA, Jake must prove himself and
+        yield results or be locked up for \"research.\"</p>","updated":1484174844,"_links":{"self":{"href":"http://api.tvmaze.com/shows/2381"},"previousepisode":{"href":"http://api.tvmaze.com/episodes/567593"}},"_embedded":{"seasons":[{"id":8178,"url":"http://www.tvmaze.com/seasons/8178/jake-20-season-1","number":1,"name":"","episodeOrder":null,"premiereDate":"2003-09-10","endDate":"2004-02-06","network":{"id":70,"name":"UPN","country":{"name":"United
+        States","code":"US","timezone":"America/New_York"}},"webChannel":null,"image":null,"summary":"","_links":{"self":{"href":"http://api.tvmaze.com/seasons/8178"}}}]}}'
+    headers:
+      Access-Control-Allow-Origin:
+      - '*'
+      Cache-Control:
+      - public, max-age=3600
+      Connection:
+      - keep-alive
+      Content-Encoding:
+      - gzip
+      Content-Type:
+      - application/json; charset=UTF-8
+      Date:
+      - Sun, 26 Mar 2017 11:10:53 GMT
+      Server:
+      - nginx/1.10.0 (Ubuntu)
+      Vary:
+      - Accept-Encoding
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      User-Agent:
+      - FlexGet/2.10.20.dev (www.flexget.com)
+    method: GET
+    uri: https://api.tvmaze.com/shows/2381/episodebynumber?season=1&number=10
+  response:
+    body:
+      string: '{"id":184265,"url":"http://www.tvmaze.com/episodes/184265/jake-20-1x10-the-spy-who-really-liked-me","name":"The
+        Spy Who Really Liked Me","season":1,"number":10,"airdate":"2003-11-19","airtime":"21:00","airstamp":"2003-11-19T21:00:00-05:00","runtime":60,"image":null,"summary":"","_links":{"self":{"href":"http://api.tvmaze.com/episodes/184265"}}}'
+    headers:
+      Access-Control-Allow-Origin:
+      - '*'
+      Cache-Control:
+      - public, max-age=3600
+      Connection:
+      - keep-alive
+      Content-Encoding:
+      - gzip
+      Content-Type:
+      - application/json; charset=UTF-8
+      Date:
+      - Sun, 26 Mar 2017 11:10:53 GMT
+      Server:
+      - nginx/1.10.0 (Ubuntu)
+      Vary:
+      - Accept-Encoding
+    status:
+      code: 200
+      message: OK
+version: 1

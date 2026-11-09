@@ -1,4 +1,4 @@
-import os
+from pathlib import Path
 
 import yaml
 from loguru import logger
@@ -13,8 +13,7 @@ logger = logger.bind(name=plugin_name)
 
 
 class PluginInclude:
-    """
-    Include configuration from another yaml file.
+    """Include configuration from another yaml file.
 
     Example::
 
@@ -35,10 +34,10 @@ class PluginInclude:
             files = [config]
 
         for file_name in files:
-            file = os.path.expanduser(file_name)
-            if not os.path.isabs(file):
-                file = os.path.join(task.manager.config_base, file)
-            with open(file, encoding='utf-8') as inc_file:
+            file = Path(file_name).expanduser()
+            if not file.is_absolute():
+                file = task.manager.config_base / file
+            with file.open(encoding='utf-8') as inc_file:
                 include = yaml.safe_load(inc_file)
                 inc_file.flush()
             errors = process_config(include, plugin.plugin_schemas(interface='task'))
@@ -46,7 +45,7 @@ class PluginInclude:
                 logger.error('Included file {} has invalid config:', file)
                 for error in errors:
                     logger.error('[{}] {}', error.json_pointer, error.message)
-                task.abort('Invalid config in included file %s' % file)
+                task.abort(f'Invalid config in included file {file}')
 
             logger.debug('Merging {} into task {}', file, task.name)
             # merge
@@ -54,7 +53,7 @@ class PluginInclude:
                 task.merge_config(include)
             except MergeException:
                 raise plugin.PluginError(
-                    'Failed to merge include file to task %s, incompatible datatypes' % task.name
+                    f'Failed to merge include file to task {task.name}, incompatible datatypes'
                 )
 
 

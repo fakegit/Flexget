@@ -13,8 +13,9 @@ logger = logger.bind(name=plugin_name)
 
 
 class NotifyToast:
-    """
-    Sends messages via local notification system. You must have a notification system like dbus for Linux.
+    """Send messages via local notification system.
+
+    You must have a notification system like dbus for Linux.
     Preliminary support for Windows notifications. Not heavily tested yet.
 
     Examples::
@@ -58,27 +59,28 @@ class NotifyToast:
             from pync import Notifier
         except ImportError as e:
             logger.debug('Error importing pync: {}', e)
-            raise DependencyError(plugin_name, 'pync', 'pync module required. ImportError: %s' % e)
+            raise DependencyError(plugin_name, 'pync', f'pync module required. ImportError: {e}')
 
         icon_path = None
         try:
             import flexget.ui
 
-            icon_path = os.path.join(flexget.ui.__path__[0], 'src', 'favicon.ico')
+            icon_path = os.path.join(flexget.ui.__path__[0], 'v1', 'app', 'favicon.ico')
         except Exception as e:
             logger.debug('Error trying to get flexget icon from webui folder: {}', e)
 
+        notify_kwargs = {
+            'subtitle': title,
+            'title': 'FlexGet Notification',
+            'appIcon': icon_path,
+            'timeout': config['timeout'],
+        }
+        if config.get('url'):
+            notify_kwargs['open'] = config.get('url')
         try:
-            Notifier.notify(
-                message,
-                subtitle=title,
-                title='FlexGet Notification',
-                appIcon=icon_path,
-                timeout=config['timeout'],
-                open=config.get('url'),
-            )
+            Notifier.notify(message, **notify_kwargs)
         except Exception as e:
-            raise PluginWarning('Cannot send a notification: %s' % e)
+            raise PluginWarning(f'Cannot send a notification: {e}')
 
     def linux_notify(self, title, message, config):
         config = self.prepare_config(config)
@@ -87,10 +89,10 @@ class NotifyToast:
         except ImportError as e:
             logger.debug('Error importing Notify: {}', e)
             raise DependencyError(
-                plugin_name, 'gi.repository', 'Notify module required. ImportError: %s' % e
+                plugin_name, 'gi.repository', f'Notify module required. ImportError: {e}'
             )
 
-        if not Notify.init("Flexget"):
+        if not Notify.init('Flexget'):
             raise PluginWarning('Unable to init libnotify.')
 
         n = Notify.Notification.new(title, message, None)
@@ -98,19 +100,18 @@ class NotifyToast:
         n.set_timeout(timeout)
 
         if not n.show():
-            raise PluginWarning('Unable to send notification for %s' % title)
+            raise PluginWarning(f'Unable to send notification for {title}')
 
     def windows_notify(self, title, message, config):
         config = self.prepare_config(config)
         try:
-            from win32api import GetModuleHandle, PostQuitMessage
+            from win32api import GetModuleHandle
             from win32con import (
                 CW_USEDEFAULT,
                 IDI_APPLICATION,
                 IMAGE_ICON,
                 LR_DEFAULTSIZE,
                 LR_LOADFROMFILE,
-                WM_DESTROY,
                 WM_USER,
                 WS_OVERLAPPED,
                 WS_SYSMENU,
@@ -121,11 +122,8 @@ class NotifyToast:
                 NIF_MESSAGE,
                 NIF_TIP,
                 NIM_ADD,
-                NIM_DELETE,
-                NIM_MODIFY,
                 WNDCLASS,
                 CreateWindow,
-                DestroyWindow,
                 LoadIcon,
                 LoadImage,
                 RegisterClass,
@@ -143,13 +141,13 @@ class NotifyToast:
         # Register the window class.
         wc = WNDCLASS()
         hinst = wc.hInstance = GetModuleHandle(None)
-        wc.lpszClassName = "FlexGetTaskbar"
+        wc.lpszClassName = 'FlexGetTaskbar'
         if not self.windows_classAtom:
             self.windows_classAtom = RegisterClass(wc)
         style = WS_OVERLAPPED | WS_SYSMENU
         hwnd = CreateWindow(
             self.windows_classAtom,
-            "Taskbar",
+            'Taskbar',
             style,
             0,
             0,
@@ -168,7 +166,7 @@ class NotifyToast:
         try:
             import flexget.ui
 
-            icon_path = os.path.join(flexget.ui.__path__[0], 'src', 'favicon.ico')
+            icon_path = os.path.join(flexget.ui.__path__[0], 'v1', 'app', 'favicon.ico')
             hicon = LoadImage(hinst, icon_path, IMAGE_ICON, 0, 0, icon_flags)
         except Exception as e:
             logger.debug('Error trying to get flexget icon from webui folder: {}', e)
@@ -181,7 +179,7 @@ class NotifyToast:
             flags,
             WM_USER + 20,
             hicon,
-            "FlexGet Notification",
+            'FlexGet Notification',
             message,
             config['timeout'] * 1000,
             title,

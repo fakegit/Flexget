@@ -1,11 +1,17 @@
-import datetime
 from abc import ABC, abstractmethod
-from typing import Any, Optional, Type
+from datetime import date, datetime
+from typing import Any
+
+import yaml
+from loguru import logger
 
 from flexget.utils import json
 
 DATE_FMT = '%Y-%m-%d'
-ISO8601_FMT = '%Y-%m-%dT%H:%M:%SZ'
+DATETIME_FMT = '%Y-%m-%dT%H:%M:%SZ'
+
+
+logger = logger.bind(name='utils.serialization')
 
 
 def serialize(value: Any) -> Any:
@@ -48,37 +54,49 @@ def deserialize(value: Any) -> Any:
 
 
 def dumps(value: Any) -> str:
-    """Dump an object to text using the serialization system."""
+    """Dump an object to JSON text using the serialization system."""
     serialized = serialize(value)
     try:
         return json.dumps(serialized)
     except TypeError as exc:
-        raise TypeError('Error during dumping {}. Instance: {!r}'.format(exc, serialized)) from exc
+        raise TypeError(f'Error during dumping {exc}. Instance: {serialized!r}') from exc
 
 
 def loads(value: str) -> Any:
-    """Restore an object from JSON text created by `dumps`"""
+    """Restore an object from JSON text created by `dumps`."""
     return deserialize(json.loads(value))
 
 
+def yaml_dump(data, *args, **kwargs):
+    """Dump an object to YAML text using the serialization system."""
+    data = serialize(data)
+    kwargs['Dumper'] = FGDumper
+    return yaml.dump(data, *args, **kwargs)
+
+
+def yaml_load(stream):
+    """Restore an object from YAML text created by `yaml_dump`."""
+    return yaml.load(stream, Loader=FGLoader)
+
+
 class Serializer(ABC):
-    """
-    Any data types that should be serializable should subclass this, and implement the `serialize` and `deserialize`
-    methods. This is important for data that is stored in `Entry` fields so that it can be stored to the database.
+    """Any data types that should be serializable should subclass this, and implement the `serialize` and `deserialize` methods.
+
+    This is important for data that is stored in `Entry` fields so that it can be stored to the database.
     """
 
     @classmethod
     def serializer_name(cls) -> str:
-        """
-        Name of the serializer defaults to class name.
+        """Return name of the serializer defaults to class name.
+
         This can be overridden in subclass implementations if desired.
         """
         return cls.__name__
 
     @classmethod
     def serializer_version(cls) -> int:
-        """
-        If the format of serialization changes, this number should be incremented.
+        """If the format of serialization changes, this number should be incremented.
+
         The `deserialize` method of this class should continue to handle the old versions as well as the
         current version.
         """
@@ -92,40 +110,65 @@ class Serializer(ABC):
     @classmethod
     @abstractmethod
     def serialize(cls, value: Any) -> Any:
-        """This method should be implemented to return a plain python datatype which is json serializable."""
+        """Return a plain python datatype which is json serializable."""
 
     @classmethod
     @abstractmethod
     def deserialize(cls, data: Any, version: int) -> Any:
-        """Returns an instance of the original class, recreated from the serialized form."""
+        """Return an instance of the original class, recreated from the serialized form."""
+
+
+# Dates and DateTimes are not always symmetric using strftime and strptime :eyeroll:
+# See:
+# https://bugs.python.org/issue13305
+# https://github.com/Flexget/Flexget/issues/2818
+# https://github.com/Flexget/Flexget/issues/3304
 
 
 class DateTimeSerializer(Serializer):
     @classmethod
     def serializer_handles(cls, value):
-        return isinstance(value, datetime.datetime)
+        return isinstance(value, datetime)
 
     @classmethod
-    def serialize(cls, value: datetime.datetime):
-        return value.strftime(ISO8601_FMT)
+    def serialize(cls, value: datetime):
+        result = value.strftime(DATETIME_FMT)
+        # See note above
+        year, rest = result.split('-', maxsplit=1)
+        if len(year) != 4:
+            result = f'{value.year:04}-{rest}'
+        return result
 
     @classmethod
-    def deserialize(cls, data: str, version: int) -> datetime.datetime:
-        return datetime.datetime.strptime(data, ISO8601_FMT)
+    def deserialize(cls, data: str, version: int) -> datetime:
+        try:
+            return datetime.strptime(data, DATETIME_FMT)
+        except ValueError:
+            logger.error('Error deserializing datetime `{}`', data)
+            return datetime.min
 
 
 class DateSerializer(Serializer):
     @classmethod
     def serializer_handles(cls, value):
-        return isinstance(value, datetime.date) and not isinstance(value, datetime.datetime)
+        return isinstance(value, date) and not isinstance(value, datetime)
 
     @classmethod
-    def serialize(cls, value: datetime.date):
-        return value.strftime(DATE_FMT)
+    def serialize(cls, value: date):
+        result = value.strftime(DATE_FMT)
+        # See note above
+        year, rest = result.split('-', maxsplit=1)
+        if len(year) != 4:
+            result = f'{value.year:04}-{rest}'
+        return result
 
     @classmethod
-    def deserialize(cls, data: str, version: int) -> datetime.date:
-        return datetime.datetime.strptime(data, DATE_FMT).date()
+    def deserialize(cls, data: str, version: int) -> date:
+        try:
+            return datetime.strptime(data, DATE_FMT).date()
+        except ValueError:
+            logger.error('Error deserializing date `{}`', data)
+            return date.min
 
 
 class SetSerializer(Serializer):
@@ -153,18 +196,58 @@ class TupleSerializer(Serializer):
 
     @classmethod
     def deserialize(cls, data: list, version: int) -> tuple:
-        return tuple(deserialize(data))  # type: ignore
+        return tuple(deserialize(data))
 
 
-def _serializer_for(value) -> Optional[Type[Serializer]]:
+def _serializer_for(value) -> type[Serializer] | None:
     for s in Serializer.__subclasses__():
         if s.serializer_handles(value):
             return s
     return None
 
 
-def _deserializer_for(serializer_name: str) -> Type[Serializer]:
+def _deserializer_for(serializer_name: str) -> type[Serializer]:
     for s in Serializer.__subclasses__():
         if serializer_name == s.serializer_name():
             return s
     raise ValueError(f'No deserializer for {serializer_name}')
+
+
+def _yaml_representer(dumper, data):
+    if isinstance(data, dict) and all(k in data for k in ('value', 'serializer', 'version')):
+        tag = f'!{data["serializer"]}.v{data["version"]}'
+        if isinstance(data['value'], dict):
+            return dumper.represent_mapping(tag, data['value'])
+        if isinstance(data['value'], list):
+            return dumper.represent_sequence(tag, data['value'])
+        return dumper.represent_scalar(tag, data['value'])
+    return dumper.represent_dict(data)
+
+
+def _yaml_constructor(loader, node):
+    serializer, version = node.tag.split('.v')
+    serializer = serializer.lstrip('!')
+    version = int(version)
+    if node.id == 'mapping':
+        value = loader.construct_mapping(node, deep=True)
+    elif node.id == 'sequence':
+        value = loader.construct_sequence(node, deep=True)
+    else:
+        value = loader.construct_scalar(node)
+    return _deserializer_for(serializer).deserialize(value, version)
+
+
+class FGDumper(yaml.SafeDumper):
+    pass
+
+
+FGDumper.add_representer(dict, _yaml_representer)
+
+
+class FGLoader(yaml.SafeLoader):
+    def __init__(self, stream):
+        for s in Serializer.__subclasses__():
+            name = s.serializer_name()
+            for v in range(1, s.serializer_version() + 1):
+                self.add_constructor(f'!{name}.v{v}', _yaml_constructor)
+        super().__init__(stream)

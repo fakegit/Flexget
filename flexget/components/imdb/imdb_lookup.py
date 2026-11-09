@@ -2,9 +2,9 @@ from datetime import datetime
 
 from loguru import logger
 
-from flexget import entry, plugin
+from flexget import plugin
 from flexget.components.imdb.utils import ImdbParser, ImdbSearch, extract_id, make_url
-from flexget.entry import Entry
+from flexget.entry import Entry, register_lazy_lookup
 from flexget.event import event
 from flexget.utils.database import with_session
 from flexget.utils.log import log_once
@@ -15,9 +15,9 @@ logger = logger.bind(name='imdb_lookup')
 
 
 class ImdbLookup:
-    """
-    Retrieves imdb information for entries.
-    Also provides imdb lookup functionality to all other imdb related plugins.
+    """Retrieve imdb information for entries.
+
+    Also provide imdb lookup functionality to all other imdb related plugins.
 
     Example::
 
@@ -37,13 +37,12 @@ class ImdbLookup:
         'imdb_year': 'year',
         'imdb_genres': lambda movie: [genre.name for genre in movie.genres],
         'imdb_languages': lambda movie: [lang.language.name for lang in movie.languages],
-        'imdb_actors': lambda movie: dict((actor.imdb_id, actor.name) for actor in movie.actors),
-        'imdb_directors': lambda movie: dict(
-            (director.imdb_id, director.name) for director in movie.directors
-        ),
-        'imdb_writers': lambda movie: dict(
-            (writer.imdb_id, writer.name) for writer in movie.writers
-        ),
+        'imdb_country_of_origin': lambda movie: movie.countries if movie._countries else [],
+        'imdb_actors': lambda movie: {actor.imdb_id: actor.name for actor in movie.actors},
+        'imdb_directors': lambda movie: {
+            director.imdb_id: director.name for director in movie.directors
+        },
+        'imdb_writers': lambda movie: {writer.imdb_id: writer.name for writer in movie.writers},
         'imdb_mpaa_rating': 'mpaa_rating',
         'imdb_plot_keywords': lambda movie: [
             plot_keyword.name for plot_keyword in movie.plot_keywords
@@ -62,9 +61,9 @@ class ImdbLookup:
         for entry in task.entries:
             entry.add_lazy_fields(self.lazy_loader, self.field_map)
 
-    @entry.register_lazy_lookup('imdb_lookup')
+    @register_lazy_lookup('imdb_lookup')
     def lazy_loader(self, entry):
-        """Does the lookup for this entry and populates the entry fields."""
+        """Do the lookup for this entry and populate the entry fields."""
         try:
             self.lookup(entry)
         except plugin.PluginError as e:
@@ -72,9 +71,9 @@ class ImdbLookup:
 
     @with_session
     def imdb_id_lookup(self, movie_title=None, movie_year=None, raw_title=None, session=None):
-        """
-        Perform faster lookup providing just imdb_id.
-        Falls back to using basic lookup if data cannot be found from cache.
+        """Perform faster lookup providing just imdb_id.
+
+        Fall back to using basic lookup if data cannot be found from cache.
 
         .. note::
 
@@ -111,18 +110,17 @@ class ImdbLookup:
             fake_entry = Entry(raw_title, '')
             self.lookup(fake_entry)
             return fake_entry['imdb_id']
+        return None
 
     @plugin.internet(logger)
     @with_session
     def lookup(self, entry, search_allowed=True, session=None):
-        """
-        Perform imdb lookup for entry.
+        """Perform imdb lookup for entry.
 
         :param entry: Entry instance
         :param search_allowed: Allow fallback to search
         :raises PluginError: Failure reason
         """
-
         from flexget.manager import manager
 
         if entry.get('imdb_id', eval_lazy=False):
@@ -153,7 +151,8 @@ class ImdbLookup:
         # search is known to fail
         if not entry.get('imdb_url', eval_lazy=False):
             result = (
-                session.query(db.SearchResult)
+                session
+                .query(db.SearchResult)
                 .filter(db.SearchResult.title == entry['title'])
                 .first()
             )
@@ -162,12 +161,11 @@ class ImdbLookup:
                 if result.fails and not manager.options.execute.retry:
                     # this movie cannot be found, not worth trying again ...
                     logger.debug('{} will fail lookup', entry['title'])
-                    raise plugin.PluginError('IMDB lookup failed for %s' % entry['title'])
-                else:
-                    if result.url:
-                        logger.trace('Setting imdb url for {} from db', entry['title'])
-                        entry['imdb_id'] = result.imdb_id
-                        entry['imdb_url'] = result.url
+                    raise plugin.PluginError('IMDB lookup failed for {}'.format(entry['title']))
+                if result.url:
+                    logger.trace('Setting imdb url for {} from db', entry['title'])
+                    entry['imdb_id'] = result.imdb_id
+                    entry['imdb_url'] = result.url
 
         # no imdb url, but information required, try searching
         if not entry.get('imdb_url', eval_lazy=False) and search_allowed:
@@ -184,7 +182,7 @@ class ImdbLookup:
                 logger.verbose('Found {}', entry['imdb_url'])
             else:
                 log_once(
-                    'IMDB lookup failed for %s' % entry['title'],
+                    'IMDB lookup failed for {}'.format(entry['title']),
                     logger,
                     'WARNING',
                     session=session,
@@ -194,7 +192,7 @@ class ImdbLookup:
                 result.fails = True
                 session.add(result)
                 session.commit()
-                raise plugin.PluginError('Title `%s` lookup failed' % entry['title'])
+                raise plugin.PluginError('Title `{}` lookup failed'.format(entry['title']))
 
         # check if this imdb page has been parsed & cached
         movie = session.query(db.Movie).filter(db.Movie.url == entry['imdb_url']).first()
@@ -231,11 +229,11 @@ class ImdbLookup:
             session.add(movie)
             session.commit()
             raise plugin.PluginError('UnicodeDecodeError')
-        except ValueError as e:
+        except ValueError:
             # TODO: might be a little too broad catch, what was this for anyway? ;P
             if manager.options.debug:
-                logger.exception(e)
-            raise plugin.PluginError('Invalid parameter: %s' % entry['imdb_url'], logger)
+                logger.exception('Found an error')
+            raise plugin.PluginError('Invalid parameter: {}'.format(entry['imdb_url']), logger)
 
         for att in [
             'title',
@@ -245,6 +243,7 @@ class ImdbLookup:
             'year',
             'genres',
             'languages',
+            'countries',
             'actors',
             'directors',
             'writers',
@@ -256,8 +255,7 @@ class ImdbLookup:
         entry.update_using_map(self.field_map, movie)
 
     def _parse_new_movie(self, imdb_url, session):
-        """
-        Get Movie object by parsing imdb page and save movie into the database.
+        """Get Movie object by parsing imdb page and save movie into the database.
 
         :param imdb_url: IMDB url
         :param session: Session to be used
@@ -276,12 +274,14 @@ class ImdbLookup:
         movie.year = parser.year
         movie.mpaa_rating = parser.mpaa_rating
         movie.plot_outline = parser.plot_outline
+        movie.countries = parser.countries
         movie.url = imdb_url
+        session.add(movie)
         for name in parser.genres:
             genre = session.query(db.Genre).filter(db.Genre.name == name).first()
             if not genre:
                 genre = db.Genre(name)
-            movie.genres.append(genre)  # pylint:disable=E1101
+            movie.genres.append(genre)
         for index, name in enumerate(parser.languages):
             language = session.query(db.Language).filter(db.Language.name == name).first()
             if not language:
@@ -291,32 +291,31 @@ class ImdbLookup:
             actor = session.query(db.Actor).filter(db.Actor.imdb_id == imdb_id).first()
             if not actor:
                 actor = db.Actor(imdb_id, name)
-            movie.actors.append(actor)  # pylint:disable=E1101
+            movie.actors.append(actor)
         for imdb_id, name in parser.directors.items():
             director = session.query(db.Director).filter(db.Director.imdb_id == imdb_id).first()
             if not director:
                 director = db.Director(imdb_id, name)
-            movie.directors.append(director)  # pylint:disable=E1101
+            movie.directors.append(director)
         for imdb_id, name in parser.writers.items():
             writer = session.query(db.Writer).filter(db.Writer.imdb_id == imdb_id).first()
             if not writer:
                 writer = db.Writer(imdb_id, name)
-            movie.writers.append(writer)  # pylint:disable=E1101
+            movie.writers.append(writer)
         for name in parser.plot_keywords:
             plot_keyword = (
                 session.query(db.PlotKeyword).filter(db.PlotKeyword.name == name).first()
             )
             if not plot_keyword:
                 plot_keyword = db.PlotKeyword(name)
-            movie.plot_keywords.append(plot_keyword)  # pylint:disable=E1101
+            movie.plot_keywords.append(plot_keyword)
         # so that we can track how long since we've updated the info later
         movie.updated = datetime.now()
-        session.add(movie)
         return movie
 
     @property
     def movie_identifier(self):
-        """Returns the plugin main identifier type"""
+        """Returns the plugin main identifier type."""
         return 'imdb_id'
 
 

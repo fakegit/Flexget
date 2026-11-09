@@ -1,21 +1,21 @@
-import codecs
-import collections
+from __future__ import annotations
+
 import contextlib
 import functools
 import logging
-import logging.handlers
 import os
 import sys
 import threading
 import uuid
-import warnings
-from typing import Iterator, Union, List, Deque, Optional
+from collections import deque
+from typing import TYPE_CHECKING
 
-import loguru
 from loguru import logger
 
-from flexget import __version__
-from flexget.utils.tools import io_encoding
+if TYPE_CHECKING:
+    from collections.abc import Callable, Iterator
+
+    import loguru
 
 # A level more detailed than INFO
 VERBOSE = 15
@@ -34,7 +34,7 @@ local_context = threading.local()
 
 @contextlib.contextmanager
 def capture_logs(*args, **kwargs) -> Iterator:
-    """Takes the same arguments as `logger.add`, but this sync will only log messages contained in context."""
+    """Take the same arguments as `logger.add`, but this sync will only log messages contained in context."""
     old_id = get_log_session_id()
     session_id = local_context.session_id = old_id or str(uuid.uuid4())
     existing_filter = kwargs.pop('filter', None)
@@ -62,7 +62,7 @@ def get_log_session_id() -> str:
     return getattr(local_context, 'session_id', None)
 
 
-def record_patcher(record: 'loguru.Record') -> None:
+def record_patcher(record: loguru.Record) -> None:
     # If a custom name was bound to the logger, move it from extra directly into the record
     name = record['extra'].pop('name', None)
     if name:
@@ -74,7 +74,7 @@ class InterceptHandler(logging.Handler):
 
     def emit(self, record: logging.LogRecord):
         # Get corresponding Loguru level if it exists
-        level: Union[str, int]
+        level: str | int
         try:
             level = logger.level(record.levelname).name
         except ValueError:
@@ -92,25 +92,37 @@ class InterceptHandler(logging.Handler):
 
 
 _logging_configured = False
-_startup_buffer: List['loguru.Record'] = []
-_startup_buffer_id: Optional[int] = None
+_startup_buffer: list[loguru.Record] = []
+_startup_buffer_id: int | None = None
 _logging_started = False
 # Stores the last 100 debug messages
-debug_buffer: Deque['loguru.Message'] = collections.deque(maxlen=100)
+debug_buffer: deque[loguru.Message] = deque(maxlen=100)
+_log_filters = []  # Stores filter functions
+
+
+def _log_filterer(record):
+    """Add the function to our loguru handlers. It will dynamically use all filters we add later."""
+    return all(f(record) for f in _log_filters)
+
+
+def add_filter(func: Callable[[loguru.Record], bool]):
+    """Add a filter function to the log handlers."""
+    _log_filters.append(func)
+
+
+def remove_filter(func: Callable[[loguru.Record], bool]):
+    """Remove a filter function from the log handlers."""
+    _log_filters.remove(func)
 
 
 def initialize(unit_test: bool = False) -> None:
     """Prepare logging."""
     # Remove default loguru sinks
     logger.remove()
-    global _logging_configured, _logging_started, _buff_handler
+    global _logging_configured, _logging_started
 
     if _logging_configured:
         return
-
-    if 'dev' in __version__:
-        warnings.filterwarnings('always', category=DeprecationWarning, module='flexget.*')
-    warnings.simplefilter('once', append=True)
 
     logger.level('VERBOSE', no=VERBOSE, color='<bold>', icon='👄')
 
@@ -132,7 +144,7 @@ def initialize(unit_test: bool = False) -> None:
 
     # Add a handler that sores the last 100 debug lines to `debug_buffer` for use in crash reports
     logger.add(
-        lambda message: debug_buffer.append(message),
+        debug_buffer.append,
         level='DEBUG',
         format=LOG_FORMAT,
         backtrace=True,
@@ -144,12 +156,16 @@ def initialize(unit_test: bool = False) -> None:
 
 
 def start(
-    filename: str = None, level: str = 'INFO', to_console: bool = True, to_file: bool = True
+    filename: str | None = None,
+    level: str = 'INFO',
+    to_console: bool = True,
+    to_file: bool = True,
 ) -> None:
     """After initialization, start file logging."""
-    global _logging_started
+    global _logging_started, _startup_buffer, _startup_buffer_id
 
     assert _logging_configured
+
     if _logging_started:
         return
 
@@ -163,10 +179,11 @@ def start(
         logger.add(
             filename,
             level=level,
-            rotation=int(os.environ.get(ENV_MAXBYTES, 1000 * 1024)),
-            retention=int(os.environ.get(ENV_MAXCOUNT, 9)),
+            rotation=int(os.environ.get(ENV_MAXBYTES, str(1000 * 1024))),
+            retention=int(os.environ.get(ENV_MAXCOUNT, str(9))),
             encoding='utf-8',
             format=LOG_FORMAT,
+            filter=_log_filterer,
         )
 
     # without --cron we log to console
@@ -175,20 +192,17 @@ def start(
             logger.debug("No sys.stdout, can't log to console.")
         else:
             # Make sure we don't send any characters that the current terminal doesn't support printing
-            safe_stdout = codecs.getwriter(io_encoding)(sys.stdout.buffer, 'replace')
-            colorize = None
-            # Auto-detection for colorize doesn't seem to work properly for PyCharm.
-            if "PYCHARM_HOSTED" in os.environ:
-                colorize = True
-            logger.add(safe_stdout, level=level, format=LOG_FORMAT, colorize=colorize)
+            sys.stdout.reconfigure(errors='replace')
+            logger.add(sys.stdout, level=level, format=LOG_FORMAT, filter=_log_filterer)
+
+    if _startup_buffer_id is not None:
+        logger.remove(_startup_buffer_id)
+        _startup_buffer_id = None
 
     # flush what we have stored from the plugin initialization
-    global _startup_buffer, _startup_buffer_id
-    if _startup_buffer_id:
-        logger.remove(_startup_buffer_id)
+    if _startup_buffer:
         for record in _startup_buffer:
             level, message = record['level'].name, record['message']
-            logger.patch(lambda r: r.update(record)).log(level, message)
+            logger.patch(lambda r, record=record: r.update(record)).log(level, message)
         _startup_buffer = []
-        _startup_buffer_id = None
     _logging_started = True

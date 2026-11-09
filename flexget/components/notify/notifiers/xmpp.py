@@ -5,7 +5,7 @@ from loguru import logger
 from flexget import plugin
 from flexget.config_schema import one_or_more
 from flexget.event import event
-from flexget.plugin import DependencyError, PluginWarning
+from flexget.plugin import DependencyError
 
 plugin_name = 'xmpp'
 
@@ -13,9 +13,10 @@ logger = logger.bind(name=plugin_name)
 
 
 class XMPPNotifier:
-    """
-    Sends messages via XMPP. The sleekxmpp library is required to be installed.
-    Install it with: `pip install sleekxmpp`
+    """Send messages via XMPP.
+
+    The sleekxmpp library is required to be installed.
+    Install it with: ``pip install sleekxmpp``
 
     All fields are required.
 
@@ -45,21 +46,21 @@ class XMPPNotifier:
 
     def notify(self, title, message, config):
         try:
-            import sleekxmpp  # noqa
+            import sleekxmpp
         except ImportError as e:
             logger.debug('Error importing SleekXMPP: {}', e)
             raise DependencyError(
-                plugin_name, 'sleekxmpp', 'SleekXMPP module required. ImportError: %s' % e
+                plugin_name, 'sleekxmpp', f'SleekXMPP module required. ImportError: {e}'
             )
         try:
-            import dns  # noqa
+            import dns  # noqa: F401
         except ImportError:
             try:
-                import dnspython  # noqa
+                import dnspython  # noqa: F401
             except ImportError as e:
                 logger.debug('Error importing dnspython: {}', e)
                 raise DependencyError(
-                    plugin_name, 'dnspython', 'dnspython module required. ImportError: %s' % e
+                    plugin_name, 'dnspython', f'dnspython module required. ImportError: {e}'
                 )
 
         class SendMsgBot(sleekxmpp.ClientXMPP):
@@ -67,7 +68,7 @@ class XMPPNotifier:
                 sleekxmpp.ClientXMPP.__init__(self, jid, password)
                 self.recipients = recipients
                 self.msg = message
-                self.add_event_handler("session_start", self.start, threaded=True)
+                self.add_event_handler('session_start', self.start, threaded=True)
                 self.register_plugin('xep_0030')  # Service Discovery
                 self.register_plugin('xep_0199')  # XMPP Ping
 
@@ -77,7 +78,7 @@ class XMPPNotifier:
                     self.send_message(mto=recipient, mbody=self.msg, mtype='chat')
                 self.disconnect(wait=True)
 
-        message = '%s\n%s' % (title, message)
+        message = f'{title}\n{message}'
         logger.debug('Sending XMPP notification about: {}', message)
         logging.getLogger('sleekxmpp').setLevel(logging.CRITICAL)
 

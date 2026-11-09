@@ -1,53 +1,22 @@
-FROM docker.io/python:3-alpine
-ENV PYTHONUNBUFFERED 1
-
-RUN apk add --no-cache --upgrade \
-        ca-certificates \
-        nodejs \
-        build-base \
-        libffi-dev \
-        openssl-dev \
-        unzip && \
-    rm -rf /var/cache/apk/*
-
-WORKDIR /wheels
-
+FROM docker.io/python:3.11-alpine@sha256:bb1d70c1df30d8ee1e05214dbe82d6cdfd29833c1f47ce917f20991aca93acaa AS builder
+COPY --from=ghcr.io/astral-sh/uv:0.13.7@sha256:96f40d3904aad8d0bd010539001d36c8e2188b981e1334471a90c4a1d93bb490 /uv /uvx /bin/
+ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy
+WORKDIR /flexget
+RUN --mount=type=cache,target=/root/.cache/uv \
+    --mount=type=bind,source=scripts/bundle_webui.py,target=scripts/bundle_webui.py \
+    uv run scripts/bundle_webui.py
+RUN --mount=type=cache,target=/root/.cache/uv \
+    --mount=type=bind,source=uv.lock,target=uv.lock \
+    uv export --frozen --no-dev --group=all --no-emit-project -o pylock.toml -q && \
+    uv pip install --prefix /root-dir/usr/local -r pylock.toml
 COPY . /flexget
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv export --locked --no-dev --no-editable -o pylock.toml -q && \
+    BUNDLE_WEBUI_MODE=local uv pip install --prefix /root-dir/usr/local -r pylock.toml
 
-RUN pip install -U pip && \
-    pip wheel -e /flexget && \
-    pip wheel 'transmission-rpc>=3.0.0,<4.0.0' && \
-    pip wheel deluge-client && \
-    pip wheel cloudscraper
-
-WORKDIR /flexget-ui-v2
-RUN wget https://github.com/Flexget/webui/releases/latest/download/dist.zip && \
-    unzip dist.zip && \
-    rm dist.zip
-
-FROM docker.io/python:3-alpine
-ENV PYTHONUNBUFFERED 1
-
-RUN apk add --no-cache --upgrade \
-        ca-certificates \
-        nodejs && \
-    rm -rf /var/cache/apk/*
-
-COPY --from=0 /wheels /wheels
-
-RUN pip install -U pip && \
-    pip install --no-cache-dir \
-                --no-index \
-                -f /wheels \
-                FlexGet \
-                'transmission-rpc>=3.0.0,<4.0.0' \
-                deluge-client \
-                cloudscraper && \
-    rm -rf /wheels
-
-COPY --from=0 /flexget-ui-v2 /usr/local/lib/python3.9/site-packages/flexget/ui/v2/
-
-RUN mkdir /root/.flexget
-VOLUME /root/.flexget
-
+FROM docker.io/python:3.11-alpine@sha256:bb1d70c1df30d8ee1e05214dbe82d6cdfd29833c1f47ce917f20991aca93acaa
+ENV PYTHONUNBUFFERED=1
+COPY --from=builder /root-dir /
+VOLUME /config
+WORKDIR /config
 ENTRYPOINT ["flexget"]

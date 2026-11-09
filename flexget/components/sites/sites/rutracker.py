@@ -1,16 +1,14 @@
-# coding=utf-8
-
-
 import json
 import re
 from datetime import datetime, timedelta
 from time import sleep
+from typing import Any
 
 from loguru import logger
 from requests.auth import AuthBase
 from requests.exceptions import RequestException
 from requests.utils import dict_from_cookiejar
-from sqlalchemy import Column, DateTime, Integer, Unicode
+from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.types import VARCHAR, TypeDecorator
 
 from flexget import plugin
@@ -52,14 +50,15 @@ class JSONEncodedDict(TypeDecorator):
 
 class RutrackerAccount(Base):
     __tablename__ = 'rutracker_accoounts'
-    id = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
-    login = Column(Unicode, index=True)
-    cookies = Column(JSONEncodedDict)
-    expiry_time = Column(DateTime)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    login: Mapped[str | None] = mapped_column(index=True)
+    cookies: Mapped[dict[str, Any] | None] = mapped_column(JSONEncodedDict)
+    expiry_time: Mapped[datetime | None]
 
 
 class RutrackerAuth(AuthBase):
-    """Supports downloading of torrents from 'rutracker' tracker
+    """Support downloading of torrents from 'rutracker' tracker.
+
     if you pass cookies (CookieJar) to constructor then authentication will be bypassed and cookies will be just set
     """
 
@@ -76,16 +75,14 @@ class RutrackerAuth(AuthBase):
 
         if url:
             return url
-        else:
-            raise PluginError('Host unreachable.')
+        raise PluginError('Host unreachable.')
 
     def try_authenticate(self, payload):
         for _ in range(5):
-            self.requests.post('{}/forum/login.php'.format(self.base_url), data=payload)
+            self.requests.post(f'{self.base_url}/forum/login.php', data=payload)
             if self.requests.cookies and len(self.requests.cookies) > 0:
                 return self.requests.cookies
-            else:
-                sleep(3)
+            sleep(3)
         raise PluginError('unable to obtain cookies from rutracker')
 
     def __init__(self, requests, login, password, cookies=None, db_session=None):
@@ -113,9 +110,9 @@ class RutrackerAuth(AuthBase):
     def __call__(self, r):
         url = r.url
         t_id = re.findall(r'\d+', url)[0]
-        data = 't={}'.format(t_id)
+        data = f't={t_id}'
         headers = {
-            'referer': '{}/forum/viewtopic.php?t={}'.format(self.base_url, t_id),
+            'referer': f'{self.base_url}/forum/viewtopic.php?t={t_id}',
             'Content-Type': 'application/x-www-form-urlencoded',
             't': t_id,
             'Origin': self.base_url,
@@ -123,14 +120,16 @@ class RutrackerAuth(AuthBase):
         }
         r.prepare_body(data=data, files=None)
         r.prepare_method('POST')
-        r.prepare_url(url='{}/forum/dl.php?t={}'.format(self.base_url, t_id), params=None)
+        r.prepare_url(url=f'{self.base_url}/forum/dl.php?t={t_id}', params=None)
         r.prepare_headers(headers)
         r.prepare_cookies(self.cookies_)
         return r
 
 
 class RutrackerUrlrewrite:
-    """Usage:
+    """Rewrite RuTracker urls.
+
+    Usage:
 
     rutracker_auth:
       username: 'username_here'
@@ -172,8 +171,7 @@ class RutrackerUrlrewrite:
                 db_session.commit()
                 return None
             return account.cookies
-        else:
-            return None
+        return None
 
 
 @event('plugin.register')

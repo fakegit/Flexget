@@ -1,14 +1,14 @@
-from math import ceil
-from typing import List, Optional, TYPE_CHECKING
+from __future__ import annotations
 
-from flask import jsonify, request, Response
+from math import ceil
+from typing import TYPE_CHECKING
+
+from flask import jsonify, request
 from flask_restx import inputs
 from loguru import logger
-from sqlalchemy.orm import Session
 
 from flexget.api import APIResource, api
 from flexget.api.app import BadRequest, NotFoundError, etag, pagination_headers
-from flexget.config_schema import JsonSchema
 from flexget.plugin import DependencyError, get_plugin_by_name, get_plugins
 
 logger = logger.bind(name='plugins')
@@ -64,20 +64,27 @@ plugins_parser.add_argument(
 if TYPE_CHECKING:
     from typing import TypedDict
 
-    _PhaseHandler = TypedDict('_PhaseHandler', {'phase': str, 'priority': int})
+    from flask import Response
+    from sqlalchemy.orm import Session
+
+    from flexget.config_schema import JsonSchema
+
+    class _PhaseHandler(TypedDict):
+        phase: str
+        priority: int
 
     class PluginDict(TypedDict, total=False):
         name: str
         api_ver: int
         builtin: bool
-        category: Optional[str]
+        category: str | None
         debug: bool
-        interfaces: Optional[List[str]]
-        phase_handlers: List[_PhaseHandler]
-        schema: Optional[JsonSchema]
+        interfaces: list[str] | None
+        phase_handlers: list[_PhaseHandler]
+        schema: JsonSchema | None
 
 
-def plugin_to_dict(plugin) -> 'PluginDict':
+def plugin_to_dict(plugin) -> PluginDict:
     return {
         'name': plugin.name,
         'api_ver': plugin.api_ver,
@@ -86,7 +93,7 @@ def plugin_to_dict(plugin) -> 'PluginDict':
         'debug': plugin.debug,
         'interfaces': plugin.interfaces,
         'phase_handlers': [
-            dict(phase=handler, priority=event.priority)
+            {'phase': handler, 'priority': event.priority}
             for handler, event in plugin.phase_handlers.items()
         ],
     }
@@ -98,9 +105,9 @@ class PluginsAPI(APIResource):
     @api.response(200, model=plugin_list_reply_schema)
     @api.response(BadRequest)
     @api.response(NotFoundError)
-    @api.doc(parser=plugins_parser)
+    @api.doc(expect=[plugins_parser])
     def get(self, session: Session = None) -> Response:
-        """ Get list of registered plugins """
+        """Get list of registered plugins."""
         args = plugins_parser.parse_args()
 
         # Pagination and sorting params
@@ -108,8 +115,7 @@ class PluginsAPI(APIResource):
         per_page = args['per_page']
 
         # Handle max size limit
-        if per_page > 100:
-            per_page = 100
+        per_page = min(per_page, 100)
 
         start = per_page * (page - 1)
         stop = start + per_page
@@ -129,7 +135,7 @@ class PluginsAPI(APIResource):
         sliced_list = plugin_list[start:stop]
 
         # Total number of pages
-        total_pages = int(ceil(total_items / float(per_page)))
+        total_pages = ceil(total_items / float(per_page))
 
         if page > total_pages and total_pages != 0:
             raise NotFoundError(f'page {page} does not exist')
@@ -152,9 +158,9 @@ class PluginAPI(APIResource):
     @etag(cache_age=3600)
     @api.response(BadRequest)
     @api.response(200, model=plugin_schema)
-    @api.doc(parser=plugin_parser, params={'plugin_name': 'Name of the plugin to return'})
+    @api.doc(expect=[plugin_parser], params={'plugin_name': 'Name of the plugin to return'})
     def get(self, plugin_name: str, session=None):
-        """ Return plugin data by name"""
+        """Return plugin data by name."""
         args = plugin_parser.parse_args()
         try:
             plugin = get_plugin_by_name(plugin_name, issued_by='plugins API')

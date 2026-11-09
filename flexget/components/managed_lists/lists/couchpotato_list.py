@@ -17,77 +17,48 @@ class CouchPotatoBase:
     def movie_list_request(base_url, port, api_key):
         parsedurl = urlparse(base_url)
         logger.debug('Received movie list request')
-        return '%s://%s:%s%s/api/%s/movie.list?status=active' % (
-            parsedurl.scheme,
-            parsedurl.netloc,
-            port,
-            parsedurl.path,
-            api_key,
-        )
+        return f'{parsedurl.scheme}://{parsedurl.netloc}:{port}{parsedurl.path}/api/{api_key}/movie.list?status=active'
 
     @staticmethod
     def profile_list_request(base_url, port, api_key):
         parsedurl = urlparse(base_url)
         logger.debug('Received profile list request')
-        return '%s://%s:%s%s/api/%s/profile.list' % (
-            parsedurl.scheme,
-            parsedurl.netloc,
-            port,
-            parsedurl.path,
-            api_key,
-        )
+        return f'{parsedurl.scheme}://{parsedurl.netloc}:{port}{parsedurl.path}/api/{api_key}/profile.list'
 
     @staticmethod
     def movie_add_request(base_url, port, api_key):
         parsedurl = urlparse(base_url)
         logger.debug('Received movie add request')
-        return '%s://%s:%s%s/api/%s/movie.add' % (
-            parsedurl.scheme,
-            parsedurl.netloc,
-            port,
-            parsedurl.path,
-            api_key,
-        )
+        return f'{parsedurl.scheme}://{parsedurl.netloc}:{port}{parsedurl.path}/api/{api_key}/movie.add'
 
     @staticmethod
     def movie_delete_request(base_url, port, api_key):
         parsedurl = urlparse(base_url)
         logger.debug('Received movie delete request')
-        return '%s://%s:%s%s/api/%s/movie.delete?delete_from=wanted' % (
-            parsedurl.scheme,
-            parsedurl.netloc,
-            port,
-            parsedurl.path,
-            api_key,
-        )
+        return f'{parsedurl.scheme}://{parsedurl.netloc}:{port}{parsedurl.path}/api/{api_key}/movie.delete?delete_from=wanted'
 
     @staticmethod
     def build_url(base_url, request_type, port, api_key):
         if request_type == 'active':
             return CouchPotatoBase.movie_list_request(base_url, port, api_key)
-        elif request_type == 'profiles':
+        if request_type == 'profiles':
             return CouchPotatoBase.profile_list_request(base_url, port, api_key)
-        elif request_type == 'add':
+        if request_type == 'add':
             return CouchPotatoBase.movie_add_request(base_url, port, api_key)
-        elif request_type == 'delete':
+        if request_type == 'delete':
             return CouchPotatoBase.movie_delete_request(base_url, port, api_key)
-        else:
-            raise plugin.PluginError('Received unknown API request, aborting.')
+        raise plugin.PluginError('Received unknown API request, aborting.')
 
     @staticmethod
     def get_json(url):
         try:
             return requests.get(url).json()
         except RequestException as e:
-            raise plugin.PluginError(
-                'Unable to connect to Couchpotato at %s. Error: %s' % (url, e)
-            )
+            raise plugin.PluginError(f'Unable to connect to Couchpotato at {url}. Error: {e}')
 
     @staticmethod
     def quality_requirement_builder(quality_profile):
-        """
-        Converts CP's quality profile to a format that can be converted to FlexGet QualityRequirement
-        """
+        """Convert CP's quality profile to a format that can be converted to FlexGet QualityRequirement."""
         # TODO: Not all values have exact matches in flexget, need to update flexget qualities
         sources = {
             'BR-Disk': 'remux',  # Not a perfect match, but as close as currently possible
@@ -104,26 +75,16 @@ class CouchPotatoBase:
         resolutions = {'1080p': '1080p', '720p': '720p'}
 
         # Separate strings are needed for each QualityComponent
-        # TODO list is converted to set because if a quality has 3d type in CP, it gets duplicated during the conversion
-        # TODO when (and if) 3d is supported in flexget this will be needed to removed
-        res_string = '|'.join(
-            set(
-                [
-                    resolutions[quality]
-                    for quality in quality_profile['qualities']
-                    if quality in resolutions
-                ]
-            )
-        )
-        source_string = '|'.join(
-            set(
-                [
-                    sources[quality]
-                    for quality in quality_profile['qualities']
-                    if quality in sources
-                ]
-            )
-        )
+        # TODO: list is converted to set because if a quality has 3d type in CP, it gets duplicated during the conversion
+        # TODO: when (and if) 3d is supported in flexget this will be needed to removed
+        res_string = '|'.join({
+            resolutions[quality]
+            for quality in quality_profile['qualities']
+            if quality in resolutions
+        })
+        source_string = '|'.join({
+            sources[quality] for quality in quality_profile['qualities'] if quality in sources
+        })
 
         quality_requirement = (res_string + ' ' + source_string).rstrip()
         logger.debug('quality requirement is {}', quality_requirement)
@@ -160,7 +121,7 @@ class CouchPotatoBase:
                         ):  # Matches movie profile with profile JSON
                             quality_req = CouchPotatoBase.quality_requirement_builder(profile)
                 entry = Entry(
-                    title=movie["title"],
+                    title=movie['title'],
                     url='',
                     imdb_id=movie['info'].get('imdb'),
                     tmdb_id=movie['info'].get('tmdb_id'),
@@ -175,7 +136,7 @@ class CouchPotatoBase:
                     continue
                 # Test mode logging
                 if entry and test_mode:
-                    logger.info("Test mode. Entry includes:")
+                    logger.info('Test mode. Entry includes:')
                     for key, value in entry.items():
                         logger.info('     {}: {}', key.capitalize(), value)
 
@@ -185,14 +146,14 @@ class CouchPotatoBase:
     def add_movie(config, entry, test_mode=None):
         if not entry.get('imdb_id'):
             logger.error('Cannot add movie to couchpotato without an imdb ID: {}', entry)
-            return
+            return None
         logger.verbose('Connection to CouchPotato to add a movie to list.')
         add_movie_url = CouchPotatoBase.build_url(
             config.get('base_url'), 'add', config.get('port'), config.get('api_key')
         )
         title = entry.get('movie_name')
         imdb_id = entry.get('imdb_id')
-        add_movie_url += '?title=%s&identifier=%s' % (title, imdb_id)
+        add_movie_url += f'?title={title}&identifier={imdb_id}'
         add_movie_json = CouchPotatoBase.get_json(add_movie_url)
         return add_movie_json['movie']
 
@@ -202,7 +163,7 @@ class CouchPotatoBase:
         delete_movie_url = CouchPotatoBase.build_url(
             config.get('base_url'), 'delete', config.get('port'), config.get('api_key')
         )
-        delete_movie_url += '&id=%s' % movie_id
+        delete_movie_url += f'&id={movie_id}'
         CouchPotatoBase.get_json(delete_movie_url)
 
 
@@ -230,11 +191,10 @@ class CouchPotatoSet(MutableSet):
         for cp_entry in self.movies:
             for sup_id in self.supported_ids:
                 if (
-                    entry.get(sup_id) is not None
-                    and entry[sup_id] == cp_entry[sup_id]
-                    or entry.get('title').lower() == cp_entry.get('title').lower()
-                ):
+                    entry.get(sup_id) is not None and entry[sup_id] == cp_entry[sup_id]
+                ) or entry.get('title').lower() == cp_entry.get('title').lower():
                     return cp_entry
+        return None
 
     def __init__(self, config):
         self.config = config
@@ -274,8 +234,10 @@ class CouchPotatoSet(MutableSet):
 
     @property
     def online(self):
-        """Set the online status of the plugin, online plugin should be treated differently in certain situations,
-        like test mode"""
+        """Set the online status of the plugin.
+
+        Online plugin should be treated differently in certain situations, like test mode
+        """
         return True
 
     def get(self, entry):

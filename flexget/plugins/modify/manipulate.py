@@ -9,8 +9,9 @@ logger = logger.bind(name='manipulate')
 
 
 class Manipulate:
-    r"""
-    Usage:
+    r"""The manipulate plugin.
+
+    Usage::
 
       manipulate:
         - <destination field>:
@@ -23,12 +24,20 @@ class Manipulate:
               regexp: <regexp>
               format: <regexp>
             [remove]: <boolean>
+            [erase]: <list of regexps>
 
     Example:
+
+    .. code:: yaml
 
       manipulate:
         - title:
             extract: \[\d\d\d\d\](.*)
+        - title:
+            erase:
+              - "^unwanted.noise."
+              - "^more.advertisement."
+
     """
 
     schema = {
@@ -43,6 +52,10 @@ class Manipulate:
                     'extract': {'type': 'string', 'format': 'regex'},
                     'separator': {'type': 'string'},
                     'remove': {'type': 'boolean'},
+                    'erase': {
+                        'type': 'array',
+                        'items': {'type': 'string', 'format': 'regex'},
+                    },
                     'find_all': {'type': 'boolean'},
                     'replace': {
                         'type': 'object',
@@ -60,9 +73,9 @@ class Manipulate:
     }
 
     def on_task_start(self, task, config):
-        """
-        Separates the config into a dict with a list of jobs per phase.
-        Allows us to skip phases without any jobs in them.
+        """Separate the config into a dict with a list of jobs per phase.
+
+        Allow us to skip phases without any jobs in them.
         """
         self.phase_jobs = {'filter': [], 'metainfo': [], 'modify': []}
         for item in config:
@@ -84,10 +97,7 @@ class Manipulate:
         if not self.phase_jobs['filter']:
             # return if no jobs for this phase
             return
-        modified = sum(
-            self.process(entry, self.phase_jobs['filter'])
-            for entry in task.entries
-        )
+        modified = sum(self.process(entry, self.phase_jobs['filter']) for entry in task.entries)
         logger.verbose('Modified {} entries.', modified)
 
     @plugin.priority(plugin.PRIORITY_FIRST)
@@ -95,10 +105,7 @@ class Manipulate:
         if not self.phase_jobs['modify']:
             # return if no jobs for this phase
             return
-        modified = sum(
-            self.process(entry, self.phase_jobs['modify'])
-            for entry in task.entries
-        )
+        modified = sum(self.process(entry, self.phase_jobs['modify']) for entry in task.entries)
         logger.verbose('Modified {} entries.', modified)
 
     def process(self, entry, jobs):
@@ -108,7 +115,6 @@ class Manipulate:
         :param jobs: Config items to run on this entry
         :return: True if any fields were modified
         """
-
         modified = False
         for item in jobs:
             for field, config in item.items():
@@ -123,21 +129,44 @@ class Manipulate:
                     field_value,
                 )
                 if config.get('remove'):
+                    # Remove entire field
                     if field in entry:
                         del entry[field]
                         modified = True
                     continue
+                if config.get('erase'):
+                    # Erase text matching regex patterns
+                    if not field_value:
+                        logger.warning(
+                            'Cannot erase patterns, field `{}` is not present', from_field
+                        )
+                        continue
+                    original_value = field_value
+                    for pattern in config['erase']:
+                        field_value = re.sub(
+                            pattern, '', field_value, flags=re.IGNORECASE | re.UNICODE
+                        )
+                    field_value = field_value.strip()
+                    if original_value != field_value:
+                        logger.debug('field `{}` after erase patterns: `{}`', field, field_value)
+                    # Fail entry if title field becomes empty after erase
+                    if field == 'title' and not field_value:
+                        entry.fail('Title became empty after erase operation')
                 if 'extract' in config:
                     if not field_value:
                         logger.warning('Cannot extract, field `{}` is not present', from_field)
                         continue
                     if config.get('find_all'):
-                        match = re.findall(config['extract'], field_value, re.I | re.U)
+                        match = re.findall(
+                            config['extract'], field_value, re.IGNORECASE | re.UNICODE
+                        )
                         logger.debug('all matches: {}', match)
                         field_value = config.get('separator', ' ').join(match).strip()
                         logger.debug('field `{}` after extract: `{}`', field, field_value)
                     else:
-                        match = re.search(config['extract'], field_value, re.I | re.U)
+                        match = re.search(
+                            config['extract'], field_value, re.IGNORECASE | re.UNICODE
+                        )
                         if match:
                             groups = [x for x in match.groups() if x is not None]
                             logger.debug('groups: {}', groups)
@@ -149,7 +178,7 @@ class Manipulate:
                         logger.warning('Cannot replace, field `{}` is not present', from_field)
                         continue
                     replace_config = config['replace']
-                    regexp = re.compile(replace_config['regexp'], flags=re.I | re.U)
+                    regexp = re.compile(replace_config['regexp'], flags=re.IGNORECASE | re.UNICODE)
                     field_value = regexp.sub(replace_config['format'], field_value).strip()
                     logger.debug('field `{}` after replace: `{}`', field, field_value)
 

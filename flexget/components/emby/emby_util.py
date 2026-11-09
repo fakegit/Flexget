@@ -1,26 +1,26 @@
-from unicodedata import normalize
 import re
+from unicodedata import normalize
 
 SCHEMA_SERVER = {
     'oneOf': [
         {
             'type': 'object',
             'properties': {
-                'host': {'type': 'string', "default": "http://localhost:8096"},
-                "username": {'type': 'string'},
-                "password": {'type': 'string'},
-                "return_host": {'type': 'string', 'enum': ['lan', 'wan']},
+                'host': {'type': 'string', 'default': 'http://localhost:8096'},
+                'username': {'type': 'string'},
+                'password': {'type': 'string'},
+                'return_host': {'type': 'string', 'enum': ['lan', 'wan']},
             },
-            'required': ['username', "password"],
+            'required': ['username', 'password'],
             'additionalProperties': False,
         },
         {
             'type': 'object',
             'properties': {
-                'host': {'type': 'string', "default": "http://localhost:8096"},
+                'host': {'type': 'string', 'default': 'http://localhost:8096'},
                 'username': {'type': 'string'},
-                "apikey": {'type': 'string'},
-                "return_host": {'type': 'string', 'enum': ['lan', 'wan']},
+                'apikey': {'type': 'string'},
+                'return_host': {'type': 'string', 'enum': ['lan', 'wan']},
             },
             'required': ['username', 'apikey'],
             'additionalProperties': False,
@@ -29,11 +29,11 @@ SCHEMA_SERVER = {
 }
 
 
-SCHEMA_SERVER_TAG = {"server": {**SCHEMA_SERVER}}
+SCHEMA_SERVER_TAG = {'server': {**SCHEMA_SERVER}}
 
 
 SORT_FIELDS = [
-    'comunity_rating',
+    'community_rating',
     'critic_rating',
     'date_created',
     'date_played',
@@ -71,17 +71,17 @@ field_map = {
         'emby_page': 'page',
     },
     'series': {
-        'emby_serie_year': 'serie_year',
-        'emby_serie_aired_date': 'serie_aired_date',
-        'emby_serie_id': 'serie_id',
-        'emby_serie_name': 'serie_name',
-        'emby_serie_photo': 'serie_photo',
-        'emby_serie_imdb_id': 'serie_imdb_id',
-        'emby_serie_tvdb_id': 'serie_tvdb_id',
-        'emby_serie_overview': 'serie_overview',
-        'emby_serie_page': 'serie_page',
-        'imdb_id': 'serie_imdb_id',
-        'tvdb_id': 'serie_tvdb_id',
+        'emby_series_year': 'series_year',
+        'emby_series_aired_date': 'series_aired_date',
+        'emby_series_id': 'series_id',
+        'emby_series_name': 'series_name',
+        'emby_series_photo': 'series_photo',
+        'emby_series_imdb_id': 'series_imdb_id',
+        'emby_series_tvdb_id': 'series_tvdb_id',
+        'emby_series_overview': 'series_overview',
+        'emby_series_page': 'series_page',
+        'imdb_id': 'series_imdb_id',
+        'tvdb_id': 'series_tvdb_id',
     },
     'season': {
         'emby_season': 'season',
@@ -124,20 +124,20 @@ field_map = {
 
 
 def simplify_text(text: str) -> str:
-    """ Siplify text """
-
+    """Simplify text."""
     if not isinstance(text, str):
         return text
 
-    # Replace accented chars by their 'normal' couterparts
+    # Replace accented chars by their 'normal' counterparts
     result = normalize('NFKD', text)
 
     # Symbols that should be converted to white space
     result = re.sub(r'[ \(\)\-_\[\]\.]+', ' ', result)
     # Leftovers
-    result = re.sub(r"[^a-zA-Z0-9 ]", "", result)
+    result = re.sub(r'[^a-zA-Z0-9 ]', '', result)
     # Replace multiple white spaces with one
     result = ' '.join(result.split())
+    return None
 
 
 def get_field_map(**kwargs):

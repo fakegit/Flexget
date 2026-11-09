@@ -1,22 +1,35 @@
-FlexGet
-=======
-.. image:: https://github.com/Flexget/Flexget/workflows/Main%20Workflow/badge.svg?branch=develop&event=schedule
-    :target: https://github.com/Flexget/Flexget/actions?query=workflow%3A%22Main+Workflow%22+branch%3Adevelop+event%3Aschedule
+.. image:: https://github.com/flexget/flexget/raw/develop/docs/_static/logo.png
+   :align: center
+   :target: https://flexget.com
+   :height: 50
 
-.. image:: https://img.shields.io/pypi/v/Flexget.svg
-    :target: https://pypi.python.org/pypi/Flexget
+|
 
-.. image:: https://api.codacy.com/project/badge/Grade/86bb847efe984c12948bdeccabcbccad
-    :target: https://www.codacy.com/app/Flexget/Flexget?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=Flexget/Flexget&amp;utm_campaign=Badge_Grade
+.. image:: https://img.shields.io/pypi/v/flexget?logo=pypi&labelColor=F3F3F3
+   :target: https://pypi.org/project/flexget/
 
-.. image:: https://api.codacy.com/project/badge/Coverage/86bb847efe984c12948bdeccabcbccad
-    :target: https://www.codacy.com/app/Flexget/Flexget?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=Flexget/Flexget&amp;utm_campaign=Badge_Coverage
+.. image:: https://img.shields.io/docker/v/flexget/flexget/latest?logo=docker&label=docker&labelColor=F3F3F3
+   :target: https://hub.docker.com/r/flexget/flexget
 
-.. image:: https://img.shields.io/gitter/room/nwjs/nw.js.svg
-    :target: https://gitter.im/Flexget/Flexget
+.. image:: https://img.shields.io/pypi/pyversions/flexget?logo=python&labelColor=F3F3F3
+   :target: https://pypi.org/project/flexget/
 
-.. image:: http://isitmaintained.com/badge/resolution/Flexget/Flexget.svg
-    :target: http://isitmaintained.com/project/Flexget/Flexget
+.. image:: https://img.shields.io/codecov/c/github/flexget/flexget?logo=codecov&labelColor=F3F3F3
+   :target: https://codecov.io/gh/Flexget/Flexget
+
+..
+   Commenting these out for now, as they seem to be broken.
+   .. image:: https://api.codacy.com/project/badge/Grade/86bb847efe984c12948bdeccabcbccad
+      :target: https://www.codacy.com/app/Flexget/Flexget?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=Flexget/Flexget&amp;utm_campaign=Badge_Grade
+
+.. image:: https://img.shields.io/github/actions/workflow/status/flexget/flexget/test.yml?logo=github&logoColor=222222&label=tests&labelColor=F3F3F3
+   :target: https://github.com/Flexget/Flexget/actions/workflows/test.yml?query=branch%3Adevelop
+
+.. image:: https://img.shields.io/readthedocs/flexget?logo=readthedocs&labelColor=F3F3F3
+   :target: https://flexget.readthedocs.io/en/latest/
+
+.. image:: https://img.shields.io/discord/536690097056120833?logo=discord&label=discord&labelColor=F3F3F3
+   :target: https://discord.gg/W6CQrJx
 
 `FlexGet`_ is a multipurpose automation tool for content like torrents, nzbs,
 podcasts, comics, series, movies, etc. It can use different kinds of sources
@@ -26,10 +39,11 @@ plugins for sites that do not provide any kind of useful feeds.
 Example
 =======
 Flexget uses a `YAML`_ based configuration file.
-The following example will look in the RSS feed in the link, will match any item that match the series names and download it::
+The following example will look in the RSS feed in the link, will match any
+item that match the series names and download it::
 
     tasks:
-      tv_task:
+      tv:
         rss: http://example.com/torrents.xml
         series:
         - some series
@@ -41,7 +55,8 @@ and more are being added continuously.
 
 FlexGet is extremely useful in conjunction with applications which have watch
 directory support or provide interface for external utilities like FlexGet.
-To get a sense of the many things that can be done with FlexGet you can take a look in our `cookbook`_.
+To get a sense of the many things that can be done with FlexGet you can take
+a look in our `cookbook`_.
 
 .. _FlexGet: https://flexget.com
 
@@ -52,68 +67,26 @@ To get a sense of the many things that can be done with FlexGet you can take a l
 
 **ChangeLog:** https://flexget.com/ChangeLog
 
-**Help:** https://discuss.flexget.com/
+**Help:** https://github.com/Flexget/Flexget/discussions
 
 **Chat:** https://flexget.com/Chat
 
 **Bugs:** https://github.com/Flexget/Flexget/issues
+
+**API reference** https://flexget.readthedocs.io/en/latest/api/flexget.html
 
 Install
 -------
 
 FlexGet is installable via pip with the command::
 
-    pip install flexget
+   pip install flexget
 
 For more detailed instructions see the `installation guide`_.
 
 .. _installation guide: https://flexget.com/Install
 
-Feature requests
-----------------
-.. image:: http://feathub.com/Flexget/Flexget?format=svg
-   :target: http://feathub.com/Flexget/Flexget
-
-How to use GIT checkout
+How to contribute
 -----------------------
 
-Check that you have Python 3.6 or newer available with command ``python -V``.
-
-In some environments newer python might be available under another name like
-'python3.6' or 'python3' in which case you need to use that one instead of
-plain 'python'.
-
-To start using FlexGet from this directory::
-
-    python3 -m venv .
-
-This will initialize python virtualenv. This doesn't need to be directly in
-your checkout directory, but these instructions assume that's where it is.
-
-On some linux distributions (eg. debian, ubuntu) venv module is not included with
-python and this fails. Please install `python3-virtualenv` package and retry
-(or use the separate `virtualenv`_ python package).
-
-.. _virtualenv: https://pypi.python.org/pypi/virtualenv
-
-Upgrading pip to latest version is highly advisable and can de done with::
-
-    bin/pip install --upgrade pip
-
-Next we need to install dependencies and FlexGet itself, this can be done simply::
-
-    bin/pip install -e .
-
-This does an editable (`-e`) development install of the current directory (`.`).
-
-After that FlexGet is usable via ``<checkout directory>/bin/flexget``. Verify
-installation by running::
-
-    bin/flexget -V
-
-You may place the config file in your checkout directory, or in ``~/.flexget``
-(Unix, Mac OS X) or ``C:\Documents and Setting\<username>\flexget`` (Windows).
-
-If you don't want to use virtualenv there's ``flexget_vanilla.py`` file which
-can be used to run FlexGet without virtualenv, note that you will need to
-install all required dependencies yourself.
+Refer to the `contributor guide <https://flexget.readthedocs.io/en/latest/contributor/index.html>`__.

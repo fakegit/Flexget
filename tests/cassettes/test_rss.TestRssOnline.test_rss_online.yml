@@ -1,0 +1,471 @@
+interactions:
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      User-Agent:
+      - FlexGet/2.1.15.dev (www.flexget.com)
+    method: GET
+    uri: https://www.nasa.gov/rss/dyn/breaking_news.rss
+  response:
+    body:
+      string: "<?xml version=\"1.0\" encoding=\"utf-8\" ?> <rss version=\"2.0\" xml:base=\"http://www.nasa.gov/\"
+        xmlns:atom=\"http://www.w3.org/2005/Atom\" xmlns:dc=\"http://purl.org/dc/elements/1.1/\"
+        xmlns:itunes=\"http://www.itunes.com/dtds/podcast-1.0.dtd\" xmlns:media=\"http://search.yahoo.com/mrss/\">
+        <channel> <title>NASA Breaking News</title>\n <description>A RSS news feed
+        containing the latest NASA news articles and press releases.</description>\n
+        <link>http://www.nasa.gov/</link>\n <atom:link rel=\"self\" href=\"http://www.nasa.gov/rss/dyn/breaking_news.rss\"
+        />\n <language>en-us</language>\n <managingEditor>jim.wilson@nasa.gov</managingEditor>\n
+        <webMaster>brian.dunbar@nasa.gov</webMaster>\n <docs>http://blogs.harvard.edu/tech/rss</docs>\n
+        <item> <title>NASA&#039;s Next Mars Rover Progresses Toward 2020 Launch</title>\n
+        <link>http://www.nasa.gov/press-release/nasas-next-mars-rover-progresses-toward-2020-launch</link>\n
+        <description>After an extensive review process and passing a major development
+        milestone, NASA is ready to proceed with final design and construction of
+        its next Mars rover, currently targeted to launch in the summer of 2020 and
+        arrive on the Red Planet in February 2021.</description>\n <enclosure url=\"http://www.nasa.gov/sites/default/files/styles/1x1_cardfeed/public/thumbnails/image/m2020-rover-cad.jpg?itok=olhE5sKr\"
+        length=\"2021988\" type=\"image/jpeg\" />\n <guid isPermaLink=\"false\">http://www.nasa.gov/press-release/nasas-next-mars-rover-progresses-toward-2020-launch</guid>\n
+        <pubDate>Fri, 15 Jul 2016 12:24 EDT</pubDate>\n <source url=\"http://www.nasa.gov/rss/dyn/breaking_news.rss\">NASA
+        Breaking News</source>\n</item>\n <item> <title>NASA to Discuss Next Mars
+        Rover on Facebook Live</title>\n <link>http://www.nasa.gov/press-release/nasa-to-discuss-next-mars-rover-on-facebook-live</link>\n
+        <description>NASA will host a Facebook Live event at 1 p.m. EDT Friday, July
+        15, to talk about the science and technology aboard NASA&#039;s next Mars
+        rover, Mars 2020, and the significant step the agency is taking on its Journey
+        to Mars, proceeding with final design and construction of the robotic explorer.</description>\n
+        <enclosure url=\"http://www.nasa.gov/sites/default/files/styles/1x1_cardfeed/public/thumbnails/image/mars2020-full.jpg?itok=8EFFQ-of\"
+        length=\"3240784\" type=\"image/jpeg\" />\n <guid isPermaLink=\"false\">http://www.nasa.gov/press-release/nasa-to-discuss-next-mars-rover-on-facebook-live</guid>\n
+        <pubDate>Thu, 14 Jul 2016 15:20 EDT</pubDate>\n <source url=\"http://www.nasa.gov/rss/dyn/breaking_news.rss\">NASA
+        Breaking News</source>\n</item>\n <item> <title>Next Space Station Cargo Launch
+        From Virginia Targeted for August, NASA Opens Media Accreditation</title>\n
+        <link>http://www.nasa.gov/press-release/next-space-station-cargo-launch-from-virginia-targeted-for-august-nasa-opens-media</link>\n
+        <description>Media accreditation now is open for the launch of the next Orbital
+        ATK Commercial Resupply Services mission to the International Space Station
+        from NASA\u2019s Wallops Flight Facility in Virginia.</description>\n <enclosure
+        url=\"http://www.nasa.gov/sites/default/files/styles/1x1_cardfeed/public/thumbnails/image/14460373848_238fa212b5_o.jpg?itok=XGefXcRA\"
+        length=\"2493408\" type=\"image/jpeg\" />\n <guid isPermaLink=\"false\">http://www.nasa.gov/press-release/next-space-station-cargo-launch-from-virginia-targeted-for-august-nasa-opens-media</guid>\n
+        <pubDate>Thu, 14 Jul 2016 14:00 EDT</pubDate>\n <source url=\"http://www.nasa.gov/rss/dyn/breaking_news.rss\">NASA
+        Breaking News</source>\n</item>\n <item> <title>NASA, USAID Open Environmental
+        Monitoring Hub in West Africa</title>\n <link>http://www.nasa.gov/press-release/nasa-usaid-open-environmental-monitoring-hub-in-west-africa</link>\n
+        <description>NASA and the U.S. Agency for International Development (USAID)
+        have opened a new environmental monitoring program in West Africa that will
+        enhance the role of space-based observations in the management of climate-sensitive
+        issues facing the world today.</description>\n <enclosure url=\"http://www.nasa.gov/sites/default/files/styles/1x1_cardfeed/public/thumbnails/image/servirb.jpg?itok=iP8rJEqW\"
+        length=\"664206\" type=\"image/jpeg\" />\n <guid isPermaLink=\"false\">http://www.nasa.gov/press-release/nasa-usaid-open-environmental-monitoring-hub-in-west-africa</guid>\n
+        <pubDate>Thu, 14 Jul 2016 07:30 EDT</pubDate>\n <source url=\"http://www.nasa.gov/rss/dyn/breaking_news.rss\">NASA
+        Breaking News</source>\n</item>\n <item> <title>NASA to Televise Prelaunch
+        Briefing, Launch of Next Commercial Resupply Mission to International Space
+        Station</title>\n <link>http://www.nasa.gov/press-release/nasa-to-televise-prelaunch-briefing-launch-of-next-commercial-resupply-mission-to</link>\n
+        <description>NASA provider SpaceX is scheduled to deliver scientific research,
+        crew supplies and hardware on its ninth Commercial Resupply Services mission
+        to the International Space Station Monday, July 18. Coverage of this mission
+        will begin with a prelaunch news briefing at 2 p.m. EDT Saturday, July 16,
+        on NASA Television and the agency\u2019s website.</description>\n <enclosure
+        url=\"http://www.nasa.gov/sites/default/files/styles/1x1_cardfeed/public/thumbnails/image/minion-10_0.jpg?itok=ZotLTNrP\"
+        length=\"1783776\" type=\"image/jpeg\" />\n <guid isPermaLink=\"false\">http://www.nasa.gov/press-release/nasa-to-televise-prelaunch-briefing-launch-of-next-commercial-resupply-mission-to</guid>\n
+        <pubDate>Tue, 12 Jul 2016 16:48 EDT</pubDate>\n <source url=\"http://www.nasa.gov/rss/dyn/breaking_news.rss\">NASA
+        Breaking News</source>\n</item>\n <item> <title>NASA Television to Air International
+        Space Station Cargo Ship Launch, Docking</title>\n <link>http://www.nasa.gov/press-release/nasa-television-to-air-international-space-station-cargo-ship-launch-docking</link>\n
+        <description>NASA Television will provide live coverage of the launch and
+        docking of a Russian cargo spacecraft delivering three tons of food, fuel
+        and supplies to the International Space Station beginning at 5:30 p.m. EDT
+        Saturday, July 16.</description>\n <enclosure url=\"http://www.nasa.gov/sites/default/files/styles/1x1_cardfeed/public/thumbnails/image/m16-083.jpg?itok=qgGDHrM2\"
+        length=\"4296952\" type=\"image/jpeg\" />\n <guid isPermaLink=\"false\">http://www.nasa.gov/press-release/nasa-television-to-air-international-space-station-cargo-ship-launch-docking</guid>\n
+        <pubDate>Tue, 12 Jul 2016 09:25 EDT</pubDate>\n <source url=\"http://www.nasa.gov/rss/dyn/breaking_news.rss\">NASA
+        Breaking News</source>\n</item>\n <item> <title>NASA Media Day Kicks Off US
+        Airborne Greenhouse Gas Study</title>\n <link>http://www.nasa.gov/press-release/nasa-media-day-kicks-off-us-airborne-greenhouse-gas-study</link>\n
+        <description>NASA will host a media event from 9 to 11 a.m. EDT Friday, July
+        15 at the agency\u2019s Langley Research Center in Hampton, Virginia, offering
+        journalists an inside look at a new airborne study over the eastern United
+        States.</description>\n <enclosure url=\"http://www.nasa.gov/sites/default/files/styles/1x1_cardfeed/public/thumbnails/image/act_america_b200.jpg?itok=XeWX-R1Q\"
+        length=\"1202410\" type=\"image/jpeg\" />\n <guid isPermaLink=\"false\">http://www.nasa.gov/press-release/nasa-media-day-kicks-off-us-airborne-greenhouse-gas-study</guid>\n
+        <pubDate>Mon, 11 Jul 2016 09:00 EDT</pubDate>\n <source url=\"http://www.nasa.gov/rss/dyn/breaking_news.rss\">NASA
+        Breaking News</source>\n</item>\n <item> <title>NASA to Discuss Sequencing
+        DNA in Space, Highlight Research Headed to Space Station on Next SpaceX Cargo
+        Launch</title>\n <link>http://www.nasa.gov/press-release/nasa-to-discuss-sequencing-dna-in-space-highlight-research-headed-to-space-station-on</link>\n
+        <description>NASA will host a media teleconference at 2 p.m. EDT Wednesday,
+        July 13, to discuss the groundbreaking research and cargo aboard the next
+        SpaceX commercial resupply flight to the International Space Station.</description>\n
+        <enclosure url=\"http://www.nasa.gov/sites/default/files/styles/1x1_cardfeed/public/thumbnails/image/dragon.jpg?itok=JOehfBrY\"
+        length=\"1374950\" type=\"image/jpeg\" />\n <guid isPermaLink=\"false\">http://www.nasa.gov/press-release/nasa-to-discuss-sequencing-dna-in-space-highlight-research-headed-to-space-station-on</guid>\n
+        <pubDate>Thu, 07 Jul 2016 17:15 EDT</pubDate>\n <source url=\"http://www.nasa.gov/rss/dyn/breaking_news.rss\">NASA
+        Breaking News</source>\n</item>\n <item> <title>NASA Highlights Space Station
+        Research Benefits, Opportunities at San Diego Conference</title>\n <link>http://www.nasa.gov/press-release/nasa-highlights-space-station-research-benefits-opportunities-at-san-diego-conference</link>\n
+        <description>NASA astronauts, engineers and scientists will be joined by CNN\u2019s
+        Dr. Sanjay Gupta, retired astronauts Mark and Scott Kelly, and other special
+        guests, for a three-day, in-depth conversation about the International Space
+        Station (ISS) as a catalyst for discovery during the fifth annual ISS Research
+        &amp; Development Conference July 12-14 in San Diego.</description>\n <enclosure
+        url=\"http://www.nasa.gov/sites/default/files/styles/1x1_cardfeed/public/thumbnails/image/international_space_station.jpg?itok=9GmI_-pc\"
+        length=\"1639308\" type=\"image/jpeg\" />\n <guid isPermaLink=\"false\">http://www.nasa.gov/press-release/nasa-highlights-space-station-research-benefits-opportunities-at-san-diego-conference</guid>\n
+        <pubDate>Thu, 07 Jul 2016 15:30 EDT</pubDate>\n <source url=\"http://www.nasa.gov/rss/dyn/breaking_news.rss\">NASA
+        Breaking News</source>\n</item>\n <item> <title>NASA to Host Media Events
+        Marking Anniversary of First Mars Landing</title>\n <link>http://www.nasa.gov/press-release/nasa-to-host-media-events-marking-anniversary-of-first-mars-landing</link>\n
+        <description>NASA is celebrating the first successful landing on Mars by a
+        U.S. spacecraft \u2013 Viking 1 -- with a history discussion from 2 to 3:30
+        p.m. EDT Tuesday, July 19, and a Viking 40th anniversary symposium 8 a.m.
+        to 5:10 p.m. Wednesday, July 20 at NASA\u2019s Langley Research Center in
+        Hampton, Virginia.</description>\n <enclosure url=\"http://www.nasa.gov/sites/default/files/styles/1x1_cardfeed/public/thumbnails/image/viking40-76_002.jpg?itok=BMxWAIzX\"
+        length=\"1211236\" type=\"image/jpeg\" />\n <guid isPermaLink=\"false\">http://www.nasa.gov/press-release/nasa-to-host-media-events-marking-anniversary-of-first-mars-landing</guid>\n
+        <pubDate>Thu, 07 Jul 2016 12:43 EDT</pubDate>\n <source url=\"http://www.nasa.gov/rss/dyn/breaking_news.rss\">NASA
+        Breaking News</source>\n</item>\n</channel>\n</rss>\n"
+    headers:
+      age:
+      - '108'
+      cache-control:
+      - max-age=120, public
+      connection:
+      - keep-alive
+      content-encoding:
+      - gzip
+      content-language:
+      - en
+      content-length:
+      - '2885'
+      content-type:
+      - application/rss+xml; charset=utf-8
+      date:
+      - Sun, 17 Jul 2016 13:01:16 GMT
+      expires:
+      - Sun, 17 Jul 2016 13:01:28 GMT
+      server:
+      - nginx/1.10.1
+      vary:
+      - Accept-Encoding
+      x-nginx-cache-status:
+      - EXPIRED
+      x-ua-compatible:
+      - IE=edge
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Authorization:
+      - Basic dGVzdHVzZXI6dGVzdHBhc3M=
+      Connection:
+      - keep-alive
+      User-Agent:
+      - FlexGet/2.1.15.dev (www.flexget.com)
+    method: GET
+    uri: http://labs.silverorange.com/local/solabs/rsstest/httpauth/rss_with_auth.xml
+  response:
+    body:
+      string: "<?xml version=\"1.0\" encoding=\"iso-8859-1\"?>\n<rss version=\"2\"
+        \n  xmlns:dc=\"http://purl.org/dc/elements/1.1/\"\n  xmlns:sy=\"http://purl.org/rss/1.0/modules/syndication/\"\n
+        \ xmlns:admin=\"http://webns.net/mvcb/\"\n  xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\"\n
+        \ xmlns:content=\"http://purl.org/rss/1.0/modules/content/\">\n<channel>\n\n<title>Test
+        Feed (HTTP Auth, no SSL)</title>\n<link>http://labs.silverorange.com/</link>\n<description>RSS
+        Feed with HTTP authentification but with no SSL</description>\n<dc:language>en-ca</dc:language>\n<dc:creator>Steven
+        Garrity (steven@silverorange.com)</dc:creator>\n<dc:date>2003-07-09T11:52:15-0300</dc:date>\n<image>\n\t<title>silverorange
+        labs</title>\n\t<url>http://labs.silverorange.com/local/solabs/images/rsstitle.gif</url>\n\t<link>http://labs.silverorange.com/</link>\n</image>\n\n<item>\n\t<title>Nifty
+        Word Search Game</title>\n\t<link>http://labs.silverorange.com/archives/2003/july/wordsearch</link>\n\t<description><![CDATA[\"We
+        were recently doing some work on a site that included a childrens' section.
+        \ One potential concept that may be included in the future is a simple word
+        search game.  This is really a very simple little project, but I thought it
+        might be cool to share it with others.\" (176 words - posted by dburka) 1
+        reply]]></description>\n\t<guid>http://labs.silverorange.com/archives/2003/july/wordsearch</guid>\n\t<comments>http://labs.silverorange.com//archives2003/july/wordsearch#replies</comments>\n\t<content:encoded><![CDATA[\n\t\t<p>We
+        were recently doing some work on a site that included a childrens' section.
+        \ One potential concept that may be included in the future is a simple word
+        search game.  This is really a very simple little project, but I thought it
+        might be cool to share it with others.</p>\t\t\t<p><a href=\"http://labs.silverorange.com/archives/2003/july/wordsearch\"
+        title=\"read more\">Continue reading &#8220;<em>Nifty Word Search Game</em>&#8221;&nbsp;&#8230;</a></p>\n\t]]></content:encoded>\n\t<dc:date>2003-07-07T14:34:00-0300</dc:date>\n\t<dc:creator>Daniel
+        Burka</dc:creator>\n</item>\n\n<item>\n\t<title>Can you say that again?</title>\n\t<link>http://labs.silverorange.com/archives/2003/june/canyousaythat</link>\n\t<description><![CDATA[\"We&#8217;ve
+        come to a solution for the dreaded double post on blog replies.  And by we,
+        I mean other people than me within the company, I was just the one lucky enough
+        to implement it. We created a random &#8220;formid&#8221; key that gets put
+        in the reply form as a hidden field (which is easy as m...\" (148 words -
+        posted by isaac) 15 replies]]></description>\n\t<guid>http://labs.silverorange.com/archives/2003/june/canyousaythat</guid>\n\t<comments>http://labs.silverorange.com//archives2003/june/canyousaythat#replies</comments>\n\t<content:encoded><![CDATA[\n\t\t<p>We&#8217;ve
+        come to a solution for the dreaded double post on blog replies.  And by we,
+        I mean other people than me within the company, I was just the one lucky enough
+        to implement it.</p>\n\t\t<p>We created a random &#8220;formid&#8221; key
+        that gets put in the reply form as a hidden field (which is easy as <span
+        class=\"code\">md5(uniqid(\"\"))</span> in PHP). Then when the form is submitted,
+        we check to see if a reply already exists with that key.  If it exists,  then
+        it means its a double post.</p>\n\t\t<p>So voila, all of a sudden you no longer
+        get a double post when someone replies to your blog entry, and then refreshes
+        the window to see if someone else has replied (or some other random reason
+        - who really understands the mind of users).</p>\n\t\t<p>Got a better solution
+        to this problem?  Feel free to tell us how dumb we are.</p>\n\t]]></content:encoded>\n\t<dc:date>2003-06-29T20:51:00-0300</dc:date>\n\t<dc:creator>Isaac
+        Grant</dc:creator>\n</item>\n\n<item>\n\t<title>May I Take Your Photo?</title>\n\t<link>http://labs.silverorange.com/archives/2003/june/mayitakeyour</link>\n\t<description><![CDATA[\"One
+        of the tools developed for the photo gallery (and which has also been used
+        on several of our other projects) is a photo cropping tool.  Recently we&#8217;ve
+        developed a new cropping tool in Flash with improved functionality. I&#8217;ve
+        set up a live demo, and the source code (zip file) is also a...\" (343 words
+        - posted by nick) 7 replies]]></description>\n\t<guid>http://labs.silverorange.com/archives/2003/june/mayitakeyour</guid>\n\t<comments>http://labs.silverorange.com//archives2003/june/mayitakeyour#replies</comments>\n\t<content:encoded><![CDATA[\n\t\t<p><a
+        href=\"a/photogallery/photocropper\"><img src=\"local/solabs/images/cropper.jpg\"
+        alt=\"Image Cropper preview\" class=\"right border\" height=\"117\" width=\"104\"
+        /></a>One of the tools developed for the photo gallery (and which has also
+        been used on several of our other projects) is a photo cropping tool.  Recently
+        we&#8217;ve developed a new cropping tool in Flash with improved functionality.
+        I&#8217;ve set up a <a href=\"a/photogallery/photocropper\">live demo</a>,
+        and the <a href=\"include/cropper/silverorange_imagecropper.zip\">source code
+        (zip file)</a> is also available.</p>\t\t\t<p><a href=\"http://labs.silverorange.com/archives/2003/june/mayitakeyour\"
+        title=\"read more\">Continue reading &#8220;<em>May I Take Your Photo?</em>&#8221;&nbsp;&#8230;</a></p>\n\t]]></content:encoded>\n\t<dc:date>2003-06-29T18:29:00-0300</dc:date>\n\t<dc:creator>Nick
+        Burka</dc:creator>\n</item>\n\n<item>\n\t<title>Are these things for sale?</title>\n\t<link>http://labs.silverorange.com/archives/2003/june/arethesethings</link>\n\t<description><![CDATA[\"Some
+        of you may be wondering about the availability of the two main projects featured
+        on this site (the weblog platform and the photo gallery system). Neither are
+        available to the public (unless you are a close friend or pay us lots of money).
+        Both of these systems were developed internally for t...\" (200 words - posted
+        by steven) 11 replies]]></description>\n\t<guid>http://labs.silverorange.com/archives/2003/june/arethesethings</guid>\n\t<comments>http://labs.silverorange.com//archives2003/june/arethesethings#replies</comments>\n\t<content:encoded><![CDATA[\n\t\t<p>Some
+        of you may be wondering about the availability of the two main projects featured
+        on this site (the <a href=\"a/weblogplatform\">weblog platform</a> and the
+        <a href=\"a/photogallery\">photo gallery system</a>). Neither are available
+        to the public (unless you are a close friend or pay us lots of money).</p>\n\t\t<p>Both
+        of these systems were developed internally for two reasons:</p>\n\t\t<ol>\n\t\t<li>Solve
+        a problem of our own (publishing a weblog or photos)</li>\n\t\t<li>Play/experiment
+        with technology</li>\n\t\t</ol>\n\t\t<p>The photo resizing/manipulation code
+        developed with modest intentions has since proven valuable in other (commercial)
+        projects. Similarly, the abstraction of layout/design from the system in the
+        weblog platform is proving valuable in other projects.</p>\n\t\t<p>We have
+        toyed with the idea of releasing either or both systems. However, both systems
+        rely heavily on our own in-house proprietary PHP development platform (affectionately
+        called the PSeries). For now, at least, neither system will be released to
+        the public. In the meantime, we&#8217;ll be releasing a few bits and pieces
+        that we are able and willing to share.</p>\n\t\t<p>Another option we&#8217;ve
+        toyed with is selling either service (or both together) on a subscription
+        basis. However, we&#8217;re not sure we want to get into an end-user support
+        situation. There aren&#8217;t that many of us here and it&#8217;s not really
+        our focus as a business.</p>\n\t]]></content:encoded>\n\t<dc:date>2003-06-20T13:23:00-0300</dc:date>\n\t<dc:creator>Steven
+        Garrity</dc:creator>\n</item>\n\n<item>\n\t<title>Photo Gallery Bulk Uploading</title>\n\t<link>http://labs.silverorange.com/archives/2003/june/photogallery</link>\n\t<description><![CDATA[\"One
+        of the key upgrades to the PhotoGallery System is improving the way photos
+        can be added.  At the moment, the system is pretty basic and simply uploads
+        the files individually using &lt;input type=\"file\"&gt; input boxes. There
+        are various systems out there on commercial sites.  Some of these ...\" (279
+        words - posted by nick) 10 replies]]></description>\n\t<guid>http://labs.silverorange.com/archives/2003/june/photogallery</guid>\n\t<comments>http://labs.silverorange.com//archives2003/june/photogallery#replies</comments>\n\t<content:encoded><![CDATA[\n\t\t<p>One
+        of the key upgrades to the <a href=\"a/photogallery\">PhotoGallery System</a>
+        is improving the way photos can be added.  At the moment, the system is pretty
+        basic and simply uploads the files individually using <span class=\"code\">&lt;input
+        type=\"file\"&gt;</span> input boxes.</p>\n\t\t<p>There are various systems
+        out there on commercial sites.  Some of these include complex plug-ins that
+        allow drag-and-drop, FTP utilities, and applets. These are all somewhat of
+        a nuisance and require the user to download various bits and pieces to get
+        them working.  For a solution, I wanted something that would allow for multiple
+        file uploads, be easy to use, and take a minimum amount of time to develop.</p>\n\t\t<p>The
+        quick and easy solution that I&#8217;m strongly leaning toward is actually
+        incredibly simple.  PHP has an excellent set of <a href=\"http://ca3.php.net/manual/en/ref.zip.php\">ZIP
+        File functions</a>.  I quickly tested them last weekend and it&#8217;s as
+        simple as compiling PHP with zip support, and using the little snippet of
+        demo code on the PHP site.  All the user will have to do is take all of the
+        photos they want to upload, place them in a zip file, and upload the zip file
+        to the website.  Server-side, the photos are extracted from the zip file,
+        processed, and a wizard allows the user to enter photo information. While
+        not every end user knows how to zip a file, most do, and it&#8217;s relatively
+        easy to learn.  The only other concern is for Apple or Unix users, though
+        there are functions out there for .sit and .tar files that I could incorporate
+        later.</p>\n\t\t<p>Has anyone else come up with a bulk-file uploading system,
+        or have alternative ideas or suggestions?</p>\n\t\t<p style=\"margin-left:2em;\"><strong><a
+        href=\"http://www.silverorange.com/include/zip.php\">view zip extraction demo</a></strong>\n\t\t<br
+        />&nbsp;<br />\n\t\t<a href=\"local/solabs/images/codesample/image_zip_code.zip\"><img
+        src=\"local/solabs/images/zip.gif\" width=\"48\" height=\"48\" alt=\"Zip Icon\"
+        style=\"float: left; margin-right: 0.5em;\" /><strong>Code Sample</strong></a><br
+        /> \n\t\tZip File<br /> \n\t\t259Kb</p>\n\t]]></content:encoded>\n\t<dc:date>2003-06-19T15:40:00-0300</dc:date>\n\t<dc:creator>Nick
+        Burka</dc:creator>\n</item>\n\n<item>\n\t<title>Introducing the silverorange
+        Labs weblog</title>\n\t<link>http://labs.silverorange.com/archives/2003/june/introducingthe</link>\n\t<description><![CDATA[\"Welcome
+        to our new silverorange labs weblog. So far, we&#8217;re featuring details
+        on our internal weblog platform (used to publish this site) and our internal
+        photo gallery system. The weblog platform was recently redesigned and the
+        photo gallery is at the beginning of a significant upgrade...\" (76 words
+        - posted by steven) 5 replies]]></description>\n\t<guid>http://labs.silverorange.com/archives/2003/june/introducingthe</guid>\n\t<comments>http://labs.silverorange.com//archives2003/june/introducingthe#replies</comments>\n\t<content:encoded><![CDATA[\n\t\t<p>Welcome
+        to our new silverorange labs weblog. So far, we&#8217;re featuring details
+        on <a href=\"a/weblogplatform\">our internal weblog platform </a>(used to
+        publish this site) and <a href=\"a/photogallery\">our internal photo gallery
+        system</a>. The weblog platform was recently redesigned and the photo gallery
+        is at the beginning of a significant upgrade.</p>\n\t\t<p>We&#8217;ll be posting
+        updates to both of these projects and other side projects in the weeks and
+        months to come.</p>\n\t\t<p>For more about our new silverorange labs site,
+        see <a href=\"a/about\">About the silverorange Labs</a>.</p>\n\t]]></content:encoded>\n\t<dc:date>2003-06-19T10:12:00-0300</dc:date>\n\t<dc:creator>Steven
+        Garrity</dc:creator>\n</item>\n\n</channel>\n</rss>"
+    headers:
+      connection:
+      - Keep-Alive
+      content-encoding:
+      - gzip
+      content-length:
+      - '3727'
+      content-type:
+      - text/xml
+      date:
+      - Sun, 17 Jul 2016 13:01:16 GMT
+      keep-alive:
+      - timeout=2, max=100
+      last-modified:
+      - Wed, 09 Jul 2003 17:11:01 GMT
+      server:
+      - Apache/2.2.16 (Fedora)
+      vary:
+      - Accept-Encoding,User-Agent
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      User-Agent:
+      - FlexGet/2.1.15.dev (www.flexget.com)
+    method: GET
+    uri: http://labs.silverorange.com/local/solabs/rsstest/rss_plain.xml
+  response:
+    body:
+      string: "<?xml version=\"1.0\" encoding=\"iso-8859-1\"?>\n<rss version=\"2\"
+        \n  xmlns:dc=\"http://purl.org/dc/elements/1.1/\"\n  xmlns:sy=\"http://purl.org/rss/1.0/modules/syndication/\"\n
+        \ xmlns:admin=\"http://webns.net/mvcb/\"\n  xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\"\n
+        \ xmlns:content=\"http://purl.org/rss/1.0/modules/content/\">\n<channel>\n\n<title>Test
+        Feed (no HTTP Auth, no SSL)</title>\n<link>http://labs.silverorange.com/</link>\n<description>RSS
+        Feed with no HTTP authentification and no SSL</description>\n<dc:language>en-ca</dc:language>\n<dc:creator>Steven
+        Garrity (steven@silverorange.com)</dc:creator>\n<dc:date>2003-07-09T11:52:15-0300</dc:date>\n<image>\n\t<title>silverorange
+        labs</title>\n\t<url>http://labs.silverorange.com/local/solabs/images/rsstitle.gif</url>\n\t<link>http://labs.silverorange.com/</link>\n</image>\n\n<item>\n\t<title>Nifty
+        Word Search Game</title>\n\t<link>http://labs.silverorange.com/archives/2003/july/wordsearch</link>\n\t<description><![CDATA[\"We
+        were recently doing some work on a site that included a childrens' section.
+        \ One potential concept that may be included in the future is a simple word
+        search game.  This is really a very simple little project, but I thought it
+        might be cool to share it with others.\" (176 words - posted by dburka) 1
+        reply]]></description>\n\t<guid>http://labs.silverorange.com/archives/2003/july/wordsearch</guid>\n\t<comments>http://labs.silverorange.com//archives2003/july/wordsearch#replies</comments>\n\t<content:encoded><![CDATA[\n\t\t<p>We
+        were recently doing some work on a site that included a childrens' section.
+        \ One potential concept that may be included in the future is a simple word
+        search game.  This is really a very simple little project, but I thought it
+        might be cool to share it with others.</p>\t\t\t<p><a href=\"http://labs.silverorange.com/archives/2003/july/wordsearch\"
+        title=\"read more\">Continue reading &#8220;<em>Nifty Word Search Game</em>&#8221;&nbsp;&#8230;</a></p>\n\t]]></content:encoded>\n\t<dc:date>2003-07-07T14:34:00-0300</dc:date>\n\t<dc:creator>Daniel
+        Burka</dc:creator>\n</item>\n\n<item>\n\t<title>Can you say that again?</title>\n\t<link>http://labs.silverorange.com/archives/2003/june/canyousaythat</link>\n\t<description><![CDATA[\"We&#8217;ve
+        come to a solution for the dreaded double post on blog replies.  And by we,
+        I mean other people than me within the company, I was just the one lucky enough
+        to implement it. We created a random &#8220;formid&#8221; key that gets put
+        in the reply form as a hidden field (which is easy as m...\" (148 words -
+        posted by isaac) 15 replies]]></description>\n\t<guid>http://labs.silverorange.com/archives/2003/june/canyousaythat</guid>\n\t<comments>http://labs.silverorange.com//archives2003/june/canyousaythat#replies</comments>\n\t<content:encoded><![CDATA[\n\t\t<p>We&#8217;ve
+        come to a solution for the dreaded double post on blog replies.  And by we,
+        I mean other people than me within the company, I was just the one lucky enough
+        to implement it.</p>\n\t\t<p>We created a random &#8220;formid&#8221; key
+        that gets put in the reply form as a hidden field (which is easy as <span
+        class=\"code\">md5(uniqid(\"\"))</span> in PHP). Then when the form is submitted,
+        we check to see if a reply already exists with that key.  If it exists,  then
+        it means its a double post.</p>\n\t\t<p>So voila, all of a sudden you no longer
+        get a double post when someone replies to your blog entry, and then refreshes
+        the window to see if someone else has replied (or some other random reason
+        - who really understands the mind of users).</p>\n\t\t<p>Got a better solution
+        to this problem?  Feel free to tell us how dumb we are.</p>\n\t]]></content:encoded>\n\t<dc:date>2003-06-29T20:51:00-0300</dc:date>\n\t<dc:creator>Isaac
+        Grant</dc:creator>\n</item>\n\n<item>\n\t<title>May I Take Your Photo?</title>\n\t<link>http://labs.silverorange.com/archives/2003/june/mayitakeyour</link>\n\t<description><![CDATA[\"One
+        of the tools developed for the photo gallery (and which has also been used
+        on several of our other projects) is a photo cropping tool.  Recently we&#8217;ve
+        developed a new cropping tool in Flash with improved functionality. I&#8217;ve
+        set up a live demo, and the source code (zip file) is also a...\" (343 words
+        - posted by nick) 7 replies]]></description>\n\t<guid>http://labs.silverorange.com/archives/2003/june/mayitakeyour</guid>\n\t<comments>http://labs.silverorange.com//archives2003/june/mayitakeyour#replies</comments>\n\t<content:encoded><![CDATA[\n\t\t<p><a
+        href=\"a/photogallery/photocropper\"><img src=\"local/solabs/images/cropper.jpg\"
+        alt=\"Image Cropper preview\" class=\"right border\" height=\"117\" width=\"104\"
+        /></a>One of the tools developed for the photo gallery (and which has also
+        been used on several of our other projects) is a photo cropping tool.  Recently
+        we&#8217;ve developed a new cropping tool in Flash with improved functionality.
+        I&#8217;ve set up a <a href=\"a/photogallery/photocropper\">live demo</a>,
+        and the <a href=\"include/cropper/silverorange_imagecropper.zip\">source code
+        (zip file)</a> is also available.</p>\t\t\t<p><a href=\"http://labs.silverorange.com/archives/2003/june/mayitakeyour\"
+        title=\"read more\">Continue reading &#8220;<em>May I Take Your Photo?</em>&#8221;&nbsp;&#8230;</a></p>\n\t]]></content:encoded>\n\t<dc:date>2003-06-29T18:29:00-0300</dc:date>\n\t<dc:creator>Nick
+        Burka</dc:creator>\n</item>\n\n<item>\n\t<title>Are these things for sale?</title>\n\t<link>http://labs.silverorange.com/archives/2003/june/arethesethings</link>\n\t<description><![CDATA[\"Some
+        of you may be wondering about the availability of the two main projects featured
+        on this site (the weblog platform and the photo gallery system). Neither are
+        available to the public (unless you are a close friend or pay us lots of money).
+        Both of these systems were developed internally for t...\" (200 words - posted
+        by steven) 11 replies]]></description>\n\t<guid>http://labs.silverorange.com/archives/2003/june/arethesethings</guid>\n\t<comments>http://labs.silverorange.com//archives2003/june/arethesethings#replies</comments>\n\t<content:encoded><![CDATA[\n\t\t<p>Some
+        of you may be wondering about the availability of the two main projects featured
+        on this site (the <a href=\"a/weblogplatform\">weblog platform</a> and the
+        <a href=\"a/photogallery\">photo gallery system</a>). Neither are available
+        to the public (unless you are a close friend or pay us lots of money).</p>\n\t\t<p>Both
+        of these systems were developed internally for two reasons:</p>\n\t\t<ol>\n\t\t<li>Solve
+        a problem of our own (publishing a weblog or photos)</li>\n\t\t<li>Play/experiment
+        with technology</li>\n\t\t</ol>\n\t\t<p>The photo resizing/manipulation code
+        developed with modest intentions has since proven valuable in other (commercial)
+        projects. Similarly, the abstraction of layout/design from the system in the
+        weblog platform is proving valuable in other projects.</p>\n\t\t<p>We have
+        toyed with the idea of releasing either or both systems. However, both systems
+        rely heavily on our own in-house proprietary PHP development platform (affectionately
+        called the PSeries). For now, at least, neither system will be released to
+        the public. In the meantime, we&#8217;ll be releasing a few bits and pieces
+        that we are able and willing to share.</p>\n\t\t<p>Another option we&#8217;ve
+        toyed with is selling either service (or both together) on a subscription
+        basis. However, we&#8217;re not sure we want to get into an end-user support
+        situation. There aren&#8217;t that many of us here and it&#8217;s not really
+        our focus as a business.</p>\n\t]]></content:encoded>\n\t<dc:date>2003-06-20T13:23:00-0300</dc:date>\n\t<dc:creator>Steven
+        Garrity</dc:creator>\n</item>\n\n<item>\n\t<title>Photo Gallery Bulk Uploading</title>\n\t<link>http://labs.silverorange.com/archives/2003/june/photogallery</link>\n\t<description><![CDATA[\"One
+        of the key upgrades to the PhotoGallery System is improving the way photos
+        can be added.  At the moment, the system is pretty basic and simply uploads
+        the files individually using &lt;input type=\"file\"&gt; input boxes. There
+        are various systems out there on commercial sites.  Some of these ...\" (279
+        words - posted by nick) 10 replies]]></description>\n\t<guid>http://labs.silverorange.com/archives/2003/june/photogallery</guid>\n\t<comments>http://labs.silverorange.com//archives2003/june/photogallery#replies</comments>\n\t<content:encoded><![CDATA[\n\t\t<p>One
+        of the key upgrades to the <a href=\"a/photogallery\">PhotoGallery System</a>
+        is improving the way photos can be added.  At the moment, the system is pretty
+        basic and simply uploads the files individually using <span class=\"code\">&lt;input
+        type=\"file\"&gt;</span> input boxes.</p>\n\t\t<p>There are various systems
+        out there on commercial sites.  Some of these include complex plug-ins that
+        allow drag-and-drop, FTP utilities, and applets. These are all somewhat of
+        a nuisance and require the user to download various bits and pieces to get
+        them working.  For a solution, I wanted something that would allow for multiple
+        file uploads, be easy to use, and take a minimum amount of time to develop.</p>\n\t\t<p>The
+        quick and easy solution that I&#8217;m strongly leaning toward is actually
+        incredibly simple.  PHP has an excellent set of <a href=\"http://ca3.php.net/manual/en/ref.zip.php\">ZIP
+        File functions</a>.  I quickly tested them last weekend and it&#8217;s as
+        simple as compiling PHP with zip support, and using the little snippet of
+        demo code on the PHP site.  All the user will have to do is take all of the
+        photos they want to upload, place them in a zip file, and upload the zip file
+        to the website.  Server-side, the photos are extracted from the zip file,
+        processed, and a wizard allows the user to enter photo information. While
+        not every end user knows how to zip a file, most do, and it&#8217;s relatively
+        easy to learn.  The only other concern is for Apple or Unix users, though
+        there are functions out there for .sit and .tar files that I could incorporate
+        later.</p>\n\t\t<p>Has anyone else come up with a bulk-file uploading system,
+        or have alternative ideas or suggestions?</p>\n\t\t<p style=\"margin-left:2em;\"><strong><a
+        href=\"http://www.silverorange.com/include/zip.php\">view zip extraction demo</a></strong>\n\t\t<br
+        />&nbsp;<br />\n\t\t<a href=\"local/solabs/images/codesample/image_zip_code.zip\"><img
+        src=\"local/solabs/images/zip.gif\" width=\"48\" height=\"48\" alt=\"Zip Icon\"
+        style=\"float: left; margin-right: 0.5em;\" /><strong>Code Sample</strong></a><br
+        /> \n\t\tZip File<br /> \n\t\t259Kb</p>\n\t]]></content:encoded>\n\t<dc:date>2003-06-19T15:40:00-0300</dc:date>\n\t<dc:creator>Nick
+        Burka</dc:creator>\n</item>\n\n<item>\n\t<title>Introducing the silverorange
+        Labs weblog</title>\n\t<link>http://labs.silverorange.com/archives/2003/june/introducingthe</link>\n\t<description><![CDATA[\"Welcome
+        to our new silverorange labs weblog. So far, we&#8217;re featuring details
+        on our internal weblog platform (used to publish this site) and our internal
+        photo gallery system. The weblog platform was recently redesigned and the
+        photo gallery is at the beginning of a significant upgrade...\" (76 words
+        - posted by steven) 5 replies]]></description>\n\t<guid>http://labs.silverorange.com/archives/2003/june/introducingthe</guid>\n\t<comments>http://labs.silverorange.com//archives2003/june/introducingthe#replies</comments>\n\t<content:encoded><![CDATA[\n\t\t<p>Welcome
+        to our new silverorange labs weblog. So far, we&#8217;re featuring details
+        on <a href=\"a/weblogplatform\">our internal weblog platform </a>(used to
+        publish this site) and <a href=\"a/photogallery\">our internal photo gallery
+        system</a>. The weblog platform was recently redesigned and the photo gallery
+        is at the beginning of a significant upgrade.</p>\n\t\t<p>We&#8217;ll be posting
+        updates to both of these projects and other side projects in the weeks and
+        months to come.</p>\n\t\t<p>For more about our new silverorange labs site,
+        see <a href=\"a/about\">About the silverorange Labs</a>.</p>\n\t]]></content:encoded>\n\t<dc:date>2003-06-19T10:12:00-0300</dc:date>\n\t<dc:creator>Steven
+        Garrity</dc:creator>\n</item>\n\n</channel>\n</rss>"
+    headers:
+      connection:
+      - Keep-Alive
+      content-encoding:
+      - gzip
+      content-length:
+      - '3729'
+      content-type:
+      - text/xml
+      date:
+      - Sun, 17 Jul 2016 13:01:17 GMT
+      keep-alive:
+      - timeout=2, max=100
+      last-modified:
+      - Wed, 09 Jul 2003 17:10:48 GMT
+      server:
+      - Apache/2.2.16 (Fedora)
+      vary:
+      - Accept-Encoding,User-Agent
+    status:
+      code: 200
+      message: OK
+version: 1

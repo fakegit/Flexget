@@ -1,34 +1,31 @@
+import contextlib
+
 from loguru import logger
 
-from flexget import options, plugin
+from flexget import options
 from flexget.event import event
 from flexget.terminal import console
 
-try:
+with contextlib.suppress(ImportError):
     from guppy import hpy
-except ImportError:
-    # this will leave the plugin unloaded
-    raise plugin.DependencyError(issued_by='memusage', missing='ext lib `guppy`', silent=True)
 
 logger = logger.bind(name='mem_usage')
 
-"""
-http://blog.mfabrik.com/2008/03/07/debugging-django-memory-leak-with-trackrefs-and-guppy/
-
-# Print memory statistics
-def update():
-    print heapy.heap()
-
-# Print relative memory consumption since last sycle
-def update():
-    print heapy.heap()
-    heapy.setref()
-
-# Print relative memory consumption w/heap traversing
-def update()
-    print heapy.heap().get_rp(40)
-    heapy.setref()
-"""
+# http://blog.mfabrik.com/2008/03/07/debugging-django-memory-leak-with-trackrefs-and-guppy/
+#
+# # Print memory statistics
+# def update():
+#     print heapy.heap()
+#
+# # Print relative memory consumption since last cycle
+# def update():
+#     print heapy.heap()
+#     heapy.setref()
+#
+# # Print relative memory consumption w/heap traversing
+# def update()
+#     print heapy.heap().get_rp(40)
+#     heapy.setref()
 
 heapy = None
 
@@ -46,12 +43,15 @@ def on_manager_shutdown(manager):
     if not manager.options.mem_usage:
         return
 
-    import resource
+    try:
+        import resource
 
-    console(
-        'Resource Module memory usage: %s (kb)'
-        % resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
-    )
+        console(
+            f'Resource Module memory usage: {resource.getrusage(resource.RUSAGE_SELF).ru_maxrss} (kb)'
+        )
+    except ImportError:
+        console('Resource Module memory usage:')
+
     global heapy
     console('Heapy module calculating memory usage:')
     console(heapy.heap())

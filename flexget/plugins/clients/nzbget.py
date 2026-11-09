@@ -7,14 +7,15 @@ logger = logger.bind(name='nzbget')
 
 
 class OutputNzbget:
-    """
+    """The nzbget plugin.
+
     Example::
 
-      nzbget:
-        url: http://nzbget:12345@localhost:6789/xmlrpc
-        category: movies
-        priority: 0
-        top: False
+        nzbget:
+          url: http://nzbget:12345@localhost:6789/xmlrpc
+          category: movies
+          priority: 0
+          top: False
     """
 
     schema = {
@@ -34,7 +35,7 @@ class OutputNzbget:
 
         params = dict(config)
 
-        server = ServerProxy(params["url"])
+        server = ServerProxy(params['url'])
 
         for entry in task.accepted:
             if task.options.test:

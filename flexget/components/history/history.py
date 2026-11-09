@@ -9,12 +9,12 @@ logger = logger.bind(name='history')
 
 
 class PluginHistory:
-    """Records all accepted entries for later lookup"""
+    """Records all accepted entries for later lookup."""
 
     schema = {'type': 'boolean'}
 
     def on_task_learn(self, task, config):
-        """Add accepted entries to history"""
+        """Add accepted entries to history."""
         if config is False:
             return  # Explicitly disabled with configuration
 
@@ -26,8 +26,8 @@ class PluginHistory:
             item.url = entry['url']
             reason = ''
             if 'reason' in entry:
-                reason = ' (reason: %s)' % entry['reason']
-            item.details = 'Accepted by %s%s' % (entry.get('accepted_by', '<unknown>'), reason)
+                reason = ' (reason: {})'.format(entry['reason'])
+            item.details = 'Accepted by {}{}'.format(entry.get('accepted_by', '<unknown>'), reason)
             task.session.add(item)
 
 

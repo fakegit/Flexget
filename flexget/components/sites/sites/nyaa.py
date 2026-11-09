@@ -71,7 +71,7 @@ class UrlRewriteNyaa:
         entries = set()
         for search_string in entry.get('search_strings', [entry['title']]):
             name = normalize_unicode(search_string)
-            url = 'https://www.nyaa.si/?page=rss&q=%s&c=%s&f=%s' % (
+            url = 'https://www.nyaa.si/?page=rss&q={}&c={}&f={}'.format(
                 quote(name.encode('utf-8')),
                 CATEGORIES[config['category']],
                 FILTERS.index(config['filter']),
@@ -112,7 +112,7 @@ class UrlRewriteNyaa:
         return entry['url'].startswith('https://www.nyaa.si/view/')
 
     def url_rewrite(self, task, entry):
-        entry['url'] = entry['url'].replace('view', 'download') + ".torrent"
+        entry['url'] = entry['url'].replace('view', 'download') + '.torrent'
 
 
 @event('plugin.register')

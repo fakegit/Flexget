@@ -10,17 +10,14 @@ logger = logger.bind(name='metainfo_imdb_url')
 
 
 class MetainfoImdbUrl:
-    """
-    Scan entry information for imdb url.
-    """
+    """Scan entry information for imdb url."""
 
     schema = {'type': 'boolean'}
 
     def on_task_metainfo(self, task, config):
         # check if disabled (value set to false)
-        if 'scan_imdb' in task.config:
-            if not task.config['scan_imdb']:
-                return
+        if 'scan_imdb' in task.config and not task.config['scan_imdb']:
+            return
 
         for entry in task.entries:
             # Don't override already populated imdb_ids
@@ -30,7 +27,7 @@ class MetainfoImdbUrl:
                 continue
             urls = re.findall(r'\bimdb.com/title/tt\d+\b', entry['description'])
             # Find unique imdb ids
-            imdb_ids = [_f for _f in set(extract_id(url) for url in urls) if _f]
+            imdb_ids = [_f for _f in {extract_id(url) for url in urls} if _f]
             if not imdb_ids:
                 continue
 

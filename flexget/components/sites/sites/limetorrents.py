@@ -15,21 +15,18 @@ logger = logger.bind(name='limetorrents')
 
 
 def clean_symbols(text):
-    """Replaces common symbols with spaces. Also normalize unicode strings in decomposed form."""
+    """Replace common symbols with spaces. Also normalize unicode strings in decomposed form."""
     result = text
     if isinstance(result, str):
         result = normalize('NFKD', result)
     result = re.sub(r'[ \(\)\-_\[\]\.]+', ' ', result).lower()
 
     # Leftovers
-    result = re.sub(r"[^a-zA-Z0-9 ]", "", result)
-    return result
+    return re.sub(r'[^a-zA-Z0-9 ]', '', result)
 
 
 class Limetorrents:
-    """
-    Limetorrents search plugin.
-    """
+    """Limetorrents search plugin."""
 
     schema = {
         'oneOf': [
@@ -63,21 +60,17 @@ class Limetorrents:
 
     @plugin.internet(logger)
     def search(self, task, entry, config):
-        """
-        Search for entries on Limetorrents
-        """
-
+        """Search for entries on Limetorrents."""
         if not isinstance(config, dict):
             config = {'category': config}
 
         order_by = ''
-        if isinstance(config.get('order_by'), str):
-            if config['order_by'] != 'date':
-                order_by = '{0}/1'.format(config['order_by'])
+        if isinstance(config.get('order_by'), str) and config['order_by'] != 'date':
+            order_by = '{}/1'.format(config['order_by'])
 
         category = 'all'
         if isinstance(config.get('category'), str):
-            category = '{0}'.format(config['category'])
+            category = '{}'.format(config['category'])
 
         entries = set()
 
@@ -85,7 +78,7 @@ class Limetorrents:
             # No special characters - use dashes instead of %20
             cleaned_search_string = clean_symbols(search_string).replace(' ', '-')
 
-            query = 'search/{0}/{1}/{2}'.format(
+            query = 'search/{}/{}/{}'.format(
                 category, cleaned_search_string.encode('utf8'), order_by
             )
             logger.debug(
@@ -104,7 +97,6 @@ class Limetorrents:
             soup = get_soup(page.content)
             if soup.find('a', attrs={'class': 'csprite_dl14'}) is not None:
                 for link in soup.findAll('a', attrs={'class': 'csprite_dl14'}):
-
                     row = link.find_parent('tr')
                     info_url = str(link.get('href'))
 

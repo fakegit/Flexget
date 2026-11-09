@@ -38,14 +38,15 @@ CATEGORIES = {
 
 
 class UrlRewriteTorrentleech:
-    """
-    Torrentleech urlrewriter and search plugin.
+    """Torrentleech urlrewriter and search plugin.
 
-    torrentleech:
-      rss_key: xxxxxxxxx  (required)
-      username: xxxxxxxx  (required)
-      password: xxxxxxxx  (required)
-      category: HD
+    ::
+
+        torrentleech:
+          rss_key: xxxxxxxxx  (required)
+          username: xxxxxxxx  (required)
+          password: xxxxxxxx  (required)
+          category: HD
 
       Category is any combination of: all, Cam, TS, TS/TC, DVDRip,
       DVDRip/DVDScreener, WEBRip': 37, HDRip': 43, BDRip, DVDR,
@@ -59,9 +60,9 @@ class UrlRewriteTorrentleech:
             'rss_key': {'type': 'string'},
             'username': {'type': 'string'},
             'password': {'type': 'string'},
-            'category': one_or_more(
-                {'oneOf': [{'type': 'integer'}, {'type': 'string', 'enum': list(CATEGORIES)}]}
-            ),
+            'category': one_or_more({
+                'oneOf': [{'type': 'integer'}, {'type': 'string', 'enum': list(CATEGORIES)}]
+            }),
         },
         'required': ['rss_key', 'username', 'password'],
         'additionalProperties': False,
@@ -72,9 +73,7 @@ class UrlRewriteTorrentleech:
         url = entry['url']
         if url.endswith('.torrent'):
             return False
-        if url.startswith('https://www.torrentleech.org/'):
-            return True
-        return False
+        return bool(url.startswith('https://www.torrentleech.org/'))
 
     # urlrewriter API
     def url_rewrite(self, task, entry):
@@ -86,15 +85,13 @@ class UrlRewriteTorrentleech:
             # use search
             results = self.search(task, entry)
             if not results:
-                raise UrlRewritingError("No search results found")
+                raise UrlRewritingError('No search results found')
             # TODO: Search doesn't enforce close match to title, be more picky
             entry['url'] = results[0]['url']
 
     @plugin.internet(logger)
     def search(self, task, entry, config=None):
-        """
-        Search for name from torrentleech.
-        """
+        """Search for name from torrentleech."""
         request_headers = {'User-Agent': 'curl/7.54.0'}
         rss_key = config['rss_key']
 
@@ -109,7 +106,7 @@ class UrlRewriteTorrentleech:
                 allow_redirects=True,
             )
         except RequestException as e:
-            raise PluginError('Could not connect to torrentleech: %s' % str(e))
+            raise PluginError(f'Could not connect to torrentleech: {e!s}')
 
         if login.url.endswith('/user/account/login/'):
             raise PluginError('Could not login to torrentleech, faulty credentials?')
@@ -128,7 +125,7 @@ class UrlRewriteTorrentleech:
         filter_url = '/categories/{}'.format(','.join(str(c) for c in categories))
         entries = set()
         for search_string in entry.get('search_strings', [entry['title']]):
-            query = normalize_unicode(search_string).replace(":", "")
+            query = normalize_unicode(search_string).replace(':', '')
             # urllib.quote will crash if the unicode string has non ascii characters,
             # so encode in utf-8 beforehand
 

@@ -1,4 +1,5 @@
 import sys
+from datetime import date
 
 from loguru import logger
 
@@ -10,8 +11,7 @@ found_deprecated = False
 
 
 class ChangeWarn:
-    """
-    Gives warning if user has deprecated / changed configuration in the root level.
+    """Gives warning if user has deprecated / changed configuration in the root level.
 
     Will be replaced by root level validation in the future!
 
@@ -37,6 +37,15 @@ class ChangeWarn:
 @event('plugin.register')
 def register_plugin():
     plugin.register(ChangeWarn, 'change_warn', builtin=True, api_ver=2)
+
+
+@event('manager.startup')
+def startup_warnings(manager):
+    if sys.version_info < (3, 12) and date.today() > date(year=2027, month=10, day=1):
+        logger.warning(
+            'Python 3.11 is EOL as of October 2027. FlexGet will eventually remove support for it. '
+            'You should upgrade to Python 3.12 or later.'
+        )
 
 
 # check that no old plugins are in pre-compiled form (pyc)
